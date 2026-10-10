@@ -19,7 +19,7 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Breaking
 
-- **The Go API is 370 exported symbols, down from 1,867.** If you imported
+- **The Go API is 372 exported symbols, down from 1,867.** If you imported
   doze-aws as a library at 0.x, the packages you called are still there and
   still work — `New(Options) → *Server`, `dozeaws.NewStack`, `peers`,
   `awsident` — but everything that was never part of that contract is gone.

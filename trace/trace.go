@@ -88,11 +88,11 @@ type Event struct {
 // than as a failure of doze-aws itself.
 type httpStatuser interface{ HTTPStatus() int }
 
-// Denier is implemented by an error that carries the X-Doze-Denied fact.
-type Denier interface{ DeniedBy() string }
+// denier is implemented by an error that carries the X-Doze-Denied fact.
+type denier interface{ DeniedBy() string }
 
 func deniedOf(err error) string {
-	var d Denier
+	var d denier
 	if errors.As(err, &d) {
 		return d.DeniedBy()
 	}

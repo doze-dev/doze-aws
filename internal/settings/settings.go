@@ -117,18 +117,6 @@ func Lookup(service, name string) (Setting, bool) {
 	return Setting{}, false
 }
 
-// Services lists the services that have registered, sorted.
-func Services() []string {
-	mu.Lock()
-	defer mu.Unlock()
-	out := make([]string, 0, len(builders))
-	for k := range builders {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
-}
-
 // Built reports whether a service's builder has run, for the test that holds
 // the "nothing is built until asked" promise.
 func Built(service string) bool {

@@ -18,24 +18,24 @@
     "embed": {
       "docs/SUPPORT.md": {
         "bytes": {
-          "measured": 195778,
-          "ceiling": 244736
+          "measured": 196359,
+          "ceiling": 245760
         },
         "files": 1
       },
       "internal/console/static": {
         "bytes": {
-          "measured": 1040965,
-          "ceiling": 1301504
+          "measured": 1053321,
+          "ceiling": 1316864
         },
         "files": 36
       },
       "internal/console/templates": {
         "bytes": {
-          "measured": 548596,
-          "ceiling": 686080
+          "measured": 560088,
+          "ceiling": 700416
         },
-        "files": 27
+        "files": 28
       },
       "lambdaruntime/shims": {
         "bytes": {
@@ -170,12 +170,12 @@
       "target": "linux/amd64",
       "flags": "-trimpath -buildvcs=false -ldflags -s -w -X main.version=v0.0.0",
       "bytes": {
-        "measured": 22929568,
-        "ceiling": 28662784
+        "measured": 23625888,
+        "ceiling": 29533184
       },
       "gzipped_bytes": {
-        "measured": 9102955,
-        "ceiling": 11379712
+        "measured": 9358800,
+        "ceiling": 11699200
       }
     }
   },
@@ -184,15 +184,15 @@
     "shapes": {
       "full": {
         "heap_alloc_bytes": {
-          "measured": 3825296,
+          "measured": 3866840,
           "ceiling": 5709824
         },
         "retained_bytes": {
-          "measured": 11991320,
+          "measured": 11995400,
           "ceiling": 17317888
         },
         "max_rss_bytes": {
-          "measured": 28983296,
+          "measured": 29458432,
           "ceiling": 46104576
         },
         "goroutines": {
@@ -200,7 +200,7 @@
           "ceiling": 37
         },
         "cpu_micros": {
-          "measured": 243,
+          "measured": 103,
           "ceiling": 27120
         },
         "sched_events": {
@@ -208,25 +208,25 @@
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 1737,
+          "measured": 1878,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 146,
+          "measured": 159,
           "ceiling": 7020
         }
       },
       "sqs+s3": {
         "heap_alloc_bytes": {
-          "measured": 3628800,
+          "measured": 3670496,
           "ceiling": 5391360
         },
         "retained_bytes": {
-          "measured": 11258120,
+          "measured": 11561224,
           "ceiling": 16420864
         },
         "max_rss_bytes": {
-          "measured": 27066368,
+          "measured": 27475968,
           "ceiling": 39813120
         },
         "goroutines": {
@@ -234,19 +234,19 @@
           "ceiling": 8
         },
         "cpu_micros": {
-          "measured": 66,
+          "measured": 62,
           "ceiling": 25550
         },
         "sched_events": {
-          "measured": 1,
+          "measured": 0,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 988,
+          "measured": 842,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 93,
+          "measured": 77,
           "ceiling": 2100
         }
       }

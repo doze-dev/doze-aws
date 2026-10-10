@@ -12,7 +12,7 @@ named. A promise nothing checks is a sentence, not a contract.
 ## The Go API
 
 **Covered:** every exported symbol in
-[`testdata/api.txt`](../testdata/api.txt) — 370 of them, across 22 packages.
+[`testdata/api.txt`](../testdata/api.txt) — 372 of them, across 22 packages.
 Function signatures, struct fields, interface methods, constants.
 
 `TestThePublicAPIIsWhatWeSaidItWas` compares the tree against that file on
