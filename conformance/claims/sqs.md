@@ -24,5 +24,6 @@ the scenarios already in `test_sqs.py` carry the rest.
 | A redriven message's `ApproximateReceiveCount` after it moves to the dead-letter queue | memory | (to write) |
 | Changing the visibility timeout leaves messages already in flight on the timeout they were received with | memory | (to write) |
 | `StartMessageMoveTask` with no destination returns each message to the queue it came from | doc | (to write) |
-| `SetQueueAttributes` with a `Policy` that is not a policy document is refused | memory | (to write) |
+| `SetQueueAttributes` with a `Policy` that is not a policy document, or has no Effect, Principal, Action or Resource, is refused `InvalidAttributeValue` | doc | (to write) |
+| `SetQueueAttributes` with a `Policy` whose `Statement` is an empty array: accepted or refused (doze-aws refuses it) | memory | (to write) |
 | `TagQueue` refuses a key over 128 characters, a value over 256, the `aws:` prefix and a 51st tag | doc | (to write) |

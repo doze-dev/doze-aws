@@ -27,7 +27,7 @@ func TestQueueAttributesRoundTrip(t *testing.T) {
 		"KmsMasterKeyId":               "alias/aws/sqs",
 		"KmsDataKeyReusePeriodSeconds": "600",
 		"SqsManagedSseEnabled":         "true",
-		"Policy":                       `{"Version":"2012-10-17","Statement":[]}`,
+		"Policy":                       `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"*"}]}`,
 		"RedriveAllowPolicy":           `{"redrivePermission":"allowAll"}`,
 	}
 	if _, err := c.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{

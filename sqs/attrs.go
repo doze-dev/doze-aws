@@ -5,6 +5,7 @@ package sqs
 
 import (
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"reflect"
 	"strconv"
 	"strings"
@@ -82,6 +83,24 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 				return err
 			}
 			q.WaitTimeSeconds = n
+		case "Policy":
+			// Validated when it is stored. The guard parses it on every request
+			// and, on failure, carries on with no policy, so a document that
+			// does not mean anything was stored, read back as applied, and
+			// ignored (SQS-8). An empty value clears it.
+			if v == "" {
+				if q.Attrs != nil {
+					delete(q.Attrs, "Policy")
+				}
+				continue
+			}
+			if p := iampolicy.ValidateResourcePolicy(v); p != nil {
+				return errInvalidAttrValue("Policy", p.Detail)
+			}
+			if q.Attrs == nil {
+				q.Attrs = map[string]string{}
+			}
+			q.Attrs["Policy"] = v
 		case "RedrivePolicy":
 			if v == "" {
 				q.DeadLetterTarget, q.MaxReceiveCount = "", 0
