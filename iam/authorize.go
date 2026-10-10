@@ -276,37 +276,13 @@ func serviceOfScope(s string) string {
 
 // contextFor builds the condition-key context for a request.
 func (s *Server) contextFor(r *http.Request, principalARN, username string) map[string][]string {
-	ctx := map[string][]string{
-		"aws:PrincipalAccount": {s.id.Account()},
-		"aws:PrincipalArn":     {principalARN},
-		"aws:RequestedRegion":  {s.id.RegionName()},
-		"aws:SecureTransport":  {boolStr(r.TLS != nil)},
-	}
+	ctx := iamguard.RequestContext(r, principalARN, s.id.Account(), s.id.RegionName())
+	// A caller identified by name (a user's key) has aws:username even where
+	// the ARN carries a path the shared function would also have read.
 	if username != "" {
 		ctx["aws:username"] = []string{username}
 	}
-	if host, _, err := splitHostPort(r.RemoteAddr); err == nil && host != "" {
-		ctx["aws:SourceIp"] = []string{host}
-	}
-	if ua := r.Header.Get("User-Agent"); ua != "" {
-		ctx["aws:UserAgent"] = []string{ua}
-	}
 	return ctx
-}
-
-func splitHostPort(addr string) (string, string, error) {
-	i := strings.LastIndex(addr, ":")
-	if i < 0 {
-		return addr, "", nil
-	}
-	return addr[:i], addr[i+1:], nil
-}
-
-func boolStr(b bool) string {
-	if b {
-		return "true"
-	}
-	return "false"
 }
 
 func orDash(s string) string {

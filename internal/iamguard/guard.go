@@ -209,11 +209,8 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 			}
 		}
 	}
-	ctx := map[string][]string{
-		"aws:PrincipalArn":     {principal},
-		"aws:PrincipalAccount": {g.Identity.Account()},
-		"aws:SourceAccount":    {g.Identity.Account()},
-	}
+	ctx := RequestContext(r, principal, g.Identity.Account(), g.Identity.RegionName())
+	ctx["aws:SourceAccount"] = []string{g.Identity.Account()}
 	if src := r.Header.Get(HeaderSourceARN); src != "" {
 		ctx["aws:SourceArn"] = []string{src} // condition keys fold case
 	}

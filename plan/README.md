@@ -151,6 +151,7 @@ Gateway has five, CloudFormation four, and several others one or two each).
 | D4 | Real AWS recordings | Each service carries a recording queue (about 400 claims across the sixteen). Until an account exists a claim is `doc` or `memory`, never `recorded`; a fix that rests on `memory` is written as a test and skipped. | Every service document, section 8 |
 | D5 | What does a refused (S) operation answer? | **HTTP 501, code `NotImplemented`** in the protocol's own envelope, a message naming the operation and why, and an `X-Doze-Not-Built` header. Uniform across services. That no SDK retries a 501 is verified by test before the rule spreads. | Foundation B6 and A2; protocol step 1 |
 | D6 | Are CloudFormation and API Gateway evaluated by IAM? | **Yes, all three parts:** the control plane of both; the calls a stack makes, evaluated against the caller; and `execute-api:Invoke` on `AWS_IAM` methods. | API Gateway (stage 14), IAM (15), CloudFormation (16) |
+| D7 | What is `aws:SecureTransport` for a local request? | **`true`.** Every local request is plain HTTP; measuring it would make the standard deny-when-not-TLS policy refuse everything, and it never fires for an SDK on AWS. The local endpoint stands in for the HTTPS one. | Foundation B10 |
 
 ## Rules that hold throughout
 

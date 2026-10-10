@@ -1145,7 +1145,15 @@ Unknown operators never match rather than being guessed at.
 
 Context keys supplied automatically: `aws:PrincipalArn`, `aws:PrincipalAccount`,
 `aws:username`, `aws:SourceIp`, `aws:UserAgent`, `aws:SecureTransport`,
-`aws:RequestedRegion`.
+`aws:RequestedRegion`. They are supplied identically to an identity policy and to
+every service's resource policy.
+
+`aws:SecureTransport` is always `true`. Every local request is plain HTTP, so
+reporting the transport would make the usual deny-when-not-TLS policy (CDK's
+`enforceSSL`, the standard S3 hardening policy) refuse every request, while on
+AWS the same SDK uses the HTTPS endpoint and the policy never fires. The local
+endpoint stands in for that one. A policy that denies on `aws:SecureTransport`
+being `false` therefore never denies here.
 
 #### The resource boundary
 

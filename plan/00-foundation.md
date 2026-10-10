@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B10 the guard passes every condition key | landed | (next commit) | `iamguard.RequestContext`, one function for both paths; D7 decides `aws:SecureTransport`. Enforce tests for the services that evaluate a resource policy re-run green. |
 | B9 one stored-policy validator | partly | (next commit) | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
 | B12 `provision` has two callers | landed | (next commit) | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
 | B8 what the generator drops | open | | Found so far: see the note under B8. |
@@ -391,6 +392,25 @@ tests of every service already signed off.
 **Done when.** Every key `SUPPORT.md` lists as supplied is supplied, with a test
 per key, and suite pass B2 includes a caller that is **not** the root (a user
 key at minimum; a role session once the IAM stage makes those real).
+
+**Landed.** `iamguard.RequestContext` builds the context once, and both the
+guard (every service's resource policy) and the IAM service (identity
+policies) call it. The resource-policy path had four keys and the identity path
+seven; it is now the same seven on both: `aws:PrincipalArn`,
+`aws:PrincipalAccount`, `aws:RequestedRegion`, `aws:SecureTransport`,
+`aws:username` (a user's name, absent for a role or the root),
+`aws:SourceIp`, `aws:UserAgent`, with `aws:SourceAccount` and `aws:SourceArn`
+added by the guard for service principals. Tested per key, red against the old
+guard.
+
+**Decision D7: `aws:SecureTransport` is `true`.** Every local request is plain
+HTTP, so measuring the transport would make "deny when SecureTransport is
+false" (CDK's `enforceSSL`, Serverless's deployment bucket, the standard S3
+hardening policy) refuse every request. On AWS the same SDK uses the HTTPS
+endpoint by default and the policy never fires, so the local endpoint stands in
+for that one. The identity-policy path used to report `false` (and so never
+matched an Allow that required TLS); it now agrees. Not decided by recording:
+it is a choice, and `docs/SUPPORT.md` says so.
 
 ### B11. Paging, once
 
