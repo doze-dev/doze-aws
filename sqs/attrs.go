@@ -83,6 +83,44 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 				return err
 			}
 			q.WaitTimeSeconds = n
+		case "RedriveAllowPolicy":
+			if v == "" {
+				if q.Attrs != nil {
+					delete(q.Attrs, k)
+				}
+				continue
+			}
+			if err := validRedriveAllowPolicy(v); err != nil {
+				return err
+			}
+			if q.Attrs == nil {
+				q.Attrs = map[string]string{}
+			}
+			q.Attrs[k] = v
+		case "DeduplicationScope":
+			if v != "" && v != "queue" && v != "messageGroup" {
+				return errInvalidAttrValue(k, "must be queue or messageGroup")
+			}
+			if v == "" {
+				delete(q.Attrs, k)
+				continue
+			}
+			if q.Attrs == nil {
+				q.Attrs = map[string]string{}
+			}
+			q.Attrs[k] = v
+		case "FifoThroughputLimit":
+			if v != "" && v != "perQueue" && v != "perMessageGroupId" {
+				return errInvalidAttrValue(k, "must be perQueue or perMessageGroupId")
+			}
+			if v == "" {
+				delete(q.Attrs, k)
+				continue
+			}
+			if q.Attrs == nil {
+				q.Attrs = map[string]string{}
+			}
+			q.Attrs[k] = v
 		case "Policy":
 			// Validated when it is stored. The guard parses it on every request
 			// and, on failure, carries on with no policy, so a document that
@@ -131,6 +169,16 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 			}
 			q.Attrs[k] = v
 		}
+	}
+	// FIFO-only settings, and the one combination AWS refuses. Checked once
+	// every attribute is applied, because the map is in no order and FifoQueue
+	// may be among them.
+	scope, limit := q.Attrs["DeduplicationScope"], q.Attrs["FifoThroughputLimit"]
+	if (scope != "" || limit != "") && !q.FIFO {
+		return errInvalidAttrValue("DeduplicationScope", "DeduplicationScope and FifoThroughputLimit apply only to FIFO queues")
+	}
+	if limit == "perMessageGroupId" && scope != "messageGroup" {
+		return errInvalidAttrValue("FifoThroughputLimit", "perMessageGroupId requires DeduplicationScope to be messageGroup")
 	}
 	return nil
 }
@@ -334,9 +382,67 @@ func applyRedrive(q *queue, v string, lookup queueLookup) error {
 			return errInvalidAttrValue("RedrivePolicy",
 				"dead-letter queue must be the same type as the source queue (FIFO or standard)")
 		}
+		if !redriveAllowed(dlq, q.Name) {
+			return errInvalidAttrValue("RedrivePolicy",
+				"the dead-letter queue's RedriveAllowPolicy does not allow this queue to use it")
+		}
 	}
 	q.DeadLetterTarget, q.MaxReceiveCount = target, count
 	return nil
+}
+
+// validRedriveAllowPolicy checks a dead-letter queue's RedriveAllowPolicy: a
+// redrivePermission of allowAll, denyAll or byQueue, and for byQueue between one
+// and ten source queue ARNs (doc: the queue attributes of CreateQueue).
+func validRedriveAllowPolicy(v string) *apiError {
+	var p struct {
+		Permission string   `json:"redrivePermission"`
+		Sources    []string `json:"sourceQueueArns"`
+	}
+	if err := json.Unmarshal([]byte(v), &p); err != nil {
+		return errInvalidAttrValue("RedriveAllowPolicy", "the value is not a JSON object")
+	}
+	switch p.Permission {
+	case "allowAll", "denyAll":
+		if len(p.Sources) > 0 {
+			return errInvalidAttrValue("RedriveAllowPolicy", "sourceQueueArns is only for the byQueue permission")
+		}
+	case "byQueue":
+		if len(p.Sources) == 0 || len(p.Sources) > 10 {
+			return errInvalidAttrValue("RedriveAllowPolicy", "byQueue takes between 1 and 10 sourceQueueArns")
+		}
+	default:
+		return errInvalidAttrValue("RedriveAllowPolicy", "redrivePermission must be allowAll, denyAll or byQueue")
+	}
+	return nil
+}
+
+// redriveAllowed reports whether a dead-letter queue's RedriveAllowPolicy lets
+// the named queue use it. No policy is allowAll.
+func redriveAllowed(dlq *queue, source string) bool {
+	raw := dlq.Attrs["RedriveAllowPolicy"]
+	if raw == "" {
+		return true
+	}
+	var p struct {
+		Permission string   `json:"redrivePermission"`
+		Sources    []string `json:"sourceQueueArns"`
+	}
+	if json.Unmarshal([]byte(raw), &p) != nil {
+		return true
+	}
+	switch p.Permission {
+	case "denyAll":
+		return false
+	case "byQueue":
+		for _, a := range p.Sources {
+			if arnQueueName(a) == source {
+				return true
+			}
+		}
+		return false
+	}
+	return true
 }
 
 // arnQueueName extracts the queue name (last colon segment) from an ARN.

@@ -37,10 +37,28 @@ func init() {
 		add("MaximumMessageSize", "bytes", strconv.Itoa(defMaxMessageSize))
 		add("ReceiveMessageWaitTimeSeconds", "seconds", "0")
 
-		// Accepted and handed back, with no local behaviour: the tier says so.
+		// Stored attributes. These three change behaviour: a dead-letter
+		// queue's RedriveAllowPolicy is checked when a queue names it, an access
+		// policy is validated and evaluated, and the deduplication scope decides
+		// what a duplicate is. FifoThroughputLimit is the only one with no local
+		// effect (nothing here is throttled), and is validated and returned.
+		behaves := map[string]string{
+			"RedriveAllowPolicy": "sqs/attrs.go redriveAllowed",
+			"Policy":             "sqs/attrs.go, sqs/guard.go",
+			"DeduplicationScope": "sqs/store.go sendIn",
+		}
 		for name := range storedAttrs {
+			if where, ok := behaves[name]; ok {
+				out = append(out, settings.Setting{
+					Name: name, Tier: functional, EnforcedBy: where, Source: settings.Doc,
+					Enum: map[string][]string{"DeduplicationScope": {"queue", "messageGroup"}}[name],
+				})
+				continue
+			}
+			where := "sqs/attrs.go storedAttrs"
 			out = append(out, settings.Setting{
-				Name: name, Tier: cosmetic, EnforcedBy: "sqs/attrs.go storedAttrs", Source: settings.Doc,
+				Name: name, Tier: cosmetic, EnforcedBy: where, Source: settings.Doc,
+				Enum: map[string][]string{"FifoThroughputLimit": {"perQueue", "perMessageGroupId"}}[name],
 			})
 		}
 		return out

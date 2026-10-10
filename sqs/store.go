@@ -377,6 +377,7 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 	}
 
 	// FIFO dedup.
+	var dedupKey string
 	if q.FIFO {
 		if dedupID == "" && q.ContentBasedDedup {
 			sum := md5.Sum([]byte(body))
@@ -385,7 +386,12 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 		if dedupID == "" {
 			return nil, false, errInvalid("MessageDeduplicationId is required (or enable ContentBasedDeduplication)")
 		}
-		if dup, dm := s.lookupDedup(tx, queue, dedupID); dup {
+		// At message group scope an id is only unique within its group.
+		dedupKey = dedupID
+		if q.Attrs["DeduplicationScope"] == "messageGroup" {
+			dedupKey = groupID + "\x00" + dedupID
+		}
+		if dup, dm := s.lookupDedup(tx, queue, dedupKey); dup {
 			// A duplicate within the window reports success without enqueuing.
 			return dm, false, nil
 		}
@@ -414,7 +420,7 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 		return nil, false, err
 	}
 	if q.FIFO {
-		if err := s.recordDedup(tx, queue, dedupID, m); err != nil {
+		if err := s.recordDedup(tx, queue, dedupKey, m); err != nil {
 			return nil, false, err
 		}
 	}
