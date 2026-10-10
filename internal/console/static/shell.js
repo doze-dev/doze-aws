@@ -243,7 +243,22 @@
     if (page) return { host: page, how: "top" };
     return null;
   }
+  // background: the request was not something the user just did. A live
+  // region's poll (htmx.ajax with no source, so htmx names the region itself as
+  // the source) and an hx-trigger="every …" tick both repeat for as long as the
+  // page is open. Their failures must not draw a box, take focus or clear the
+  // errors of the control the user is actually looking at, three seconds apart.
+  function background(elt) {
+    if (!elt || !elt.getAttribute) return false;
+    return elt.hasAttribute("data-live") || /\bevery\b/.test(elt.getAttribute("hx-trigger") || "");
+  }
+  // unasked: a lazy load (on load, on scroll into view). Its failure is shown
+  // where it would have loaded, but it does not pull focus or the scroll to it.
+  function unasked(elt) {
+    return !!(elt && elt.getAttribute) && /\b(load|intersect|revealed)\b/.test(elt.getAttribute("hx-trigger") || "");
+  }
   function placeError(elt, html) {
+    if (background(elt)) return true; // handled: by saying nothing
     var slot = errSlot(elt);
     if (!slot) return false;
     clearSlot(slot);
@@ -255,14 +270,27 @@
     if (slot.how === "prepend" || slot.how === "top") slot.host.insertBefore(node, slot.host.firstChild);
     else if (slot.how === "after") slot.host.parentNode.insertBefore(node, slot.host.nextSibling);
     else slot.host.appendChild(node);
-    node.scrollIntoView({ block: "nearest" });
-    try { node.focus(); } catch (e) {}
+    if (!unasked(elt)) {
+      node.scrollIntoView({ block: "nearest" });
+      try { node.focus(); } catch (e) {}
+    }
     return true;
   }
   document.addEventListener("htmx:before:request", function (e) {
     var ctx = e.detail.ctx;
-    var slot = errSlot(ctx && ctx.sourceElement);
+    var src = ctx && ctx.sourceElement;
+    if (background(src)) return;
+    var slot = errSlot(src);
     if (slot) clearSlot(slot);
+  });
+  // A refusal placed under a detail header is cleared only by its own slot, and
+  // the next thing the user does is usually somewhere else: empty the bucket,
+  // then the "bucket is not empty" refusal is still sitting under the header.
+  // Any action of the user's that succeeds in the pane retires it.
+  document.addEventListener("htmx:after:swap", function (e) {
+    var ctx = e.detail.ctx;
+    if (!ctx || !ctx.response || ctx.response.status >= 400 || background(ctx.sourceElement)) return;
+    document.querySelectorAll(".det-h + .err[data-doze-err]").forEach(function (el) { el.remove(); });
   });
   // c.fail's response is recognised by its header, and handled in two events
   // because htmx 4 fires them in this order:
@@ -327,10 +355,12 @@
     raw = ta.value;
     var m = raw.match(/<Message>([^<]+)|"message"\s*:\s*"([^"]+)"/i);
     var msg = (m && (m[1] || m[2])) || raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    // A failure that is not an HX-Doze-Error (a 5xx, a dropped connection, a
-    // body that is not ours) is drawn where the action was, in full, like any
-    // other. The toast is the fallback for a page with nowhere to put it, and
-    // is cut for its width; the inline copy is not.
+    // A failure that is not an HX-Doze-Error (a 5xx, a body that is not ours)
+    // is drawn where the action was, in full, like any other. The toast is the
+    // fallback for a page with nowhere to put it, and is cut for its width; the
+    // inline copy is not. (A connection that never answers does not come here:
+    // htmx raises htmx:error for it, and nothing is drawn. That is the "cannot
+    // reach doze-aws" banner of the plan's part D, which is not built.)
     var holder = document.createElement("div");
     var box = document.createElement("div");
     box.className = "err err-error";
@@ -366,8 +396,18 @@
     Execute: 0, Rename: 0, Rescale: 0, Repoint: 0, Redrive: 0, Move: 0, Split: 0, Merge: 0, Enable: 0
   };
   function dozeConfirmParts(q, trigger) {
-    var m = /^([\s\S]*?\?)(?:\s+([\s\S]*))?$/.exec(q.trim());
-    var title = m ? m[1] : q.trim(), detail = m && m[2] ? m[2].trim() : "";
+    // The question ends at the first "?" that is followed by a space or the
+    // end AND is not inside the curly quotes a name is written in: an object
+    // key may hold "? " of its own (“reports/why? final.txt”).
+    q = q.trim();
+    var cut = -1, quoted = false;
+    for (var qi = 0; qi < q.length; qi++) {
+      var ch = q.charAt(qi);
+      if (ch === "“") quoted = true;
+      else if (ch === "”") quoted = false;
+      else if (ch === "?" && !quoted && (qi === q.length - 1 || /\s/.test(q.charAt(qi + 1)))) { cut = qi; break; }
+    }
+    var title = cut < 0 ? q : q.slice(0, cut + 1), detail = cut < 0 ? "" : q.slice(cut + 1).trim();
     var explicit = trigger && trigger.closest && trigger.closest("[data-confirm-verb]");
     var verb = explicit ? explicit.getAttribute("data-confirm-verb") : "";
     if (!verb) {

@@ -762,7 +762,7 @@
             {{template "cli" "sts get-federation-token --name $name [--duration-seconds $duration]"}}
           </div>
           <div x-show="m==='root'" x-cloak>
-            {{template "cli" "sts assume-root --target-principal $target --task-policy-arn $task [--duration-seconds $duration]"}}
+            {{template "cli" "sts assume-root --target-principal $target --task-policy-arn arn=$task [--duration-seconds $duration]"}}
           </div>
           <div x-show="m==='web-identity'" x-cloak>
             {{template "cli" (printf "sts assume-role-with-web-identity --role-arn arn:aws:iam::%s:role/$role --role-session-name $session --web-identity-token $token [--duration-seconds $duration]" account)}}

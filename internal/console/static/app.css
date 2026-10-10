@@ -634,6 +634,9 @@ tr:hover .row-actions { opacity: 1; }
    doze-aws working: the request broke a rule and the rule is named. A denial is
    a policy deciding, which is a thing you change. Neither is red; red is for
    something broken. Not built is neutral, because nothing is wrong. */
+/* A refusal placed under a detail header sits in the pane's gutter, like the
+   blocks below it, not edge to edge. */
+.det-h + .err[data-doze-err] { margin: 14px 20px 0; }
 .err-refused, .err-refusedhere { border-color: var(--refused); color: var(--refused); background: color-mix(in srgb, var(--refused) 7%, transparent); }
 .err-denied  { border-color: var(--warning); color: var(--warning); background: color-mix(in srgb, var(--warning) 7%, transparent); }
 .err-notbuilt { border: 1px dashed var(--border); color: var(--muted-foreground); background: transparent; }
@@ -1706,16 +1709,15 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-note { font-size: 12px; }
 .kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-item { width: 100%; }
-
-/* The notice for a window narrower than the console is built for. */
-.narrow-note { display: none; padding: 8px 14px; font-size: 12px; background: color-mix(in srgb, var(--warning) 12%, var(--card)); border-bottom: 1px solid var(--border); color: var(--foreground); }
-@media (max-width: 1023px) { .narrow-note { display: block; } }
 .info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }
-.kv-row .kv-v { flex: 1; font-family: var(--mono); }
-.kv-row .kv-t { flex: 0 0 auto; width: auto; font-size: 12px; }
-.kv-mismatch { margin: -2px 0 2px; color: var(--warning); }
+.kv-row .kv-v { flex: 1 1 0; min-width: 0; font-family: var(--mono); }
+/* The type menu is a fixed, narrow column. select.js wraps a <select> in .ds,
+   which is width:100% everywhere else; here that took the whole row and
+   squeezed the value down to nothing. */
+.kv-row .kv-t, .kv-row .ds { flex: 0 0 116px; width: 116px; font-size: 12px; }
+.kv-mismatch, .kv-dup { margin: -2px 0 2px; color: var(--warning); }
 
 /* Zero-results: a heading and the way out, per Cloudscape — the pane that went
    blank is not where the filter box is. */
@@ -2183,8 +2185,9 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .eb-detail, [id$="-detail"] { position: relative; }
 .dz-close { position: absolute; top: 6px; right: 6px; z-index: 1; }
 
-/* Below 768px the console is not designed to fit; say so rather than pretend. */
+/* Below 1024px the console is not designed to fit; say so rather than pretend.
+   Phones are declared unsupported (the design's Narrow board). */
 .narrow-note { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .narrow-note { display: block; margin: 8px 16px 0; padding: 8px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); color: var(--muted-foreground); }
 }

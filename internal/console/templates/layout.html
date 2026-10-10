@@ -60,7 +60,7 @@ window.kvEditor=function(initial){return{
       else if(raw==="true"||raw==="false"){ty="boolean";val=raw;}
       else if(raw==="null"){ty="null";val="";}
       else{ty="number";val=raw;}
-      out.push({k:key,v:val,t:ty,raw:raw,rawV:val});
+      out.push({k:key,v:val,t:ty,raw:raw,rawV:val,had:true});
       if(m[3]==="}")return re.lastIndex===t.length?out:null;}
     return null;},
   numeric:function(s){return /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test((s||"").trim());},
@@ -74,6 +74,9 @@ window.kvEditor=function(initial){return{
     return JSON.stringify(r.v);},
   /* True when the row's type and its text disagree, so the note can say it
      will be saved as text. */
+  /* Two rows with one key would save an object whose second pair wins on read
+     and whose rows could not be shown again. */
+  dup:function(r){var n=0,k=r.k;if(!k)return false;this.rows.forEach(function(x){if(x.k===k)n++;});return n>1;},
   mismatch:function(r){return (r.t==="number"&&!this.numeric(r.v))||(r.t==="boolean"&&r.v!=="true"&&r.v!=="false");},
   retype:function(r){r.raw=null;
     if(r.t==="null")r.v="";
@@ -86,11 +89,11 @@ window.kvEditor=function(initial){return{
        ready to write. */
     if(!(initial||"").trim()){this.rows=[this.blank()];this.representable=true;this.mode="kv";}
     if(this.mode==="kv"&&!this.rows.length){this.rows=[this.blank()];}
-    this.rows.forEach(function(r){r.rawT=r.t;});},
+    this.rows.forEach(function(r){r.rawT=r.t;r.rawK=r.k;});},
   read:function(){return this.ta&&this.ta.__cm?this.ta.__cm.getValue():(this.ta?this.ta.value:"");},
   onText:function(){this.dirty=true;this.representable=this.parse(this.read())!==null;},
   toKV:function(){var rows=this.parse(this.read());if(rows===null)return;
-    rows.forEach(function(r){r.rawT=r.t;});
+    rows.forEach(function(r){r.rawT=r.t;r.rawK=r.k;});
     this.rows=rows.length?rows:[this.blank()];this.mode="kv";},
   toText:function(){this.mode="text";var self=this;
     /* CodeMirror measures wrong while hidden; refresh once it is visible. */
@@ -99,7 +102,9 @@ window.kvEditor=function(initial){return{
      would reorder integer-like keys ahead of the rest and lose the order the
      user wrote them in. */
   sync:function(){this.dirty=true;var self=this,parts=[];
-    this.rows.forEach(function(r){if(r.k)parts.push("  "+JSON.stringify(r.k)+": "+self.token(r));});
+    /* A blank key is a row not yet named and is left out, unless the value came
+       with one: {"": "x"} is valid JSON and its pair is not ours to drop. */
+    this.rows.forEach(function(r){if(r.k||(r.had&&r.rawK===""))parts.push("  "+JSON.stringify(r.k)+": "+self.token(r));});
     var json=parts.length?"{\n"+parts.join(",\n")+"\n}":"{}";
     if(window.dozeEditor)dozeEditor.set(this.ta,json);else if(this.ta)this.ta.value=json;
     this.representable=true;},
@@ -153,10 +158,6 @@ return"= "+p.join(" ");};</script>
      Both failures were extension-activation problems, not morphing problems.
      A built-in swap style has no activation to get wrong. */}}
 <body>
-{{/* Below 1024px the notice says what is true: this is a desk-width tool. A
-     phone is not a supported way to use it, and saying so beats a layout that
-     half-works. It is shown by CSS alone, so it costs nothing above 1024. */}}
-<div class="narrow-note" role="note">This console is built for a window at least 1024&nbsp;px wide. Phones are not supported; a narrower window works but is cramped.</div>
 <div class="app">
   <header class="topbar">
     <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>
@@ -234,7 +235,7 @@ return"= "+p.join(" ");};</script>
          own — #attributeValue returns "" before it ever consults the parent,
          and the swap path treats "" as no-select. */}}
     <main id="workspace" class="workspace" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
-      <div class="narrow-note" role="note">The console is built for desktop-width windows (768px and up). Everything still works here, but it will not fit well.</div>
+      <div class="narrow-note" role="note">The console is built for a window 1024&nbsp;px wide or more, and phones are not supported. Everything still works here, but it will not fit well.</div>
       {{if .Flash}}
       <div class="flash anim" id="flashbar">
         {{icon "check"}} <span>{{.Flash}}</span>
@@ -263,10 +264,10 @@ return"= "+p.join(" ");};</script>
 
   <!-- styled confirm (replaces native hx-confirm dialogs) -->
   <div class="overlay" id="confirm" hidden>
-    {{/* alertdialog wants both: a stable label and the specific question.
-         confirm-title is the label ("Are you sure?"), confirm-msg the question
-         shell.js fills in — which is also what makes the question visible,
-         since the heading is static. */}}
+    {{/* shell.js fills both: confirm-title is the question, which names the
+         thing ("Delete bucket “uploads”?"), and confirm-msg is the sentence the
+         call site wrote after it, what follows from saying yes. The static
+         text below is only what an unscripted page would show. */}}
     <div class="dialog anim" role="alertdialog" aria-modal="true"
          aria-labelledby="confirm-title" aria-describedby="confirm-msg">
       <div class="dialog-h"><h3 id="confirm-title">Are you sure?</h3><p id="confirm-msg"></p></div>

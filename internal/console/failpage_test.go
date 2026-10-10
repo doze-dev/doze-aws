@@ -73,3 +73,38 @@ func TestAnHTMXFailureStaysAFragment(t *testing.T) {
 		t.Errorf("status %d, HX-Doze-Error %q: want the placed fragment", w.Code, w.Header().Get("HX-Doze-Error"))
 	}
 }
+
+// CloudFormation names a missing stack in its message, not its code, and a
+// missing stack is still a page that says Not found.
+func TestAMissingStackIsNotFound(t *testing.T) {
+	h := newConsole(t)
+	r := httptest.NewRequest("GET", "/_console/cfn/no-such-stack", nil)
+	r.Header.Set("Accept", "text/html")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), "Not found") {
+		t.Errorf("status %d, want 404 and a Not found heading:\n%s", w.Code, clip(w.Body.String()))
+	}
+	if ct := w.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("Content-Type %q: the page relied on sniffing", ct)
+	}
+}
+
+// A boosted link is a navigation: htmx swaps the workspace out of the page it
+// gets, so a failure must be a page. The fragment it used to get was placed on
+// top of whatever resource was still on screen.
+func TestABoostedLinkToAMissingResourceGetsAPage(t *testing.T) {
+	h := newConsole(t)
+	r := httptest.NewRequest("GET", "/_console/sqs/no-such-queue", nil)
+	r.Header.Set("HX-Request", "true")
+	r.Header.Set("HX-Boosted", "true")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	body := w.Body.String()
+	if w.Header().Get("HX-Doze-Error") != "" || !strings.HasPrefix(strings.TrimSpace(body), "<!DOCTYPE html>") {
+		t.Errorf("a boosted failure was a fragment (HX-Doze-Error %q):\n%s", w.Header().Get("HX-Doze-Error"), clip(body))
+	}
+	if !strings.Contains(body, `id="workspace"`) {
+		t.Errorf("the page has no workspace for htmx to swap in")
+	}
+}

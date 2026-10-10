@@ -1014,7 +1014,19 @@ type Refusal struct {
 // awsJson services answer with {"__type":..,"message":..} and the query/XML
 // ones with an <ErrorResponse><Error>. Anything else returns ok=false and the
 // drawer just shows the raw body, which is the honest fallback.
-func (e TrafficEntry) Failure() *Refusal { return parseRefusal(e.Status, e.RespBody, e.ErrType) }
+func (e TrafficEntry) Failure() *Refusal {
+	if r := parseRefusal(e.Status, e.RespBody, e.ErrType); r != nil {
+		return r
+	}
+	// A failed hop of a cascade has no AWS error document: its body is the
+	// error's own words ("sns publish: 403 Forbidden: …"). It still failed, and
+	// the inspector must still say so and say which kind, so the words are the
+	// message and there is no code.
+	if body := strings.TrimSpace(e.RespBody); e.Status >= 400 && body != "" && body[0] != '{' && body[0] != '<' {
+		return &Refusal{Message: body}
+	}
+	return nil
+}
 
 // parseRefusal pulls the refusal out of an AWS error body, in either wire
 // protocol. Split out of Failure so the console's OWN failed calls can be

@@ -513,3 +513,41 @@ test('composer sends a burst of N messages as one SendMessageBatch', async ({
   await expect(page.locator('.msg', { hasText: '"burst":1' })).toHaveCount(3);
 });
 
+
+// A FIFO queue's composer has a preview too, and it carries the group and the
+// deduplication id: the preview used to sit in the standard queue's branch only.
+test('a FIFO queue’s composer previews its group and deduplication id', async ({ page, request, uniqueName, setEditor }) => {
+  const queue = uniqueName('e2e-sqs-cli') + '.fifo';
+  await createQueue(request, queue, { fifo: true });
+  await page.goto(`sqs/${queue}`);
+  await openComposer(page);
+  await page.locator('.cli-btn').first().click();
+  const pre = page.locator('.cli-out pre').first();
+  await setEditor('textarea[name="body"]', 'line one\n\nline   two');
+  await page.locator('input[name="dedup"]').fill('d-1');
+  await expect(pre).toContainText('--message-group-id default');
+  await expect(pre).toContainText('--message-deduplication-id d-1');
+  // The body's own spacing is the user's, and the command keeps it.
+  await expect(pre).toContainText("'line one\n\nline   two'");
+});
+
+// A live region polls for as long as its page is open. When what it polls is
+// gone, the poll's failure must not draw a box or pull focus away from what the
+// user is typing every three seconds.
+test('a failing poll does not take focus or draw a failure', async ({ page, request, uniqueName }) => {
+  test.setTimeout(30_000);
+  const queue = uniqueName('e2e-sqs-poll');
+  await createQueue(request, queue);
+  await page.goto(`sqs/${queue}?tab=config`);
+  await page.goto(`sqs/${queue}`);
+  const filter = page.locator('.filter input');
+  await filter.click();
+  await filter.pressSequentially('abc');
+
+  await postForm(request, `sqs/${queue}/delete-queue`, {});
+  await page.waitForTimeout(7000); // at least two polls of a three-second region
+
+  await expect(page.locator('.err[data-doze-err]')).toHaveCount(0);
+  await expect(filter).toBeFocused();
+  await expect(filter).toHaveValue('abc');
+});

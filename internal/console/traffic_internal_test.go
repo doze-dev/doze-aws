@@ -236,3 +236,23 @@ func TestAPartialTagWriteIsStillTheServicesRefusal(t *testing.T) {
 		t.Errorf("quoteKeys = %s", got)
 	}
 }
+
+// A failed hop of a cascade has the error's words for a body, not an AWS error
+// document. The inspector still has to say it failed and which kind, so the
+// words are the message. A served call, and a failure with no body, have none.
+func TestAFailedHopStillHasSomethingToSay(t *testing.T) {
+	hop := TrafficEntry{Status: 403, RespBody: "sns publish: 403 Forbidden: not authorized", Denied: "iam"}
+	f := hop.Failure()
+	if f == nil || f.Code != "" || !strings.Contains(f.Message, "not authorized") {
+		t.Fatalf("Failure() = %+v, want the hop's own words", f)
+	}
+	if got := callState(hop.Status, f, factsOfEntry(hop)); got != "denied" {
+		t.Errorf("state %q, want denied", got)
+	}
+	if (TrafficEntry{Status: 200, RespBody: "ok"}).Failure() != nil {
+		t.Error("a served call has a failure")
+	}
+	if (TrafficEntry{Status: 500}).Failure() != nil {
+		t.Error("an empty body was turned into a message")
+	}
+}

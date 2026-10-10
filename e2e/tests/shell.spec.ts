@@ -362,3 +362,16 @@ test.describe('the confirm component', () => {
     await confirmDialog('cancel');
   });
 });
+
+test.describe('a narrow window', () => {
+  // Below 1024px the console says it is not built to fit; at desk width it says
+  // nothing. Phones are declared unsupported.
+  test('is told so below 1024px and not above', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('sqs');
+    await expect(page.locator('.narrow-note')).toBeHidden();
+    await page.setViewportSize({ width: 900, height: 700 });
+    await expect(page.locator('.narrow-note')).toBeVisible();
+    await expect(page.locator('.narrow-note')).toContainText('1024');
+  });
+});

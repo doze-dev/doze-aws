@@ -190,6 +190,13 @@ test.describe('key/value editor', () => {
     await expect(rows.nth(0).locator('.kv-t')).toHaveValue('number');
     await expect(rows.nth(1).locator('.kv-t')).toHaveValue('boolean');
     await expect(rows.nth(5).locator('.kv-t')).toHaveValue('null');
+    // The value is the wide column and the type menu the narrow one. The menu's
+    // wrapper once took the whole row and left the value a sliver nobody could
+    // read, which a test that only types into it does not notice.
+    const value = (await rows.nth(0).locator('.kv-v').boundingBox())!;
+    const type = (await rows.nth(0).locator('.ds').boundingBox())!;
+    expect(value.width).toBeGreaterThan(200);
+    expect(type.width).toBeLessThan(160);
 
     await rows.nth(0).locator('.kv-v').fill('6');
     await page.getByRole('button', { name: 'Save as new version' }).click();
@@ -222,6 +229,20 @@ test.describe('key/value editor', () => {
     await waitForToast();
 
     expect(await stored(page, name)).toBe('{\n  "retries": "five",\n  "jitter": "true"\n}');
+  });
+
+  test('a pair whose key is the empty string is kept', async ({ page, request, uniqueName, waitForToast }) => {
+    // {"": "x"} is valid JSON. A row with no key is normally one not yet named
+    // and is left out of the save; one that ARRIVED with no key is data.
+    const name = uniqueName('e2e-sm-kve');
+    await postForm(request, 'sm/create', { name, value: '{"": "keep-me", "a": 1}' });
+    await page.goto(`sm/secret?name=${name}&tab=edit`);
+    const rows = page.locator('.kv-row');
+    await expect(rows).toHaveCount(2);
+    await rows.nth(1).locator('.kv-v').fill('2');
+    await page.getByRole('button', { name: 'Save as new version' }).click();
+    await waitForToast();
+    expect(await stored(page, name)).toBe('{\n  "": "keep-me",\n  "a": 2\n}');
   });
 });
 

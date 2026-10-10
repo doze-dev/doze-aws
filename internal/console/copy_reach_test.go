@@ -73,6 +73,8 @@ func TestEveryLineOfEmptyCopyIsReachable(t *testing.T) {
 			// become the one the SQS page opens.
 			"template": {`{"Resources":{"Q":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"zz-from-stack"}}}}`}}},
 		{"kms", "/kms/create", "alias-one", url.Values{"spec": {"SYMMETRIC_DEFAULT"}, "alias": {"alias-one"}}},
+		{"cw", "/cw/create-alarm", "alarm-one", url.Values{"name": {"alarm-one"}, "metric": {"Custom|Hits"}, "statistic": {"Sum"},
+			"operator": {"LessThanThreshold"}, "threshold": {"3"}, "period": {"60"}, "evaluation": {"1"}, "missing": {"notBreaching"}}},
 	}
 	// EventBridge needs no seed: the default bus is always there.
 	named := map[string]string{"eb": "default"}
@@ -114,8 +116,7 @@ func TestEveryLineOfEmptyCopyIsReachable(t *testing.T) {
 			if i := strings.Index(body, `class="det-title"`); i >= 0 {
 				title = body[i:min(len(body), i+400)]
 			}
-			// KMS names a key by its id, not the alias it was given. CloudWatch has no
-			// seed: its home is the same page either way.
+			// KMS names a key by its id, not the alias it was given.
 			selectedByDefault := title != "" && named[e.Key] != "" && (strings.Contains(title, named[e.Key]) || e.Key == "kms")
 
 			switch c.Case {

@@ -39,15 +39,21 @@ var cliOmits = map[string]map[string]string{
 	"create.html:cloudformation create-stack": {
 		"review": "selects the create-stack or the create-change-set preview",
 	},
-	// Console conveniences that repeat or switch the call.
-	"kinesis.html:kinesis put-record": {
-		"count": "above 1 the form calls PutRecords, which is a different command",
+	"iam.html:sts assume-role": {
+		"mode": "selects which of the six previews is shown",
 	},
+	// Rows the CLI takes as one document a flat template cannot build.
 	"sns.html:sns publish": {
+		"attrs": "repeating rows: --message-attributes takes one JSON document",
 		"count": "repeats the publish n times",
 	},
 	"sqs.html:sqs send-message": {
+		"attrs":  "repeating rows: --message-attributes takes one JSON document",
 		"repeat": "repeats the send n times",
+	},
+	// Console conveniences that repeat or switch the call.
+	"kinesis.html:kinesis put-record": {
+		"count": "above 1 the form calls PutRecords, which is a different command",
 	},
 	"sfn_more.html:stepfunctions test-state": {
 		"mock":        "TestState's mocked-integration member is not modelled: with a mock set this is the unmocked call (how the AWS CLI spells the mock is not established here)",
@@ -81,28 +87,52 @@ func TestEveryCLIPreviewMatchesItsForm(t *testing.T) {
 		texts[f] = string(raw)
 		all.Write(raw)
 	}
-	hasName := func(n string) bool {
+	anywhere := func(n string) bool {
 		return strings.Contains(all.String(), `name="`+n+`"`) || strings.Contains(all.String(), `"Field" "`+n+`"`)
+	}
+	// A form's inputs include those of the templates it includes: the SQS
+	// composer's message attributes are an attr_editor, and reading only the
+	// form's own text left them out of the check altogether.
+	defined := map[string]string{}
+	for _, m := range regexp.MustCompile(`(?s)\{\{define "([\w-]+)"\}\}(.*?)(?:\{\{define "|\z)`).FindAllStringSubmatchIndex(all.String(), -1) {
+		defined[all.String()[m[2]:m[3]]] = all.String()[m[4]:m[5]]
+	}
+	include := regexp.MustCompile(`\{\{template "([\w-]+)"`)
+	expand := func(span string) string {
+		out := span
+		for _, m := range include.FindAllStringSubmatch(span, -1) {
+			if m[1] != "cli" {
+				out += defined[m[1]]
+			}
+		}
+		return out
 	}
 	for _, f := range files {
 		text := texts[f]
 		base := filepath.Base(f)
 
-		// 1. Every $field a preview names is an input some template has.
-		for _, m := range cliCall.FindAllStringSubmatch(text, -1) {
-			for _, fm := range cliField.FindAllStringSubmatch(m[1], -1) {
-				if !hasName(fm[1]) {
-					t.Errorf("%s: the preview %q names $%s, which no input has", base, firstCommand(m[1]), fm[1])
-				}
-			}
-		}
-
-		// 2. Every input of a form with a preview is in it, or is omitted on purpose.
-		for _, span := range formSpan.FindAllString(text, -1) {
-			calls := cliCall.FindAllStringSubmatch(span, -1)
+		for _, raw := range formSpan.FindAllString(text, -1) {
+			calls := cliCall.FindAllStringSubmatch(raw, -1)
 			if len(calls) == 0 {
 				continue
 			}
+			span := expand(raw)
+			// 1. Every $field a preview names is an input of THIS form. A form
+			//    that includes controls from elsewhere (hx-include) may name
+			//    theirs. Looking across every template let a preview name a
+			//    field that only another branch, or another page, has.
+			includes := strings.Contains(raw[:strings.Index(raw, ">")], "hx-include")
+			for _, c := range calls {
+				for _, fm := range cliField.FindAllStringSubmatch(c[1], -1) {
+					n := fm[1]
+					here := strings.Contains(span, `name="`+n+`"`) || strings.Contains(span, `"Field" "`+n+`"`)
+					if !here && !(includes && anywhere(n)) {
+						t.Errorf("%s: the preview %q names $%s, which this form has no input for", base, firstCommand(c[1]), n)
+					}
+				}
+			}
+
+			// 2. Every input of a form with a preview is in it, or is omitted on purpose.
 			referenced := map[string]bool{}
 			for _, c := range calls {
 				for _, fm := range cliField.FindAllStringSubmatch(c[1], -1) {
@@ -111,7 +141,10 @@ func TestEveryCLIPreviewMatchesItsForm(t *testing.T) {
 			}
 			names := map[string]bool{}
 			for _, m := range inputRef.FindAllStringSubmatch(span, -1) {
-				if strings.Contains(m[0], `type="hidden"`) {
+				// A hidden input with a fixed value is plumbing. One BOUND to
+				// the page's state (:value, x-model) carries what the user
+				// entered, like the message-attribute rows, and counts.
+				if strings.Contains(m[0], `type="hidden"`) && !strings.Contains(m[0], `:value=`) && !strings.Contains(m[0], "x-model") {
 					continue
 				}
 				names[m[1]] = true

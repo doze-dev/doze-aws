@@ -60,6 +60,13 @@ test.describe('a refused header action', () => {
     await expect(refusal).not.toContainText('…');
     // And it is still the bucket's page: nothing was deleted or swapped away.
     await expect(page.locator('.det-title')).toContainText(bucket);
+
+    // It does not outlive what it describes: once the user has dealt with it
+    // (here, by deleting the object) the refusal under the header is gone.
+    await page.locator('tr', { hasText: 'keep.txt' }).getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#object-table')).not.toContainText('keep.txt');
+    await expect(page.locator('.det-h + .err[data-doze-err]')).toHaveCount(0);
   });
 });
 

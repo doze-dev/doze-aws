@@ -39,7 +39,7 @@
           {{range $i, $r := .Routing}}
           <span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v{{add $i 1}}" value="{{$r.Version}}" size="3" inputmode="numeric" required><input class="input mono" name="w{{add $i 1}}" value="{{$r.Weight}}" size="3" inputmode="numeric"><span class="dim">%</span></span>
           {{end}}
-          {{if eq (len .Routing) 1}}<span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v2" placeholder="—" size="3" inputmode="numeric"><input class="input mono" name="w2" placeholder="0" size="3" inputmode="numeric"><span class="dim">%</span></span>{{end}}
+          {{if eq (len .Routing) 1}}<span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v2" placeholder="—" size="3" inputmode="numeric"><input class="input mono" name="w2" value="0" size="3" inputmode="numeric"><span class="dim">%</span></span>{{end}}
           <button class="btn btn-sm" type="submit">Save</button>
           <button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button>
         </form>
@@ -61,8 +61,8 @@
     <div class="field stack"><label>Description <span class="dim">optional</span></label><input class="input" name="description" maxlength="256" autocomplete="off"></div>
     <div class="field stack"><label>Routing</label>
       <div class="sfn-routes">
-        <span class="sfn-route"><span class="dim">v</span><select class="input mono" name="v1" required>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w1" placeholder="100" size="3" inputmode="numeric"><span class="dim">%</span></span>
-        <span class="sfn-route" x-show="two" x-cloak><span class="dim">v</span><select class="input mono" name="v2"><option value="">—</option>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w2" placeholder="0" size="3" inputmode="numeric"><span class="dim">%</span></span>
+        <span class="sfn-route"><span class="dim">v</span><select class="input mono" name="v1" required>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w1" value="100" size="3" inputmode="numeric"><span class="dim">%</span></span>
+        <span class="sfn-route" x-show="two" x-cloak><span class="dim">v</span><select class="input mono" name="v2"><option value="">—</option>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w2" value="0" size="3" inputmode="numeric"><span class="dim">%</span></span>
         <button type="button" class="btn btn-outline btn-sm" @click="two=!two" x-text="two?'One version':'Split across two'"></button>
       </div>
     </div>

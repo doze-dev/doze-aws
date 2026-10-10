@@ -339,7 +339,7 @@
         <div class="opt-row" x-show="proto==='HTTP'" x-cloak><label><input type="checkbox" name="cors"> Allow CORS from every origin <span class="dim">— what a browser app on another port needs</span></label></div>
       </div></div>
       <template x-if="proto==='REST'">{{template "cli" "apigateway create-rest-api --name $name [--description $description]"}}</template>
-      <template x-if="proto==='HTTP'">{{template "cli" "apigatewayv2 create-api --name $name --protocol-type HTTP [$cors>--cors-configuration AllowOrigins=*,AllowMethods=*,AllowHeaders=*]"}}</template>
+      <template x-if="proto==='HTTP'">{{template "cli" "apigatewayv2 create-api --name $name --protocol-type HTTP [$cors>--cors-configuration 'AllowOrigins=*,AllowMethods=*,AllowHeaders=*']"}}</template>
       {{template "form_actions" dict "Cancel" (printf "%s/apigw" .Prefix) "Submit" "Create API"}}
     </form>
   </div></section>
@@ -382,7 +382,9 @@
       <div class="panel form-sec"><div class="panel-h"><h2>Condition</h2></div><div class="form-b">
         <div class="fgrid">
           <div class="field"><label>Statistic</label><select class="input" name="statistic">
-            {{range $s := $.Stats}}<option value="{{$s}}">{{$s}}</option>{{end}}
+            {{/* A percentile is PutMetricAlarm's ExtendedStatistic, a different member
+                 and a different CLI flag; data-flag is which, for the preview. */}}
+            {{range $s := $.Stats}}<option value="{{$s}}" data-flag="{{if hasPrefix $s "p"}}--extended-statistic{{else}}--statistic{{end}}">{{$s}}</option>{{end}}
           </select></div>
           <div class="field"><label>Operator</label><select class="input" name="operator">
             <option value="GreaterThanThreshold">&gt;</option>
@@ -409,7 +411,7 @@
           {{range .Topics}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
         </select></div>
       </div></div>
-      {{template "cli" "cloudwatch put-metric-alarm --alarm-name $name --namespace $metric@data-ns --metric-name $metric@data-name [--dimensions $metric@data-dims] --statistic $statistic --comparison-operator $operator --threshold $threshold --period $period --evaluation-periods $evaluation --treat-missing-data $missing [--alarm-description $description] [--alarm-actions $topic]"}}
+      {{template "cli" "cloudwatch put-metric-alarm --alarm-name $name --namespace $metric@data-ns --metric-name $metric@data-name [--dimensions $metric@data-dims] $statistic@data-flag $statistic --comparison-operator $operator --threshold $threshold --period $period --evaluation-periods $evaluation --treat-missing-data $missing [--alarm-description $description] [--alarm-actions $topic]"}}
       {{template "form_actions" dict "Cancel" (printf "%s/cw" .Prefix) "Submit" "Create alarm"}}
     </form>
     {{else}}

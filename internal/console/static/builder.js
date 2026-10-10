@@ -157,7 +157,10 @@
     return {
       open: false, cmd: "",
       q: function (v) {
-        return /^[A-Za-z0-9_.:\/@=,*+-]+$/.test(v) ? v : "'" + v.replace(/'/g, "'\\''") + "'";
+        // Bare only when the shell cannot read it as anything else: no glob
+        // (*), and not a leading - or = that the CLI or zsh would take for an
+        // option or an =command expansion.
+        return /^[A-Za-z0-9_.:\/@,+][A-Za-z0-9_.:\/@=,+-]*$/.test(v) ? v : "'" + v.replace(/'/g, "'\\''") + "'";
       },
       fieldVal: function (form, name, attr) {
         var el = form && form.elements[name];
@@ -179,32 +182,43 @@
         if (el.type === "checkbox") return el.checked ? (el.value || "true") : "";
         return el.__cm ? el.__cm.getValue() : el.value;
       },
+      /* A substituted value is parked in state.vals and stands in the string
+         as a marker until the command's own whitespace has been tidied: a
+         value's spaces and newlines are the user's (a message body, a secret)
+         and collapsing them would show a command that sends something else. */
       subst: function (str, form, state) {
         var self = this;
         return str.replace(/\$([A-Za-z_][\w-]*)(@[\w-]+)?(>[^\s\]]+)?/g, function (m, name, attr, lit) {
           var v = self.fieldVal(form, name, attr ? attr.slice(1) : "");
+          /* $field>text asks "is it on": a flag bound from the page's state
+             arrives as the word false when it is off. */
+          if (lit && v === "false") v = "";
           if (!v) { state.empty = true; return ""; }
-          return lit ? lit.slice(1) : self.q(v);
+          state.vals.push(lit ? lit.slice(1) : self.q(v));
+          return "\u0001" + (state.vals.length - 1) + "\u0001";
         });
       },
       /* render one command. empty reports whether a $field outside a group had
          no value, which is what drops a FURTHER command and not the first. */
       render: function (src, form) {
-        var s = src.replace(/ENDPOINT/g, location.host);
+        /* Only as the host of a URL: a queue called MY_ENDPOINT_Q is a name. */
+        var s = src.replace(/http:\/\/ENDPOINT\b/g, "http://" + location.host);
         var groups = [];
         s = s.replace(/\[([^\]]*)\]/g, function (m, body) {
           groups.push(body);
           return "@@G" + (groups.length - 1) + "@@";
         });
-        var outer = { empty: false };
+        var vals = [];
+        var outer = { empty: false, vals: vals };
         s = this.subst(s, form, outer);
         var self = this;
         s = s.replace(/@@G(\d+)@@/g, function (m, i) {
-          var st = { empty: false };
+          var st = { empty: false, vals: vals };
           var sub = self.subst(groups[+i], form, st);
           return st.empty ? "" : sub;
         });
-        return { text: s.replace(/\s+/g, " ").trim(), empty: outer.empty };
+        s = s.replace(/\s+/g, " ").trim().replace(/\u0001(\d+)\u0001/g, function (m, i) { return vals[+i]; });
+        return { text: s, empty: outer.empty };
       },
       refresh: function () {
         var form = this.$el.closest("form"), self = this, lines = [];

@@ -42,8 +42,7 @@
      site adds is the one sentence of what changing it does.
 
      dict: Svc, Name (the API's name for the setting), Field (the form field),
-     Label, Value, Teach (a sentence), optional Hint (a live expression for
-     Alpine, in terms of v, for a hint that depends on the value). */}}
+     Label, Value, Teach (a sentence). */}}
 {{define "setting_field"}}
 {{$s := setting .Svc .Name}}
 <div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v}">

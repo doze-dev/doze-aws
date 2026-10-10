@@ -213,10 +213,9 @@ test.describe('a stale link', () => {
     const link = page.locator(`a.li[data-name="${name}"]`);
     await expect(link).toBeVisible();
 
-    await postForm(request, 'logs/delete', { name }).catch(() => undefined);
-    await request.post(ORIGIN + '_console/logs/delete', { form: { name } }).catch(() => undefined);
+    await postForm(request, 'logs/delete', { name });
     await link.click();
-    await expect(page.locator('.det-title')).toContainText(/not found|could not be opened/i);
+    await expect(page.locator('.det-title')).toContainText(/not found/i);
     await expect(page.locator('.err-error')).toHaveCount(0);
   });
 });

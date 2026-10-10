@@ -58,10 +58,16 @@ func (c *Console) failPage(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	back, backName := c.guessSection(seg)
 	status, heading := http.StatusBadRequest, "That could not be opened"
+	// "Not found" is only the page's heading and status, so it is read from how
+	// the service said it: most name it in the code, and CloudFormation answers
+	// ValidationError with "Stack with id X does not exist".
+	msg := strings.ToLower(f.Message)
 	if strings.Contains(f.Code, "NotFound") || strings.Contains(f.Code, "NoSuch") ||
-		strings.Contains(f.Code, "NonExistent") || strings.Contains(f.Code, "DoesNotExist") {
+		strings.Contains(f.Code, "NonExistent") || strings.Contains(f.Code, "DoesNotExist") ||
+		strings.Contains(msg, "does not exist") || strings.Contains(msg, "not found") {
 		status, heading = http.StatusNotFound, "Not found"
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	c.render(w, r, "fail_page", map[string]any{
 		"Title": heading, "Heading": heading, "Failure": f, "Back": back, "BackName": backName,

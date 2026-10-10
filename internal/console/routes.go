@@ -123,11 +123,17 @@ func (p *pageWriter) Flush() {
 }
 
 // navigation tells the handlers below whether they are answering a page load.
-// htmx marks every request it makes; a fetch() for JSON does not ask for HTML.
+// htmx marks every request it makes, and marks a boosted link apart from the
+// rest; a fetch() for JSON does not ask for HTML.
 func (c *Console) navigation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.Header.Get("HX-Request") == "" &&
-			strings.Contains(r.Header.Get("Accept"), "text/html") {
+		// A boosted link is a navigation too: htmx fetches the page and swaps
+		// the workspace out of it, so a failure has to be a page it can swap.
+		// The fragment it used to get was placed at the top of whatever resource
+		// was still on screen, under that resource's name.
+		get := r.Method == http.MethodGet || r.Method == http.MethodHead
+		direct := r.Header.Get("HX-Request") == "" && strings.Contains(r.Header.Get("Accept"), "text/html")
+		if get && (direct || r.Header.Get("HX-Boosted") == "true") {
 			w = &pageWriter{ResponseWriter: w, r: r}
 		}
 		next.ServeHTTP(w, r)

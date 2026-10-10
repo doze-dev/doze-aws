@@ -131,6 +131,15 @@ func TestTagSaveWritesTheWholeDraftAndOnlyTheDifference(t *testing.T) {
 			if len(got) != 11 {
 				t.Errorf("want 11 tags, have %d: %v", len(got), got)
 			}
+
+			// Nine keys leave in one save: the removal is a batch too, and each
+			// service spells a list of keys its own way (a JSON array, members
+			// numbered from one, a key repeated in the query string).
+			saveTags(t, h, c.svc, c.id, [][2]string{{"a", "1"}, {"z", "9"}})
+			got = tagsOf(t, h, c.svc, c.id)
+			if len(got) != 2 || got["a"] != "1" || got["z"] != "9" {
+				t.Errorf("after removing nine keys at once: %v", got)
+			}
 		})
 	}
 }

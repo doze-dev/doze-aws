@@ -53,6 +53,7 @@
           </select>
           <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); if(!rows.length)rows.push(blank()); sync()">{{icon "x"}}</button>
         </div>
+        <div class="dim kv-note kv-dup" x-show="dup(row)" x-cloak>This key is used twice: only the last one is read back.</div>
         <div class="dim kv-note kv-mismatch" x-show="mismatch(row)" x-cloak>That is not a <span x-text="row.t==='number' ? 'number' : 'true or false'"></span>, so it is saved as text.</div>
         </div>
       </template>

@@ -33,7 +33,7 @@ func region(t *testing.T, page string) string {
 // render, and the relative age of a timestamp.
 func normalise(s string) string {
 	s = spaces.ReplaceAllString(s, " ")
-	s = regexp.MustCompile(`\b\d+ (?:seconds?|minutes?|hours?) ago\b|just now|\bnow\b`).ReplaceAllString(s, "AGO")
+	s = regexp.MustCompile(`\b\d+ (?:min|h|d) ago\b|just now`).ReplaceAllString(s, "AGO")
 	return strings.TrimSpace(s)
 }
 
@@ -63,6 +63,21 @@ func TestSecretsManagerFragmentsMatchAFullReload(t *testing.T) {
 	put := req(t, h, "POST", "/_console/sm/put", url.Values{"name": {name}, "value": {"v2"}}).Body.String()
 	sameMarkup(t, "after saving a new version", put, req(t, h, "GET", page, nil).Body.String())
 
+	// Rolling back to the first version redraws the Versions tab.
+	first := regexp.MustCompile(`name="version" value="([0-9a-f-]{36})"`).FindAllStringSubmatch(req(t, h, "GET", page+"&tab=versions", nil).Body.String(), -1)
+	// Only a version that is not current offers the rollback, so one form is expected.
+	if len(first) == 0 {
+		t.Fatalf("no version offers a rollback")
+	}
+	for _, m := range first {
+		promo := req(t, h, "POST", "/_console/sm/promote", url.Values{"name": {name}, "version": {m[1]}})
+		if promo.Header().Get("HX-Doze-Error") != "" {
+			continue // that one is already current
+		}
+		sameMarkup(t, "after rolling back", promo.Body.String(), req(t, h, "GET", page+"&tab=versions", nil).Body.String())
+		break
+	}
+
 	// Rotation off is a no-op to configure, and still redraws the strip.
 	rot := req(t, h, "POST", "/_console/sm/rotation", url.Values{"name": {name}, "lambda": {""}}).Body.String()
 	sameMarkup(t, "after configuring rotation", rot, req(t, h, "GET", page, nil).Body.String())
@@ -77,6 +92,11 @@ func TestParameterStoreFragmentsMatchAFullReload(t *testing.T) {
 
 			put := req(t, h, "POST", "/_console/ssm/put", url.Values{"name": {c.name}, "value": {"hunter3"}}).Body.String()
 			sameMarkup(t, "after saving", put, req(t, h, "GET", page, nil).Body.String())
+
+			label := req(t, h, "POST", "/_console/ssm/label", url.Values{"name": {c.name}, "version": {"1"}, "label": {"prod"}}).Body.String()
+			sameMarkup(t, "after labelling", label, req(t, h, "GET", page+"&tab=versions", nil).Body.String())
+			unlabel := req(t, h, "POST", "/_console/ssm/unlabel", url.Values{"name": {c.name}, "version": {"1"}, "label": {"prod"}}).Body.String()
+			sameMarkup(t, "after removing a label", unlabel, req(t, h, "GET", page+"&tab=versions", nil).Body.String())
 		})
 	}
 }
