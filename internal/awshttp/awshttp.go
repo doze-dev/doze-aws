@@ -31,6 +31,48 @@ type APIError struct {
 	// Extra merges additional members into the JSON error body (e.g.
 	// DynamoDB's CancellationReasons).
 	Extra map[string]json.RawMessage
+	// NotBuilt, when set, marks this as the refusal for an operation doze-aws
+	// does not build: "declined" (building it would mean pretending) or
+	// "deferred" (work nobody has done). It is written to the response as the
+	// X-Doze-Not-Built header, which is how the console and the model sweep
+	// recognise it without reading the status. Use NotBuilt to make one.
+	NotBuilt string
+}
+
+// The two kinds of operation doze-aws does not build. They are the two
+// sections of docs/not-built.md, and a test holds the refusals to it.
+const (
+	Declined = "declined"
+	Deferred = "deferred"
+)
+
+// NotBuiltHeader names the response header a not-built refusal carries.
+const NotBuiltHeader = "X-Doze-Not-Built"
+
+// NotBuilt is the one answer to an operation that exists on AWS and is not
+// built here: HTTP 501, the code NotImplemented in the protocol's own error
+// envelope, a message that names the operation and says why, and the
+// X-Doze-Not-Built header.
+//
+// Why not the codes it replaces. InvalidAction and "unknown path" say the
+// operation does not exist, which reads as a typo in the caller's own code.
+// UnsupportedOperationException is a real AWS code several services return for
+// real reasons, so a handler written against AWS could mistake "not built
+// here" for a genuine refusal. ValidationError says the input is wrong, and it
+// is not. 501 is the one status that already means "this server does not do
+// that", and the SDKs do not retry it (see notbuilt_sdk_test.go).
+//
+// kind is Declined or Deferred; op is the AWS operation name; why is the
+// reason, in the words of docs/not-built.md.
+func NotBuilt(kind, op, why string) *APIError {
+	msg := op + " is not built in doze-aws"
+	if why != "" {
+		msg += ": " + why
+	}
+	return &APIError{
+		Code: "NotImplemented", Status: http.StatusNotImplemented,
+		Message: msg, SenderFault: true, NotBuilt: kind,
+	}
 }
 
 func (e *APIError) Error() string { return e.Code + ": " + e.Message }
@@ -243,7 +285,19 @@ func WithFaultRecorder(w http.ResponseWriter, rec func(id string, e *APIError)) 
 // A recorder found on the writer wins over the global handler, and there is no
 // fallthrough: a stack that installed one has said where its faults go.
 func NoteFault(w http.ResponseWriter, id string, e *APIError) {
-	if e == nil || e.Status < 500 {
+	if e == nil {
+		return
+	}
+	// A not-built refusal is a 501 and is not a fault: nothing broke, the
+	// operation is one doze-aws says it does not do. It is stamped here because
+	// every protocol writer already calls this before it writes the status, and
+	// it must not reach the fault log below, where an "answered 501" line with a
+	// request id would read as a bug worth reporting.
+	if e.NotBuilt != "" {
+		w.Header().Set(NotBuiltHeader, e.NotBuilt)
+		return
+	}
+	if e.Status < 500 {
 		return
 	}
 	for cur := w; cur != nil; {

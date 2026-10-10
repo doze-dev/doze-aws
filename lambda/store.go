@@ -303,6 +303,11 @@ func writeError(w http.ResponseWriter, e *awshttp.APIError) {
 	body, _ := json.Marshal(map[string]string{"Type": "User", "message": e.Message, "Message": e.Message})
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("x-amzn-errortype", e.Code)
+	// The stamp for a not-built refusal. This writer does not report 5xx faults
+	// (it never did), so it calls the same hook only for the header.
+	if e.NotBuilt != "" {
+		awshttp.NoteFault(w, awshttp.ResponseID(w), e)
+	}
 	w.WriteHeader(e.Status)
 	w.Write(body)
 }
