@@ -239,18 +239,26 @@ func (rec *Recorder) EmitCascade(e trace.Event) {
 	rec.addAt(int64(e.Self), TrafficEntry{
 		At: e.At, Service: shortLabel(e.Service), Action: e.Action, Resource: e.Resource,
 		Millis: e.Millis, Parent: int64(e.Cause), Via: e.Via,
-		Status: cascadeStatus(e.Err), RespBody: e.Err,
+		Status: cascadeStatus(e.Status, e.Err), RespBody: e.Err, Denied: e.Denied,
 		Detail: e.Detail, DetailURL: e.DetailURL,
 	})
 }
 
 // cascadeStatus maps a delivery outcome onto the status column the wire
 // already understands, so a failed fan-out reads like any other failure.
-func cascadeStatus(err string) int {
-	if err != "" {
-		return 500
+//
+// A hop that failed answers with the status its target gave: a policy denial
+// on an alarm's Publish is a 403 and reads as a denial, not as doze-aws
+// breaking. 500 stays for a failure with no status behind it (a peer that
+// could not be reached, an error that never travelled over HTTP).
+func cascadeStatus(status int, err string) int {
+	switch {
+	case err == "":
+		return 200
+	case status >= 400:
+		return status
 	}
-	return 200
+	return 500
 }
 
 // LastSeq returns the sequence number of the newest recorded call — the cheap

@@ -42,6 +42,7 @@ package trace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -67,11 +68,43 @@ type Event struct {
 	At       time.Time
 	Millis   float64
 	Err      string // non-empty when the delivery failed
+	// Status is the HTTP status the target answered when it failed and the
+	// error knows one (see HTTPStatuser), else 0. It is what the wire shows for
+	// a failed hop: a policy denial on an alarm's Publish is a 403, not a 500.
+	Status int
+	// Denied is what decided a refusal, from the target's X-Doze-Denied header
+	// ("iam" when a policy did), so the wire can tell a denial from a refusal
+	// without reading the status's spelling.
+	Denied string
 	// Detail is what the work left behind that a reader would open the row
 	// for: a Lambda invocation's log tail, with a link the console can follow.
 	Detail string
 	// DetailURL is a console path the detail continues at, prefix-relative.
 	DetailURL string
+}
+
+// HTTPStatuser is implemented by an error that carries the HTTP status a peer
+// answered. Step records it, so a failed hop reads as the status it had rather
+// than as a failure of doze-aws itself.
+type HTTPStatuser interface{ HTTPStatus() int }
+
+// Denier is implemented by an error that carries the X-Doze-Denied fact.
+type Denier interface{ DeniedBy() string }
+
+func deniedOf(err error) string {
+	var d Denier
+	if errors.As(err, &d) {
+		return d.DeniedBy()
+	}
+	return ""
+}
+
+func statusOf(err error) int {
+	var s HTTPStatuser
+	if errors.As(err, &s) {
+		return s.HTTPStatus()
+	}
+	return 0
 }
 
 // Sink receives cascade events. Implementations must be safe for concurrent
@@ -125,7 +158,7 @@ func Step(ctx context.Context, e Event, fn func(context.Context) error) error {
 	err := fn(With(ctx, c.sink, self))
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	if err != nil {
-		e.Err = err.Error()
+		e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
 	}
 	if e.At.IsZero() {
 		e.At = start
@@ -149,7 +182,7 @@ func StepDetail(ctx context.Context, e Event, fn func(context.Context) (detail, 
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	e.Detail, e.DetailURL = detail, url
 	if err != nil {
-		e.Err = err.Error()
+		e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
 	}
 	if e.At.IsZero() {
 		e.At = start

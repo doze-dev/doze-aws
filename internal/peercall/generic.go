@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/trace"
@@ -29,9 +30,30 @@ type APIError struct {
 	Code    string
 	Message string
 	Status  int
+	// Denied is the peer's X-Doze-Denied header: "iam" when a policy decided.
+	Denied string
 }
 
 func (e *APIError) Error() string { return e.Code + ": " + e.Message }
+
+// HTTPStatus is the status the peer answered, for trace.HTTPStatuser.
+func (e *APIError) HTTPStatus() int { return e.Status }
+
+// DeniedBy is what decided a refusal, for trace.Denier.
+func (e *APIError) DeniedBy() string { return e.Denied }
+
+// statusError is a peer's non-2xx answer that was not decoded into an
+// APIError: its text is whatever the caller always wrote, and it also carries
+// the status, so the wire can show the hop as what it answered.
+type statusError struct {
+	status int
+	denied string // the peer's X-Doze-Denied header
+	msg    string
+}
+
+func (e *statusError) Error() string    { return e.msg }
+func (e *statusError) HTTPStatus() int  { return e.status }
+func (e *statusError) DeniedBy() string { return e.denied }
 
 // JSONCall posts one X-Amz-Target request (the awsJson protocols) and returns
 // the response document.
@@ -95,7 +117,7 @@ func jsonAPIError(resp *http.Response, body []byte) *APIError {
 	if code == "" {
 		code = "UnknownError"
 	}
-	return &APIError{Code: code, Message: msg, Status: resp.StatusCode}
+	return &APIError{Code: code, Message: msg, Status: resp.StatusCode, Denied: resp.Header.Get(awshttp.DeniedHeader)}
 }
 
 // QueryCall posts one form-encoded Action (the Query protocol) and returns
@@ -124,7 +146,7 @@ func QueryCall(ctx context.Context, dir peers.Directory, service, action, resour
 				if !ok {
 					code, msg = "UnknownError", string(body)
 				}
-				return &APIError{Code: code, Message: msg, Status: resp.StatusCode}
+				return &APIError{Code: code, Message: msg, Status: resp.StatusCode, Denied: resp.Header.Get(awshttp.DeniedHeader)}
 			}
 			out, err = awsquery.Result(action, body)
 			return err
@@ -201,5 +223,5 @@ func s3APIError(resp *http.Response, body []byte) *APIError {
 			e.Code, e.Message = "UnknownError", string(body)
 		}
 	}
-	return &APIError{Code: e.Code, Message: e.Message, Status: resp.StatusCode}
+	return &APIError{Code: e.Code, Message: e.Message, Status: resp.StatusCode, Denied: resp.Header.Get(awshttp.DeniedHeader)}
 }

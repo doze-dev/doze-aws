@@ -1706,6 +1706,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-note { font-size: 12px; }
 .kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-item { width: 100%; }
+.info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }
 .kv-row .kv-v { flex: 1; font-family: var(--mono); }

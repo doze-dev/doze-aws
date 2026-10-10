@@ -177,3 +177,26 @@ func TestTheWireSpeaksPlainly(t *testing.T) {
 		}
 	}
 }
+
+// A failed fan-out hop shows the status its target answered. It used to be
+// 500 for every failure, so a policy denial on an alarm's Publish read as
+// doze-aws breaking.
+func TestCascadeStatusIsWhatTheTargetAnswered(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		status int
+		err    string
+		want   int
+	}{
+		{"delivered", 0, "", 200},
+		{"denied", 403, "sns publish: 403 Forbidden: ...", 403},
+		{"refused by the target", 400, "sns publish: 400 Bad Request", 400},
+		{"target broke", 503, "x", 503},
+		{"no status behind the failure", 0, "no sns peer wired", 500},
+		{"a 2xx status with an error is still a failure", 200, "decoding: eof", 500},
+	} {
+		if got := cascadeStatus(c.status, c.err); got != c.want {
+			t.Errorf("%s: cascadeStatus(%d, %q) = %d, want %d", c.name, c.status, c.err, got, c.want)
+		}
+	}
+}

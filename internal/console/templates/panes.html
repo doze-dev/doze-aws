@@ -297,7 +297,7 @@
 {{if .Empty}}<p class="mini-note">No ledger for this service.</p>{{end}}
 {{$many := gt (len .Sections) 1}}
 {{range .Sections}}
-{{if $many}}<h4 class="info-sec" style="margin:14px 0 6px">{{.Title}}</h4>{{end}}
+{{if $many}}<h4 class="info-sec">{{.Title}}</h4>{{end}}
 <div class="table-wrap"><table class="tbl">
   <thead><tr><th style="width:60px">Tier</th><th style="width:280px">Operations</th><th>Notes</th></tr></thead>
   <tbody>

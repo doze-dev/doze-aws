@@ -2,6 +2,8 @@ package trace
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -101,5 +103,50 @@ func TestUntracedContextIsANoOp(t *testing.T) {
 	}
 	if Header(context.Background()) != "" {
 		t.Error("Header() invented a value without a sink")
+	}
+}
+
+type answered struct{ status int }
+
+func (a answered) Error() string   { return "answered" }
+func (a answered) HTTPStatus() int { return a.status }
+
+// A failed hop carries the status its target answered, found through any
+// wrapping, so the wire can show a denial as a denial.
+func TestAFailedStepRecordsTheStatusItWasAnswered(t *testing.T) {
+	sink := &fakeSink{run: "r"}
+	ctx := With(context.Background(), sink, Cause(1))
+
+	_ = Step(ctx, Event{Service: "sns", Action: "Publish"}, func(context.Context) error {
+		return fmt.Errorf("publishing: %w", answered{403})
+	})
+	_ = Step(ctx, Event{Service: "sqs", Action: "SendMessage"}, func(context.Context) error {
+		return errors.New("no sqs peer wired")
+	})
+	_ = Step(ctx, Event{Service: "sqs", Action: "SendMessage"}, func(context.Context) error { return nil })
+
+	if got := sink.events[0].Status; got != 403 {
+		t.Errorf("wrapped answer: status = %d, want 403", got)
+	}
+	if got := sink.events[1].Status; got != 0 {
+		t.Errorf("an error with no status recorded %d, want 0", got)
+	}
+	if e := sink.events[2]; e.Status != 0 || e.Err != "" {
+		t.Errorf("a success recorded %+v", e)
+	}
+}
+
+type denied struct{}
+
+func (denied) Error() string    { return "denied" }
+func (denied) HTTPStatus() int  { return 403 }
+func (denied) DeniedBy() string { return "iam" }
+
+func TestAFailedStepRecordsWhoDeniedIt(t *testing.T) {
+	sink := &fakeSink{run: "r"}
+	ctx := With(context.Background(), sink, Cause(1))
+	_ = Step(ctx, Event{Service: "sns", Action: "Publish"}, func(context.Context) error { return fmt.Errorf("x: %w", denied{}) })
+	if e := sink.events[0]; e.Denied != "iam" || e.Status != 403 {
+		t.Errorf("recorded %+v, want status 403 denied by iam", e)
 	}
 }

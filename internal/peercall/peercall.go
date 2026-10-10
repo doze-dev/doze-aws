@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/trace"
 )
@@ -331,7 +332,7 @@ func lambdaInvoke(ctx context.Context, dir peers.Directory, function string, pay
 	body, _ = io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
 	tail, rid = logTail(resp), resp.Header.Get("X-Amzn-RequestId")
 	if resp.StatusCode/100 != 2 {
-		return body, tail, rid, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
+		return body, tail, rid, &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("lambda invoke: %s: %s", resp.Status, body)}
 	}
 	if fnErr := resp.Header.Get("X-Amz-Function-Error"); fnErr != "" {
 		return body, tail, rid, fmt.Errorf("function error (%s): %s", fnErr, body)
@@ -368,7 +369,7 @@ func lambdaInvokeAsync(ctx context.Context, dir peers.Directory, function string
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
+		return &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("lambda invoke: %s: %s", resp.Status, body)}
 	}
 	return nil
 }
@@ -401,7 +402,7 @@ func snsPublish(ctx context.Context, dir peers.Directory, topicARN, message stri
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return fmt.Errorf("sns publish: %s: %s", resp.Status, body)
+		return &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("sns publish: %s: %s", resp.Status, body)}
 	}
 	return nil
 }
@@ -436,7 +437,7 @@ func postJSONResult(ctx context.Context, ep peers.Endpoint, target, contentType 
 	// (SQS batch ≈ 2.6 MB, Lambda sync response 6 MB).
 	out, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("%s: %s: %s", target, resp.Status, out)
+		return nil, &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("%s: %s: %s", target, resp.Status, out)}
 	}
 	return out, nil
 }
@@ -466,7 +467,7 @@ func S3Get(ctx context.Context, dir peers.Directory, bucket, key string) ([]byte
 		return nil, err
 	}
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("s3 GET %s/%s: %d", bucket, key, resp.StatusCode)
+		return nil, &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("s3 GET %s/%s: %d", bucket, key, resp.StatusCode)}
 	}
 	return body, nil
 }
@@ -655,7 +656,7 @@ func SNSPublishDetailed(ctx context.Context, dir peers.Directory, topicARN, mess
 			defer resp.Body.Close()
 			body, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
 			if resp.StatusCode/100 != 2 {
-				return fmt.Errorf("sns publish: %s: %s", resp.Status, body)
+				return &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("sns publish: %s: %s", resp.Status, body)}
 			}
 			var out struct {
 				MessageID string `xml:"PublishResult>MessageId"`
