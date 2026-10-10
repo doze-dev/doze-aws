@@ -19,8 +19,30 @@ package console
 // consequence, not the status. "No queues yet" is a fact about the database.
 // "Nothing has anywhere to queue up" is a fact about the user's stack.
 
+// emptyCase is which of three things happens when a service's page is opened,
+// and so which of its lines can ever be seen. Each service is assigned exactly
+// one, and copy_reach_test.go drives every service to check the assignment and
+// that no line is held that its case cannot show.
+type emptyCase string
+
+const (
+	// caseUnselected: the list is shown and the detail pane waits for a pick.
+	// This is the only case in which Unsel is ever on screen.
+	caseUnselected emptyCase = "unselected"
+	// caseFirst: the service opens its first resource whenever one exists, so
+	// there is no "nothing selected" moment. Short and None show only while
+	// there is nothing at all.
+	caseFirst emptyCase = "first"
+	// caseHome: the service's landing page is a page of its own (the metrics
+	// page, a path query, the access log, the account page) and not a list with
+	// a pane beside it.
+	caseHome emptyCase = "home"
+)
+
 // emptyCopy is one service's voice in the states where it has nothing to show.
 type emptyCopy struct {
+	// Case says which lines below can be reached.
+	Case emptyCase
 	// Short is the list pane's HEADING — no end punctuation, per Cloudscape's
 	// rule that headings and buttons take none and descriptions do. The pane is
 	// 232px wide, so it gets the
@@ -42,69 +64,67 @@ type emptyCopy struct {
 
 var emptyCopyBySvc = map[string]emptyCopy{
 	"s3": {
+		Case:    caseFirst,
 		Short:   "No buckets yet",
 		None:    "No buckets yet. A bucket is where objects live — and once one exists you can point notifications at a queue, a topic or a function, so writing a file becomes the thing that starts a workflow.",
-		Unsel:   "Select a bucket to browse its objects, or edit its versioning, lifecycle and event notifications.",
 		CTA:     "New bucket",
 		CTAPath: "/s3/create",
 	},
 	"ddb": {
+		Case:    caseFirst,
 		Short:   "No tables yet",
 		None:    "No tables yet. A table is the one store here that can also be a source: turn on a stream and every write can drive a Lambda.",
-		Unsel:   "Select a table to scan it, query it, or run PartiQL against it.",
 		CTA:     "New table",
 		CTAPath: "/ddb/create",
 	},
 	"sqs": {
+		Case:    caseFirst,
 		Short:   "No queues yet",
 		None:    "No queues yet, so nothing in this stack has anywhere to queue up. A queue is what lets a slow consumer fall behind without losing work — and what a dead-letter queue catches when it fails to keep up at all.",
-		Unsel:   "Select a queue to read its messages without consuming them, send one, or set up redrive.",
 		CTA:     "New queue",
 		CTAPath: "/sqs/create",
 	},
 	"sns": {
+		Case:    caseFirst,
 		Short:   "No topics yet",
 		None:    "No topics yet. A topic is how one event reaches several places at once — queues, functions, webhooks — each with its own filter policy deciding what it actually wants.",
-		Unsel:   "Select a topic to publish to it, or to see who is subscribed and what each subscriber filters on.",
 		CTA:     "New topic",
 		CTAPath: "/sns/create",
 	},
+	// The default bus always exists, so there is no state in which this service
+	// has nothing to show and no line here that could be on screen.
 	"eb": {
-		Short:   "No event buses yet",
-		None:    "No event buses yet. A bus routes by the shape of an event rather than by its destination, so a rule can pick out the events it cares about and nothing else has to know.",
-		Unsel:   "Select a bus to add rules, test an event against them, or replay from an archive.",
-		CTA:     "New bus",
-		CTAPath: "/eb/create-bus",
+		Case: caseFirst,
 	},
 	"kinesis": {
+		Case:    caseFirst,
 		Short:   "No streams yet",
 		None:    "No streams yet. A stream keeps records in order and keeps them after they are read, which is the difference between it and a queue.",
-		Unsel:   "Select a stream to read records, put one, or split and merge its shards.",
 		CTA:     "New stream",
 		CTAPath: "/kinesis/create",
 	},
 	"lambda": {
+		Case:    caseHome,
 		Short:   "No functions yet",
 		None:    "No functions yet. New points a function at a build directory on disk — edit the code and re-invoke, no zip, no deploy.",
-		Unsel:   "Select a function to invoke it, edit its configuration, or wire an event source to it.",
 		CTA:     "New function",
 		CTAPath: "/lambda/create",
 	},
 	"sfn": {
+		Case:    caseFirst,
 		Short:   "No state machines yet",
 		None:    "No state machines yet. A state machine is the orchestration written down — which function runs after which, what a failure retries and what it gives up on — and an execution is one run of it you can read step by step.",
-		Unsel:   "Select a state machine to start an execution, read one's history, or edit the definition.",
 		CTA:     "New state machine",
 		CTAPath: "/sfn/create",
 	},
 	"cw": {
+		Case:    caseHome,
 		Short:   "No alarms yet",
-		None:    "No alarms yet. An alarm watches one metric over a window and notifies a topic or a function when it crosses a threshold — the same alarm you would write against the cloud, testable before you deploy it.",
-		Unsel:   "Select an alarm to read why it is in the state it is in, chart the metric behind it, or set its state by hand to test what it notifies.",
 		CTA:     "New alarm",
 		CTAPath: "/cw/create",
 	},
 	"logs": {
+		Case:    caseUnselected,
 		Short:   "No log groups yet",
 		None:    "No log groups yet. A function writes one under /aws/lambda/<name> the first time it prints, and `aws logs tail --follow` reads the same lines you see here.",
 		Unsel:   "Select a log group to tail it, filter it, or read one invocation's lines.",
@@ -112,13 +132,14 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTAPath: "/logs/create",
 	},
 	"kms": {
+		Case:    caseFirst,
 		Short:   "No keys yet",
 		None:    "No keys yet. Keys here do real cryptography — encrypt, sign and HMAC against actual key material, so a signature that verifies here verifies on deploy.",
-		Unsel:   "Select a key to encrypt or sign something with it, manage aliases, or schedule its deletion.",
 		CTA:     "New key",
 		CTAPath: "/kms/create",
 	},
 	"sm": {
+		Case:    caseUnselected,
 		Short:   "No secrets yet",
 		None:    "No secrets yet. A secret is encrypted at rest here and read through the same SDK call your code already makes, so nothing has to change between here and production.",
 		Unsel:   "Select a secret to read it, edit it, or compare a version against the current one.",
@@ -126,31 +147,30 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTAPath: "/sm/create",
 	},
 	"ssm": {
+		Case:    caseHome,
 		Short:   "No parameters yet",
 		None:    "No parameters yet. Parameter Store is the plain-configuration half of the pair — hierarchical paths, versioned, and SecureString when a value needs encrypting.",
-		Unsel:   "Select a parameter to read it, edit it, or compare versions.",
 		CTA:     "New parameter",
 		CTAPath: "/ssm/create",
 	},
+	// IAM lands on the access log whether or not a principal exists, so it has
+	// no empty state of its own either.
 	"iam": {
-		Short:   "No principals yet",
-		None:    "No principals yet. IAM is off by default, so calls are allowed and simply recorded — the access log below still fills up, and it is what generates the policy your code actually needed.",
-		Unsel:   "Select a principal to see what it can do, or read the access log to find out what was asked for.",
-		CTA:     "New principal",
-		CTAPath: "/iam/create",
+		Case: caseHome,
 	},
-	// CloudFormation and API Gateway have no create form on purpose: things
-	// arrive in them by being deployed. Their copy says so rather than offering
-	// a button that does not exist.
 	"cfn": {
-		Short: "No stacks yet — they arrive by deploying",
-		None:  "No stacks yet. Stacks appear here when you deploy — sam deploy, cdk deploy, Serverless, or the CloudFormation CLI all land in this list.",
-		Unsel: "Select a stack to see its resources, its events, and the template it was deployed from.",
+		Case:    caseHome,
+		Short:   "No stacks yet",
+		None:    "No stacks yet. Create one from a template here, or deploy one — sam deploy, cdk deploy, Serverless and the CloudFormation CLI all land in this list.",
+		CTA:     "New stack",
+		CTAPath: "/cfn/create",
 	},
 	"apigw": {
-		Short: "No APIs yet — they arrive by deploying",
-		None:  "No APIs yet. APIs appear here when you deploy one with sam, cdk, Serverless or the API Gateway CLI — and once deployed, they serve real HTTP into your functions.",
-		Unsel: "Select an API to see its routes and stages, or to send a request through it.",
+		Case:    caseFirst,
+		Short:   "No APIs yet",
+		None:    "No APIs yet. Create one here, or deploy one with sam, cdk, Serverless or the API Gateway CLI — and once it has a stage it serves real HTTP into your functions.",
+		CTA:     "New API",
+		CTAPath: "/apigw/create",
 	},
 }
 
@@ -160,5 +180,5 @@ func emptyFor(svc string) emptyCopy {
 	if c, ok := emptyCopyBySvc[svc]; ok {
 		return c
 	}
-	return emptyCopy{Short: "Nothing here yet.", None: "Nothing here yet.", Unsel: "Select something from the list."}
+	return emptyCopy{Short: "Nothing here yet.", None: "Nothing here yet."}
 }

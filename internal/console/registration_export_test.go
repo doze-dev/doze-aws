@@ -41,3 +41,15 @@ func RegisteredSurfaces() []Registration {
 	}
 	return out
 }
+
+// EmptyCopy is a service's empty-state copy and the case it is assigned, for
+// the test that drives every service and checks no held line is unreachable.
+type EmptyCopy struct {
+	Case, Short, None, Unsel, CTA, CTAPath string
+}
+
+// EmptyCopyOf returns the copy held for a service.
+func EmptyCopyOf(svc string) (EmptyCopy, bool) {
+	c, ok := emptyCopyBySvc[svc]
+	return EmptyCopy{string(c.Case), c.Short, c.None, c.Unsel, c.CTA, c.CTAPath}, ok
+}

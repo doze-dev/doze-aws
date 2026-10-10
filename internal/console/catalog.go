@@ -41,7 +41,8 @@ var catalog = []svcEntry{
 
 	{Key: "lambda", Label: "Lambda", Group: "Compute & APIs", Noun: "function",
 		CreatePath: "/lambda/create", CreateLabel: "Create function"},
-	{Key: "apigw", Label: "API Gateway", Group: "Compute & APIs", Noun: "API"},
+	{Key: "apigw", Label: "API Gateway", Group: "Compute & APIs", Noun: "API",
+		CreatePath: "/apigw/create", CreateLabel: "Create API"},
 	{Key: "sfn", Label: "Step Functions", Group: "Compute & APIs", Noun: "state machine",
 		CreatePath: "/sfn/create", CreateLabel: "Create state machine"},
 	{Key: "logs", Label: "CloudWatch Logs", Group: "Compute & APIs", Noun: "log group",
@@ -58,7 +59,8 @@ var catalog = []svcEntry{
 
 	{Key: "iam", Label: "IAM", Group: "Stack-wide", Noun: "principal",
 		CreatePath: "/iam/create", CreateLabel: "Create principal"},
-	{Key: "cfn", Label: "CloudFormation", Group: "Stack-wide", Noun: "stack"},
+	{Key: "cfn", Label: "CloudFormation", Group: "Stack-wide", Noun: "stack",
+		CreatePath: "/cfn/create", CreateLabel: "Create stack"},
 }
 
 // surfaces are the pages that are not a service. They lead the rail with no
