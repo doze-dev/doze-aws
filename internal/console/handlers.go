@@ -667,7 +667,7 @@ func epochSecString(s string) string {
 	if err != nil || n == 0 {
 		return ""
 	}
-	return time.Unix(n, 0).Local().Format("2006-01-02 15:04:05")
+	return stamp(time.Unix(n, 0))
 }
 
 // sqsMsgHash fingerprints the visible message state for 204-skip polling.

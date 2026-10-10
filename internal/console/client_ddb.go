@@ -402,7 +402,7 @@ func (b *backend) itemsFromAV(t *Table, avs []map[string]json.RawMessage) []Item
 				// the TTL attribute is a known epoch — show the date it means
 				if k == t.TTLAttr {
 					if sec, err := strconv.ParseInt(s, 10, 64); err == nil && sec > 0 {
-						s += " · " + time.Unix(sec, 0).Local().Format("2006-01-02")
+						s += " · " + day(time.Unix(sec, 0))
 					}
 				}
 				it.Attrs[k] = s

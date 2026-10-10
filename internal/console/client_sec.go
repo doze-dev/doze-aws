@@ -128,7 +128,7 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 		}
 	}
 	if m.CreationDate > 0 {
-		k.Created = time.Unix(int64(m.CreationDate), 0).Local().Format("2006-01-02 15:04")
+		k.Created = stampMinute(time.Unix(int64(m.CreationDate), 0))
 	}
 	if rb, err := b.json11(ctx, "TrentService", "GetKeyRotationStatus", map[string]any{"KeyId": m.KeyId}); err == nil {
 		var rs struct {
@@ -145,7 +145,7 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 		}
 		json.Unmarshal(rb, &lr)
 		for _, r := range lr.Rotations {
-			k.Rotations = append(k.Rotations, time.Unix(int64(r.RotationDate), 0).Local().Format("2006-01-02 15:04"))
+			k.Rotations = append(k.Rotations, stampMinute(time.Unix(int64(r.RotationDate), 0)))
 		}
 	}
 	return k, nil
@@ -623,7 +623,7 @@ func epochToTime(f float64) string {
 	if f <= 0 {
 		return ""
 	}
-	return time.Unix(int64(f), 0).Local().Format("2006-01-02 15:04")
+	return stampMinute(time.Unix(int64(f), 0))
 }
 
 // PromoteSecretVersion moves AWSCURRENT to an older version — the rollback.

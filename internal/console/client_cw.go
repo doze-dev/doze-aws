@@ -400,7 +400,7 @@ func (w cwAlarmWire) toAlarm() Alarm {
 		a.Statistic = w.ExtendedStatistic
 	}
 	if !w.StateUpdatedTimestamp.IsZero() {
-		a.Updated = w.StateUpdatedTimestamp.Local().Format("2006-01-02 15:04:05")
+		a.Updated = stamp(w.StateUpdatedTimestamp)
 	}
 	if len(w.Dimensions) > 0 {
 		a.Dimensions = map[string]string{}
@@ -465,7 +465,7 @@ func (b *backend) AlarmHistory(ctx context.Context, name string) ([]AlarmHistory
 	out := make([]AlarmHistoryEntry, 0, len(res.AlarmHistoryItems))
 	for _, h := range res.AlarmHistoryItems {
 		out = append(out, AlarmHistoryEntry{
-			When:    h.Timestamp.Local().Format("2006-01-02 15:04:05"),
+			When:    stamp(h.Timestamp),
 			Type:    h.HistoryItemType,
 			Summary: h.HistorySummary,
 		})

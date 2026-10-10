@@ -88,8 +88,8 @@ func flattenEvent(raw map[string]any) HistoryEvent {
 	}
 	if ts, ok := raw["timestamp"].(float64); ok && ts > 0 {
 		t := time.UnixMilli(int64(ts * 1000)).Local()
-		ev.When = t.Format("2006-01-02 15:04:05.000 MST")
-		ev.Clock = t.Format("15:04:05.000")
+		ev.When = stampMillis(t)
+		ev.Clock = clockMillis(t)
 	}
 	for k, v := range raw {
 		details, ok := v.(map[string]any)

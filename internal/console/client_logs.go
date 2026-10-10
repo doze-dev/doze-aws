@@ -74,7 +74,7 @@ func (b *backend) FilterLogs(ctx context.Context, group, rid, pattern string, si
 	lines := make([]LogLine, 0, len(out.Events))
 	for _, ev := range out.Events {
 		lines = append(lines, LogLine{
-			TS: ev.TS, When: time.UnixMilli(ev.TS).Local().Format("15:04:05.000"),
+			TS: ev.TS, When: clockMillis(time.UnixMilli(ev.TS)),
 			Message: ev.Message, Stream: ev.Stream, RequestID: ev.RID,
 			Short: shortRID(ev.RID), Kind: lineKind(ev.Message),
 		})
@@ -130,7 +130,7 @@ func (b *backend) ListLogGroups(ctx context.Context) ([]LogGroup, error) {
 		}
 		json.Unmarshal(body, &out)
 		for _, g := range out.Groups {
-			groups = append(groups, LogGroup{Name: g.Name, Created: time.UnixMilli(g.Created).Local().Format("2006-01-02 15:04"),
+			groups = append(groups, LogGroup{Name: g.Name, Created: stampMinute(time.UnixMilli(g.Created)),
 				RetentionDays: g.Retention, ARN: g.ARN})
 		}
 		if out.Next == "" {
@@ -158,9 +158,9 @@ func (b *backend) ListLogStreams(ctx context.Context, group string) ([]LogStream
 	json.Unmarshal(body, &out)
 	streams := make([]LogStream, 0, len(out.Streams))
 	for _, st := range out.Streams {
-		s := LogStream{Name: st.Name, Created: time.UnixMilli(st.Created).Local().Format("2006-01-02 15:04")}
+		s := LogStream{Name: st.Name, Created: stampMinute(time.UnixMilli(st.Created))}
 		if st.Last > 0 {
-			s.LastEvent = time.UnixMilli(st.Last).Local().Format("2006-01-02 15:04:05")
+			s.LastEvent = stamp(time.UnixMilli(st.Last))
 		}
 		streams = append(streams, s)
 	}

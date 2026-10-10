@@ -150,7 +150,7 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "traffic_drawer", map[string]any{
 		"E": e, "Req": req, "Resp": resp,
 		"Millis": fmtMillis(e.Millis),
-		"Time":   e.At.Local().Format("15:04:05.000"),
+		"Time":   clockMillis(e.At),
 		"State":  callState(e.Status, e.Failure(), factsOfEntry(e)),
 		"Copy":   stateCopyFor(callState(e.Status, e.Failure(), factsOfEntry(e)), e.NotBuilt),
 	})
@@ -268,7 +268,7 @@ func fmtMillis(ms float64) string {
 func rowOf(e TrafficEntry, depth int) trafficRow {
 	ref := e.Failure()
 	return trafficRow{
-		Time:    e.At.Local().Format("15:04:05.000"),
+		Time:    clockMillis(e.At),
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Status: e.Status, Millis: fmtMillis(e.Millis),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
@@ -422,7 +422,7 @@ func (c *Console) deckData(r *http.Request) deckView {
 	}
 	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.LastSeq() == 0)
 	v.Hash = deckHash(g)
-	v.Updated = time.Now().Format("15:04:05")
+	v.Updated = clock(time.Now())
 	return v
 }
 

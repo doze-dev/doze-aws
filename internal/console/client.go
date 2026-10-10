@@ -831,7 +831,7 @@ func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
 func shortTime(s string) string {
 	for _, layout := range []string{time.RFC3339, time.RFC3339Nano, "2006-01-02T15:04:05.000Z"} {
 		if t, err := time.Parse(layout, s); err == nil {
-			return t.Local().Format("2006-01-02 15:04")
+			return stampMinute(t)
 		}
 	}
 	return s
@@ -839,7 +839,7 @@ func shortTime(s string) string {
 
 func httpDate(s string) string {
 	if t, err := time.Parse(http.TimeFormat, s); err == nil {
-		return t.Local().Format("2006-01-02 15:04:05")
+		return stamp(t)
 	}
 	return s
 }
@@ -849,5 +849,5 @@ func epochMillisToTime(s string) string {
 	if err != nil || ms == 0 {
 		return ""
 	}
-	return time.UnixMilli(ms).Local().Format("2006-01-02 15:04:05")
+	return stamp(time.UnixMilli(ms))
 }

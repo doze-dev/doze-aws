@@ -200,7 +200,7 @@ func (c *Console) glanceWire(resp *glanceResponse) (perSvc map[string][]int, per
 	for _, e := range c.rec.Entries(0) {
 		if len(resp.Wire) < glanceWireMax {
 			resp.Wire = append(resp.Wire, glanceWire{
-				Seq: e.Seq, T: e.At.Local().Format("15:04:05.0"), Svc: e.Service, Action: e.Action,
+				Seq: e.Seq, T: clockTenths(e.At), Svc: e.Service, Action: e.Action,
 				Res: e.Resource, Code: e.Status, Millis: e.Millis, Err: e.Status >= 400,
 			})
 		}

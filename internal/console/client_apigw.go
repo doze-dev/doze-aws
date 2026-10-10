@@ -210,7 +210,7 @@ func epochTime(sec float64) string {
 	if sec == 0 {
 		return ""
 	}
-	return time.Unix(int64(sec), 0).UTC().Format("2006-01-02 15:04:05")
+	return stamp(time.Unix(int64(sec), 0))
 }
 
 // pathDepth counts the segments in a resource path, for indenting the tree.

@@ -152,7 +152,7 @@ func (b *backend) StreamSummary(ctx context.Context, name string) (*Stream, erro
 		Name: d.StreamName, ARN: d.StreamARN, Status: d.StreamStatus,
 		Mode: d.StreamModeDetails.StreamMode, Shards: d.OpenShardCount,
 		Retention:  d.RetentionPeriodHours,
-		Created:    time.Unix(int64(d.StreamCreationTimestamp), 0).UTC().Format("2006-01-02 15:04:05"),
+		Created:    stamp(time.Unix(int64(d.StreamCreationTimestamp), 0)),
 		Encryption: d.EncryptionType, KeyID: d.KeyID,
 		Metrics: firstMetrics(d.EnhancedMonitoring),
 	}, nil
@@ -420,11 +420,11 @@ func decodeRecord(shard, seq, partition, data string, arrived float64) KRecord {
 	if derr != nil {
 		raw = []byte(data)
 	}
-	at := time.Unix(0, int64(arrived*1e9)).UTC()
+	at := time.Unix(0, int64(arrived*1e9))
 	num, _ := strconv.ParseUint(trimSeq(seq), 10, 64)
 	rec := KRecord{
 		Seq: trimSeq(seq), SeqNum: num, Shard: shard, Partition: partition,
-		Arrived: at.Format("15:04:05"), ArrivedAt: at, Bytes: len(raw),
+		Arrived: clock(at), ArrivedAt: at, Bytes: len(raw),
 	}
 	if isPrintable(raw) {
 		rec.Data = string(raw)
@@ -845,7 +845,7 @@ func (b *backend) ListConsumers(ctx context.Context, arn string) ([]Consumer, er
 	for _, c := range out.Consumers {
 		cs = append(cs, Consumer{
 			Name: c.ConsumerName, ARN: c.ConsumerARN, Status: c.ConsumerStatus,
-			Created: time.Unix(int64(c.ConsumerCreationTimestamp), 0).UTC().Format("2006-01-02 15:04:05"),
+			Created: stamp(time.Unix(int64(c.ConsumerCreationTimestamp), 0)),
 		})
 	}
 	sort.Slice(cs, func(i, j int) bool { return cs[i].Name < cs[j].Name })
