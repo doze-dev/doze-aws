@@ -85,7 +85,7 @@ README says why for each).
 | Id | Sev | What | Where | Evidence |
 |---|---|---|---|---|
 | LAM-6 | P1 | **Closed** (`integration_sqs_batch_test.go`: no message reached the function until the poller was fixed). Lambda's poller asks `ReceiveMessage` for the trigger's `BatchSize`. Today anything above 10 quietly returns one message at a time. The moment SQS-5 makes that a refusal, every trigger with a batch size above 10 stops receiving. The poller's cap goes in the same commit as SQS-5. | `lambda/extras.go` `pollSQS` | run |
-| CFN-4 (the queue part) | P0 | `AWS::SQS::QueuePolicy` is accepted and dropped. A template's grant never reaches the queue, and the policy is evaluated under soft and enforce. | `internal/cfn/` resource mapping | run |
+| CFN-4 (the queue part) | P0 | **Closed** (`cloudformation/queue_policy_apply_test.go`; a policy for a queue the template does not declare is applied against a queue that must exist, and the export writes the policy back out).  `AWS::SQS::QueuePolicy` is accepted and dropped. A template's grant never reaches the queue, and the policy is evaluated under soft and enforce. | `internal/cfn/` resource mapping | run |
 
 SQS-1 touches `internal/provision`, which `doze-aws apply` also uses and which
 must keep adopting existing resources. The ordering is a pure improvement for

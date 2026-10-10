@@ -30,7 +30,11 @@ import (
 
 // Stack is the desired state of a set of local AWS resources.
 type Stack struct {
-	Queues        map[string]Queue
+	Queues map[string]Queue
+	// QueuePolicies are access policies for queues this stack does not declare
+	// (a template's AWS::SQS::QueuePolicy can name any queue by URL). They are
+	// applied after the queues, and the apply fails when the queue is not there.
+	QueuePolicies []QueuePolicy
 	Topics        map[string]Topic
 	Buckets       map[string]Bucket
 	Tables        map[string]Table
@@ -313,7 +317,16 @@ type Route struct {
 	HTTPTarget    string
 }
 
+// QueuePolicy is an access policy for a queue by name.
+type QueuePolicy struct {
+	Queue  string
+	Policy Doc
+}
+
 type Queue struct {
+	// Policy is the queue's access policy, applied with the rest of its
+	// attributes. A grant to an SNS topic or an S3 bucket lives here.
+	Policy       Doc
 	FIFO         bool
 	ContentDedup bool
 	DLQ          string // "auto" or a queue name

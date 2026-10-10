@@ -25,5 +25,11 @@ func emitQueues(s *provision.Stack, add func(prefix, name, typ string, props map
 		}
 		putTags(props, q.Tags)
 		add("Queue", name, "AWS::SQS::Queue", props)
+		if !q.Policy.IsZero() {
+			add("QueuePolicy", name, "AWS::SQS::QueuePolicy", map[string]any{
+				"Queues":         []any{map[string]any{"Ref": logicalID("Queue", name)}},
+				"PolicyDocument": rawDoc(q.Policy),
+			})
+		}
 	}
 }

@@ -153,8 +153,10 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.functionURL(props)
 	case "AWS::S3::BucketPolicy":
 		return m.bucketPolicy(props)
+	case "AWS::SQS::QueuePolicy":
+		return m.queuePolicy(props)
 	case "AWS::Lambda::Permission",
-		"AWS::SQS::QueuePolicy", "AWS::SNS::TopicPolicy",
+		"AWS::SNS::TopicPolicy",
 		"AWS::Events::EventBus":
 		// Recognised and namable — they carry no stack-file state of their own.
 		return nil
@@ -359,6 +361,46 @@ func (m *mapper) queue(name string, props map[string]any) error {
 		q.MaxReceives = propInt(rd, "maxReceiveCount")
 	}
 	m.stack.Queues[name] = q
+	return nil
+}
+
+// queuePolicy attaches a policy document to each queue it names. The queue may
+// be declared after the policy, so the attachment is deferred until every
+// resource is known; one the template does not declare is applied against a
+// queue that has to exist when the stack is applied.
+func (m *mapper) queuePolicy(props map[string]any) error {
+	raw, err := json.Marshal(props["PolicyDocument"])
+	if err != nil || props["PolicyDocument"] == nil {
+		return fmt.Errorf("PolicyDocument is required")
+	}
+	doc := provision.Doc{JSON: string(raw)}
+	targets := propList(props, "Queues")
+	if len(targets) == 0 {
+		return fmt.Errorf("Queues is required")
+	}
+	var names []string
+	for _, t := range targets {
+		s, _ := t.(string)
+		// A queue is named by its URL (or by what a Ref to it resolves to, which
+		// is the URL's path), so the name is the last segment.
+		if n := nameFromARN(s); n != "" {
+			if i := strings.LastIndex(n, "/"); i >= 0 {
+				n = n[i+1:]
+			}
+			names = append(names, n)
+		}
+	}
+	m.deferred = append(m.deferred, func() error {
+		for _, n := range names {
+			if q, ok := m.stack.Queues[n]; ok {
+				q.Policy = doc
+				m.stack.Queues[n] = q
+				continue
+			}
+			m.stack.QueuePolicies = append(m.stack.QueuePolicies, provision.QueuePolicy{Queue: n, Policy: doc})
+		}
+		return nil
+	})
 	return nil
 }
 

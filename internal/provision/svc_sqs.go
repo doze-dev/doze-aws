@@ -51,6 +51,9 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if q.MaxSize > 0 {
 			attrs["MaximumMessageSize"] = strconv.Itoa(q.MaxSize)
 		}
+		if !q.Policy.IsZero() {
+			attrs["Policy"] = q.Policy.JSON
+		}
 		if q.DLQ != "" {
 			dlq := q.DLQ
 			if dlq == "auto" {
@@ -113,6 +116,21 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if err := ensure(name, s.Queues[name]); err != nil {
 			return fmt.Errorf("queue %q: %w", name, err)
 		}
+	}
+	for _, qp := range s.QueuePolicies {
+		name := qp.Queue
+		if _, err := c.sqs(ctx, "GetQueueUrl", map[string]any{"QueueName": name}); err != nil {
+			if notFound(err) {
+				return fmt.Errorf("queue policy for %q: the queue does not exist", name)
+			}
+			return fmt.Errorf("queue policy for %q: %w", name, err)
+		}
+		if _, err := c.sqs(ctx, "SetQueueAttributes", map[string]any{
+			"QueueUrl": queueURL(c.id, name), "Attributes": map[string]string{"Policy": qp.Policy.JSON},
+		}); err != nil {
+			return fmt.Errorf("queue policy for %q: %w", name, err)
+		}
+		rep.add("updated", "queue/"+name, "policy")
 	}
 	return nil
 }
@@ -209,6 +227,9 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 				q.Retention = ret
 			}
 			q.ReceiveWait = atoiDefault(a["ReceiveMessageWaitTimeSeconds"], 0)
+			if p := a["Policy"]; p != "" {
+				q.Policy = Doc{JSON: p}
+			}
 			if ms := atoiDefault(a["MaximumMessageSize"], 0); ms != 0 && ms != 262144 {
 				q.MaxSize = ms
 			}
