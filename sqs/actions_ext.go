@@ -10,7 +10,7 @@ import (
 )
 
 type listTagsResult struct {
-	Tags kvAttrs `json:"Tags,omitempty" xml:"Tag"`
+	Tags tagMap `json:"Tags,omitempty" xml:"Tag"`
 }
 
 func hTagQueue(s *store, req *request) (any, *apiError) {
@@ -40,7 +40,7 @@ func hListQueueTags(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	return listTagsResult{Tags: kvAttrs(tags)}, nil
+	return listTagsResult{Tags: tagMap(tags)}, nil
 }
 
 type dlqSourcesResult struct {

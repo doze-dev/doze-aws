@@ -366,3 +366,57 @@ func TestAddPermissionTakesAccountsAndAtMostSevenActions(t *testing.T) {
 		t.Errorf("a user ARN as the principal answered %d, want 400", got)
 	}
 }
+
+// The same rules on the Query wire, which has its own decoder for every one of
+// them.
+func TestTheQueryWireHoldsTheSameRules(t *testing.T) {
+	ts := testServer(t)
+	formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"qw"}})
+	qurl := ts.URL + "/000000000000/qw"
+	do := func(f url.Values) (int, string) { return formPost(t, ts.URL, f) }
+
+	if code, _ := do(url.Values{"Action": {"SendMessage"}, "QueueUrl": {qurl},
+		"MessageBody": {strings.Repeat("x", 1048576)}}); code != 200 {
+		t.Errorf("a body of 1 MiB answered %d", code)
+	}
+	if code, _ := do(url.Values{"Action": {"SendMessage"}, "QueueUrl": {qurl},
+		"MessageBody": {strings.Repeat("x", 1048577)}}); code != 400 {
+		t.Errorf("a body of 1 MiB + 1 answered %d", code)
+	}
+	if code, body := do(url.Values{"Action": {"SendMessage"}, "QueueUrl": {qurl}, "MessageBody": {"x"},
+		"MessageGroupId": {"tenant-a"}}); code != 200 {
+		t.Errorf("a standard queue refused MessageGroupId over Query: %d %.200s", code, body)
+	}
+	if code, _ := do(url.Values{"Action": {"SendMessage"}, "QueueUrl": {qurl}, "MessageBody": {"x"},
+		"MessageDeduplicationId": {"d"}}); code != 400 {
+		t.Errorf("a standard queue took MessageDeduplicationId over Query: %d", code)
+	}
+	missing := "arn:aws:sqs:us-east-1:000000000000:nowhere"
+	for _, a := range []string{"StartMessageMoveTask", "ListMessageMoveTasks"} {
+		code, body := do(url.Values{"Action": {a}, "SourceArn": {missing}})
+		if code/100 != 4 || !strings.Contains(body, "ResourceNotFoundException") {
+			t.Errorf("%s over Query: %d %.200s", a, code, body)
+		}
+	}
+	formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"qw-dlq"}})
+	if code, _ := do(url.Values{"Action": {"ListMessageMoveTasks"},
+		"SourceArn": {"arn:aws:sqs:us-east-1:000000000000:qw-dlq"}, "MaxResults": {"11"}}); code != 400 {
+		t.Errorf("MaxResults 11 over Query answered %d", code)
+	}
+	tags := url.Values{"Action": {"TagQueue"}, "QueueUrl": {qurl}}
+	for i := 1; i <= 55; i++ {
+		tags.Set("Tag."+strconv.Itoa(i)+".Key", "k"+strconv.Itoa(i))
+		tags.Set("Tag."+strconv.Itoa(i)+".Value", "v")
+	}
+	if code, body := do(tags); code != 200 {
+		t.Errorf("55 tags over Query answered %d %s", code, body)
+	}
+	if code, _ := do(url.Values{"Action": {"SetQueueAttributes"}, "QueueUrl": {qurl},
+		"Attribute.1.Name": {"MaximumMessageSize"}, "Attribute.1.Value": {"1048577"}}); code != 400 {
+		t.Errorf("MaximumMessageSize 1048577 over Query answered %d", code)
+	}
+	if code, _ := do(url.Values{"Action": {"SetQueueAttributes"}, "QueueUrl": {qurl},
+		"Attribute.1.Name": {"KmsDataKeyReusePeriodSeconds"}, "Attribute.1.Value": {"59"}}); code != 400 {
+		t.Errorf("KmsDataKeyReusePeriodSeconds 59 over Query answered %d", code)
+	}
+}

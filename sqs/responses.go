@@ -27,6 +27,27 @@ func (m kvAttrs) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	return nil
 }
 
+// tagMap is a queue's tags: a JSON object, and in XML repeated
+// <Tag><Key/><Value/></Tag> — not the <Attribute><Name/><Value/> of queue
+// attributes (doc: the model's ListQueueTagsResult.Tags is xmlName Tag with
+// keys named Key).
+type tagMap map[string]string
+
+func (m tagMap) MarshalJSON() ([]byte, error) { return json.Marshal(map[string]string(m)) }
+
+func (m tagMap) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
+	type kv struct {
+		Key   string
+		Value string
+	}
+	for _, k := range sortedKeys(m) {
+		if err := e.EncodeElement(kv{k, m[k]}, xml.StartElement{Name: xml.Name{Local: "Tag"}}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // msgAttrs is the custom message-attribute map: a JSON object of typed values,
 // or repeated <MessageAttribute> elements in XML.
 type msgAttrs map[string]attr
