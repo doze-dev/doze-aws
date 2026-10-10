@@ -193,6 +193,9 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 		if err := applyAttrs(q, attrs, s.lookupIn(tx)); err != nil {
 			return err
 		}
+		if err := validateTags(nil, tags); err != nil {
+			return err
+		}
 		for k, v := range tags {
 			if q.Tags == nil {
 				q.Tags = map[string]string{}

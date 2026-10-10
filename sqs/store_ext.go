@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -21,6 +22,9 @@ func (s *store) TagQueue(name string, tags map[string]string) error {
 		if err != nil {
 			return err
 		}
+		if err := validateTags(q.Tags, tags); err != nil {
+			return err
+		}
 		if q.Tags == nil {
 			q.Tags = map[string]string{}
 		}
@@ -29,6 +33,39 @@ func (s *store) TagQueue(name string, tags map[string]string) error {
 		}
 		return s.putQueue(tx, q)
 	})
+}
+
+// Tag limits (doc: the SQS developer guide, "Configuring cost allocation tags
+// for Amazon SQS"): a key of 1 to 128 characters, a value of 0 to 256, the
+// reserved aws: prefix in any case, and 50 tags on a queue. The model states
+// none of these.
+const (
+	maxTagKey   = 128
+	maxTagValue = 256
+	maxTags     = 50
+)
+
+// validateTags checks what is about to be added to what a queue already has.
+// A key already there is overwritten, not added, so it does not count again.
+func validateTags(have, add map[string]string) error {
+	total := len(have)
+	for k, v := range add {
+		switch {
+		case k == "" || len([]rune(k)) > maxTagKey:
+			return errInvalid("Value for parameter Tag key is invalid. Reason: a tag key is 1 to 128 characters.")
+		case len([]rune(v)) > maxTagValue:
+			return errInvalid("Value for parameter Tag value is invalid. Reason: a tag value is at most 256 characters.")
+		case strings.HasPrefix(strings.ToLower(k), "aws:"):
+			return errInvalid("Value for parameter Tag key is invalid. Reason: the aws: prefix is reserved.")
+		}
+		if _, there := have[k]; !there {
+			total++
+		}
+	}
+	if total > maxTags {
+		return errInvalid("Value for parameter Tags is invalid. Reason: a queue has at most 50 tags.")
+	}
+	return nil
 }
 
 // UntagQueue removes the named tag keys.
