@@ -117,7 +117,14 @@ window.dozeDur=function(v){var s=parseInt(v,10);if(isNaN(s)||s<60)return"";
 var u=[["day",86400],["hour",3600],["min",60],["s",1]],p=[];
 for(var i=0;i<u.length&&p.length<2;i++){var n=Math.floor(s/u[i][1]);
 if(n>0){p.push(n+" "+u[i][0]+(n>1&&u[i][0]!=="s"?"s":""));s-=n*u[i][1];}}
-return"= "+p.join(" ");};</script>
+return"= "+p.join(" ");};
+/* dozeSpan is the same idea in a sentence: 30 → "30 seconds", 345600 → "4 days",
+   90 → "1 minute 30 seconds". Zero is "no time". */
+window.dozeSpan=function(v){var s=parseInt(v,10);if(isNaN(s))return"";if(s<=0)return"no time";
+var u=[["day",86400],["hour",3600],["minute",60],["second",1]],p=[];
+for(var i=0;i<u.length&&p.length<2;i++){var n=Math.floor(s/u[i][1]);
+if(n>0){p.push(n+" "+u[i][0]+(n>1?"s":""));s-=n*u[i][1];}}
+return p.join(" ");};</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
 <script src="{{.Prefix}}/static/cm/codemirror.min.js"></script>

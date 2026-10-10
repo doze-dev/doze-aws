@@ -1,5 +1,7 @@
 import { test, expect } from '../fixtures/console';
-import { createQueue, postForm } from '../fixtures/api';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createFunction, createQueue, postForm } from '../fixtures/api';
 import { ACCOUNT_ID, ORIGIN } from '../playwright.config';
 
 // SQS console coverage: create (standard + FIFO, with/without an
@@ -579,4 +581,158 @@ test('the wire under a queue shows the app’s calls to it as they happen', asyn
 
   // A time says its zone and UTC on hover.
   await expect(dock.locator('.rw-row time').first()).toHaveAttribute('title', /\(UTC[+-]\d\d:\d\d\) · \d\d:\d\d:\d\d UTC/);
+});
+
+// ---------------------------------------------------------------------------
+// Stage 1 console: the create form teaches, the Configuration tab says who
+// reads the queue and what saving would do. Every sentence asserted here is
+// held by a test of the behaviour it describes (named in the template).
+// ---------------------------------------------------------------------------
+
+test.describe('create form', () => {
+  test('a period is legal only as the .fifo suffix of a FIFO queue (SQS-3)', async ({ page }) => {
+    await page.goto('sqs/create');
+    const name = page.locator('input[name=name]');
+    const valid = () => name.evaluate((el: HTMLInputElement) => el.checkValidity());
+
+    await name.fill('a.b');
+    expect(await valid()).toBe(false);
+    await name.fill('orders.fifo'); // FIFO is off
+    expect(await valid()).toBe(false);
+    await name.fill('orders');
+    expect(await valid()).toBe(true);
+
+    await page.locator('input[name=fifo]').check({ force: true });
+    await name.fill('orders.fifo');
+    expect(await valid()).toBe(true);
+    await name.fill('a.b');
+    expect(await valid()).toBe(false);
+    // The suffix counts toward 80: 75 + ".fifo" is the longest.
+    await name.fill('a'.repeat(75) + '.fifo');
+    expect(await valid()).toBe(true);
+    await name.fill('a'.repeat(76) + '.fifo');
+    expect(await valid()).toBe(false);
+  });
+
+  test('the dead-letter name preview does not double the .fifo suffix (SQS-4)', async ({ page }) => {
+    await page.goto('sqs/create');
+    await page.locator('input[name=fifo]').check({ force: true });
+    await page.locator('input[name=name]').fill('orders.fifo');
+    const preview = page.locator('.dlq-mode', { hasText: 'Create one alongside' }).locator('.mono');
+    await expect(preview).toHaveText('orders-dlq.fifo');
+    await page.locator('input[name=name]').fill('orders');
+    await expect(preview).toHaveText('orders-dlq.fifo');
+    await page.locator('input[name=fifo]').uncheck({ force: true });
+    await expect(preview).toHaveText('orders-dlq');
+  });
+
+  test('the access policy hint says it is evaluated (SQS-2)', async ({ page }) => {
+    await page.goto('sqs/create');
+    await page.locator('details.adv-sec summary').click();
+    const hint = page.locator('.field', { hasText: 'Access policy' }).locator('.hint');
+    await expect(hint).toContainText('evaluated');
+    await expect(hint).not.toContainText('does not evaluate');
+  });
+
+  test('each delivery setting says what it does, with its range and default', async ({ page }) => {
+    await page.goto('sqs/create');
+    const vis = page.locator('.field', { has: page.locator('input[name=visibility]') });
+    await expect(vis.locator('.hint')).toContainText('becomes visible again');
+    await expect(vis.locator('.hint')).toContainText('Default 30');
+    await expect(vis.locator('.hint')).toContainText('Between 0 and 43200');
+    const retention = page.locator('.field', { has: page.locator('input[name=retention]') });
+    await expect(retention.locator('.hint')).toContainText('Between 60 and 1209600');
+    await page.locator('details.adv-sec summary').click();
+    const size = page.locator('.field', { has: page.locator('input[name=max_bytes]') });
+    await expect(size.locator('.hint')).toContainText('Between 1024 and 1048576');
+  });
+
+  test('the life of one message follows the numbers typed', async ({ page }) => {
+    await page.goto('sqs/create');
+    const life = page.locator('.life');
+    await expect(life).toContainText('Visible at once');
+    await expect(life).toContainText('Hidden from other consumers for 30 seconds');
+    await expect(life).toContainText('dropped 4 days after it was sent');
+
+    await page.locator('input[name=visibility]').fill('90');
+    await page.locator('input[name=delay]').fill('10');
+    await page.locator('input[name=retention]').fill('3600');
+    await expect(life).toContainText('Invisible for 10 seconds');
+    await expect(life).toContainText('for 1 minute 30 seconds');
+    await expect(life).toContainText('dropped 1 hour after it was sent');
+
+    // The dead-letter step follows the mode and the count.
+    await page.locator('input[name=max_receive]').fill('5');
+    await expect(life).toContainText('Received 5 times without a delete');
+    await page.locator('input[name=dlq_mode][value=none]').check({ force: true });
+    await expect(life.locator('li', { hasText: 'No dead-letter queue' })).toBeVisible();
+    await expect(life.locator('li', { hasText: 'without a delete' })).toBeHidden();
+  });
+
+  test('how a FIFO queue behaves appears with FIFO, and only then', async ({ page }) => {
+    await page.goto('sqs/create');
+    const panel = page.locator('.panel', { hasText: 'How a FIFO queue behaves' });
+    await expect(panel).toBeHidden();
+    await page.locator('input[name=fifo]').check({ force: true });
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText('delivered in the order they were sent');
+    await expect(panel).toContainText('the next of that group waits');
+  });
+});
+
+test.describe('configuration tab', () => {
+  test('"In this stack" says whether the queue hides a message as long as the reader runs', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-reader'), { visibility: 30 });
+    const fn = uniqueName('e2e-sqs-reader-fn');
+    const empty = path.resolve(__dirname, `../.tmp/sqs-reader-${fn}`);
+    fs.mkdirSync(empty, { recursive: true });
+    await createFunction(request, fn, { code: empty, timeout: 60 });
+    await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
+
+    await page.goto(`sqs/${queue}?tab=config`);
+    const reader = page.locator('.stack-readers li', { hasText: fn });
+    await expect(reader).toContainText('may run for 60s');
+    await expect(reader).toContainText("visibility timeout is shorter than the function's");
+    await expect(reader).toContainText('does not check this when the trigger is created');
+    await expect(reader.locator('a')).toHaveAttribute('href', new RegExp(`/lambda/${fn}$`));
+
+    // The other state: a visibility timeout that covers the function.
+    await postForm(request, `sqs/${queue}/attributes`, { visibility: 600 });
+    await page.goto(`sqs/${queue}?tab=config`);
+    await expect(page.locator('.stack-readers li', { hasText: fn })).toContainText('covers the function');
+    await expect(page.locator('.stack-readers li.warn')).toHaveCount(0);
+  });
+
+  test('"what saving does" names each change against what is stored', async ({ page, request, uniqueName }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-changes'), { visibility: 30 });
+    await page.goto(`sqs/${queue}?tab=config`);
+    await page.getByTitle('Edit settings').click();
+    const changes = page.locator('.what-changes');
+    await expect(changes).toBeHidden();
+
+    await page.locator('input[name=visibility]').fill('120');
+    await expect(changes).toBeVisible();
+    await expect(changes).toContainText('Visibility 30 seconds → 2 minutes');
+    await expect(changes).toContainText('Messages already held keep the timeout they were received with');
+
+    await page.locator('input[name=retention]').fill('120');
+    await expect(changes).toContainText('Retention 4 days → 2 minutes');
+    await expect(changes).toContainText('dropped the next time the queue is read or swept');
+
+    // Putting it back removes the sentence.
+    await page.locator('input[name=visibility]').fill('30');
+    await expect(changes).not.toContainText('Visibility');
+  });
+
+  test('settings that do nothing locally say so', async ({ page, request, uniqueName }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-cosmetic'));
+    await page.goto(`sqs/${queue}?tab=config`);
+    await page.getByTitle('Edit settings').click();
+    await expect(page.locator('.field', { has: page.locator('input[name=kms_key]') }).locator('.hint'))
+      .toContainText('Nothing is encrypted locally');
+  });
 });

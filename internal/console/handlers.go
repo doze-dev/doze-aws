@@ -585,6 +585,7 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	// which stopped being right the moment it became configurable.
 	data["URL"] = "http://" + endpointHost(r) + "/" + c.be.id.Account() + "/" + name
 	data["Config"] = sqsConfigOf(attrs)
+	data["Readers"] = c.sqsReaders(r.Context(), conn, attrs["VisibilityTimeout"])
 	data["Conn"] = conn
 	data["Tab"] = tabOf(r, "messages")
 	data["List"] = c.sqsList(r)
@@ -592,6 +593,38 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	data["Title"] = name + " · SQS"
 	data["AllQueues"] = data["List"]
 	c.render(w, r, "sqs_queue", data)
+}
+
+// sqsReader is one function reading this queue through an event source mapping,
+// with what the queue's visibility timeout means for it.
+type sqsReader struct {
+	Name    string
+	URL     string
+	Timeout int  // the function's, in seconds
+	Short   bool // the queue hides a message for less than the function may run
+}
+
+// sqsReaders is "In this stack": the functions this queue feeds, from the
+// wiring graph's event-source edges, each with its own timeout read from the
+// function. The comparison is the whole claim; nothing else is said about the
+// trigger here.
+func (c *Console) sqsReaders(ctx context.Context, conn Neighborhood, visibility string) []sqsReader {
+	vis, err := strconv.Atoi(visibility)
+	if err != nil {
+		return nil
+	}
+	var out []sqsReader
+	for _, n := range conn.Downstream {
+		if n.Kind != "esm" || n.Svc != "lambda" {
+			continue
+		}
+		fn, err := c.be.GetFunction(ctx, n.Name)
+		if err != nil {
+			continue
+		}
+		out = append(out, sqsReader{Name: n.Name, URL: n.URL, Timeout: fn.Timeout, Short: fn.Timeout > vis})
+	}
+	return out
 }
 
 // sqsConfig is the curated queue configuration surface (the raw attribute map
@@ -902,9 +935,11 @@ func (c *Console) sqsConfigPartial(w http.ResponseWriter, r *http.Request, name 
 		return
 	}
 	queues, _ := c.be.ListQueues(r.Context())
+	conn := c.be.Neighbors(r.Context(), "sqs", name)
 	c.partial(w, "sqs_config", map[string]any{
 		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs), "AllQueues": queues,
 		"Prefix": c.prefix, "Perms": sqsPermissionsOf(qattrs["Policy"]),
+		"Readers": c.sqsReaders(r.Context(), conn, qattrs["VisibilityTimeout"]),
 	})
 }
 

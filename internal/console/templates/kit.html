@@ -81,7 +81,7 @@
 {{$s := setting .Svc .Name}}
 <div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v}">
   <label>{{.Label}}{{if $s.Unit}} <span class="dim">{{$s.Unit}}</span>{{end}}</label>
-  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} value="{{.Value}}" x-model="v">
+  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} {{if $s.Default}}placeholder="{{$s.Default}}"{{end}} value="{{.Value}}" x-model="v">
   {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeDur(v)"></span>{{end}}
   <span class="hint">{{.Teach}}{{if $s.Default}} Default {{$s.Default}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}{{if and $s.Min $s.Max}} Between {{$s.Min}} and {{$s.Max}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}</span>
 </div>

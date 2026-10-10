@@ -29,24 +29,52 @@
     <p class="det-sub" style="margin-bottom:18px">Every setting can also be changed later.</p>
     <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin" x-data="{fifo:false, dlq:'new', name:''}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Queue name</label><input class="input" name="name" x-model="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" autofocus></div>
+        <div class="field"><label>Queue name</label><input class="input" name="name" x-model="name" placeholder="orders" required :pattern="fifo ? '[a-zA-Z0-9_\\-]{1,75}(\\.fifo)?' : '[a-zA-Z0-9_\\-]{1,80}'" title="Letters, digits, hyphens and underscores, up to 80. A period is allowed only as the .fifo suffix of a FIFO queue, which counts toward the 80." autocomplete="off" autofocus>
+          <span class="hint">Letters, digits, hyphen and underscore, up to 80<span x-show="fifo" x-cloak>; the .fifo suffix is added and counts toward the 80</span>.</span></div>
         <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">FIFO queue</div><div class="opt-d">Strict ordering per message group; name gets a .fifo suffix</div></div><label class="switch"><input aria-label="FIFO queue" type="checkbox" name="fifo" x-model="fifo"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="opt-row" x-show="fifo" x-cloak><div><div class="opt-l">Content-based deduplication</div><div class="opt-d">Drop messages with identical bodies within 5 minutes — no dedup ID needed</div></div><label class="switch"><input aria-label="Content-based deduplication" type="checkbox" name="content_dedup"><span class="track"></span><span class="thumb"></span></label></div>
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Delivery</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field" x-data="{v:''}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" x-data="{v:''}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" x-data="{v:''}"><label>Retention <span class="dim">s · default 4 days</span></label><input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" "" "Teach" "How long a received message stays hidden from other consumers. If it is not deleted by then it becomes visible again, and counts as another receive.")}}
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "DelaySeconds" "Field" "delay" "Label" "Delay" "Value" "" "Teach" "How long a new message waits before it can be received. A send may override it on a standard queue, not on a FIFO queue.")}}
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "MessageRetentionPeriod" "Field" "retention" "Label" "Retention" "Value" "" "Teach" "A message older than this is dropped, received or not.")}}
+      </div>
+      {{/* The life of one message: a pure function of the numbers above, read
+           from the form as they are typed. Nothing here is fetched. */}}
+      <div class="life" role="group" aria-label="The life of one message" data-def-vis="{{(setting "sqs" "VisibilityTimeout").Default}}" data-def-delay="{{(setting "sqs" "DelaySeconds").Default}}" data-def-ret="{{(setting "sqs" "MessageRetentionPeriod").Default}}"
+           x-data="{vis:30, dly:0, ret:345600, dlq:'', max:3,
+             read(){ const f=$el.closest('form').elements, n=(k,d)=>{const e=f[k]; return !e||e.value===''?d:Number(e.value)};
+               this.vis=n('visibility',Number($el.dataset.defVis)); this.dly=n('delay',Number($el.dataset.defDelay)); this.ret=n('retention',Number($el.dataset.defRet));
+               this.max=n('max_receive',3); const m=f['dlq_mode']; this.dlq=m?m.value:'none'; }}"
+           x-init="read()" @input.window="read()" @change.window="read()">
+        <div class="life-h">The life of one message</div>
+        <ol class="life-steps">
+          <li><b>Sent.</b> <span x-text="dly>0 ? 'Invisible for '+dozeSpan(dly)+', then visible.' : 'Visible at once.'"></span></li>
+          <li><b>Received.</b> Hidden from other consumers for <span x-text="dozeSpan(vis)"></span>.</li>
+          <li><b>Deleted</b> in that time: gone. <b>Not deleted:</b> visible again, and counted as another receive.</li>
+          <li x-show="dlq!=='none'"><b>Received <span x-text="max"></span> time<span x-show="max!=1">s</span> without a delete:</b> the next receive moves it to the dead-letter queue.</li>
+          <li x-show="dlq==='none'"><b>No dead-letter queue:</b> it keeps coming back until it is deleted or expires.</li>
+          <li><b>Never deleted:</b> dropped <span x-text="dozeSpan(ret)"></span> after it was sent.</li>
+        </ol>
       </div></div></div>
+      <div class="panel form-sec" x-show="fifo" x-cloak><div class="panel-h"><h2>How a FIFO queue behaves</h2></div><div class="form-b">
+        <ul class="life-steps">
+          <li>Messages of one group are delivered in the order they were sent.</li>
+          <li>While one message of a group is held by a consumer, the next of that group waits. Other groups keep flowing.</li>
+          <li>A message sent again with the same deduplication ID within 5 minutes is accepted and stored once.</li>
+          <li>The queue's delay applies; a single message cannot have its own.</li>
+          <li>Its dead-letter queue must be a FIFO queue too.</li>
+        </ul>
+      </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Dead-letter queue</h2></div><div class="form-b">
         <div class="dlq-modes">
-          <label class="dlq-mode" :class="dlq==='new' && 'on'"><input type="radio" name="dlq_mode" value="new" x-model="dlq"><span><b>Create one alongside</b><br><span class="opt-d">makes <span class="mono" x-text="(name||'orders')+(fifo?'-dlq.fifo':'-dlq')"></span> and wires the redrive</span></span></label>
+          <label class="dlq-mode" :class="dlq==='new' && 'on'"><input type="radio" name="dlq_mode" value="new" x-model="dlq"><span><b>Create one alongside</b><br><span class="opt-d">makes <span class="mono" x-text="(name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')"></span> and wires the redrive</span></span></label>
           <label class="dlq-mode" :class="dlq==='existing' && 'on'"><input type="radio" name="dlq_mode" value="existing" x-model="dlq"><span><b>Use an existing queue</b><br><span class="opt-d">pick a queue below</span></span></label>
           <label class="dlq-mode" :class="dlq==='none' && 'on'"><input type="radio" name="dlq_mode" value="none" x-model="dlq"><span><b>None</b><br><span class="opt-d">failed messages retry forever</span></span></label>
         </div>
         <div class="fgrid" style="margin-top:12px" x-show="dlq!=='none'" x-cloak>
           <div class="field" x-show="dlq==='existing'"><label>Send failed messages to</label><select class="input" name="dlq" :disabled="dlq!=='existing'"><option value="">— pick a queue —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select><span class="hint">a FIFO queue needs a FIFO dead-letter queue</span></div>
-          <div class="field"><label>After this many receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3"></div>
+          <div class="field"><label>After this many receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3"><span class="hint">A message received this many times and not deleted is moved to the dead-letter queue on its next receive. 1 to 1000; the console uses 3 when blank.</span></div>
         </div>
       </div></div>
       {{/* Advanced: everything CreateQueue accepts that this form could not
@@ -63,22 +91,22 @@
             <div class="field" x-data="{v:0}"><label>Receive wait <span class="dim">s · long polling</span></label>
               <input class="input" name="receive_wait" type="number" min="0" max="20" placeholder="0" x-model="v">
               <span class="hint" x-text="v>0 ? (&apos;consumers wait up to &apos;+v+&apos;s for a message instead of returning empty&apos;) : &apos;0 = short polling: a receive returns immediately, empty or not&apos;"></span></div>
-            <div class="field"><label>Max message size <span class="dim">bytes</span></label>
-              <input class="input" name="max_bytes" type="number" min="1024" max="1048576" placeholder="1048576"></div>
+            {{template "setting_field" (dict "Svc" "sqs" "Name" "MaximumMessageSize" "Field" "max_bytes" "Label" "Max message size" "Value" "" "Teach" "The largest a message may be, body and attributes together. A send over it is refused.")}}
           </div>
           <div class="fgrid" x-show="fifo" x-cloak>
             <div class="field"><label>Deduplication scope</label>
               <select class="input" name="dedup_scope"><option value="">queue (default)</option><option value="messageGroup">messageGroup</option></select></div>
             <div class="field"><label>Throughput limit</label>
               <select class="input" name="throughput_limit"><option value="">perQueue (default)</option><option value="perMessageGroupId">perMessageGroupId</option></select>
-              <span class="hint">perMessageGroupId requires the messageGroup dedup scope</span></div>
+              <span class="hint">perMessageGroupId requires the messageGroup dedup scope. Stored and returned; nothing is throttled locally.</span></div>
           </div>
           <div class="opt-row"><div><div class="opt-l">SQS-managed encryption</div><div class="opt-d">SqsManagedSseEnabled — accepted and stored locally, not enforced</div></div><label class="switch"><input aria-label="SQS-managed encryption" type="checkbox" name="sse"><span class="track"></span><span class="thumb"></span></label></div>
           <div class="field"><label>KMS key ID <span class="dim">optional</span></label>
-            <input class="input mono" name="kms_key" placeholder="alias/aws/sqs" autocomplete="off"></div>
+            <input class="input mono" name="kms_key" placeholder="alias/aws/sqs" autocomplete="off">
+            <span class="hint">Stored and returned. Nothing is encrypted locally.</span></div>
           <div class="field"><label>Access policy <span class="dim">JSON, optional</span></label>
             {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
-            <span class="hint">stored and returned; doze-aws does not evaluate queue policies</span></div>
+            <span class="hint">Checked when it is saved, and evaluated on every request to this queue when IAM mode is soft or enforce. Under off it is stored and not evaluated.</span></div>
           <div class="field"><label>Tags</label>
             {{template "tag_rows" .}}</div>
         </div>
