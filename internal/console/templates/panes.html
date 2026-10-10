@@ -294,6 +294,10 @@
   {{if .C}}<span class="chip"><span class="badge state-warn">C</span>&nbsp;{{.C}} cosmetic</span>{{end}}
   {{if .S}}<span class="chip"><span class="badge state-off">S</span>&nbsp;{{.S}} stub</span>{{end}}
 </div>
+{{if .Empty}}<p class="mini-note">No ledger for this service.</p>{{end}}
+{{$many := gt (len .Sections) 1}}
+{{range .Sections}}
+{{if $many}}<h4 class="info-sec" style="margin:14px 0 6px">{{.Title}}</h4>{{end}}
 <div class="table-wrap"><table class="tbl">
   <thead><tr><th style="width:60px">Tier</th><th style="width:280px">Operations</th><th>Notes</th></tr></thead>
   <tbody>
@@ -303,9 +307,8 @@
       <td class="mono sub" style="overflow-wrap:anywhere">{{.Ops}}</td>
       <td class="dim sub">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
     </tr>
-  {{else}}
-    <tr><td colspan="3" class="mini-note">No ledger for this service.</td></tr>
   {{end}}
   </tbody>
 </table></div>
+{{end}}
 {{end}}
