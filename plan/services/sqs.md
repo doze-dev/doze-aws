@@ -23,17 +23,17 @@ rows and one extension.
 | Operations | Now | Target | Note |
 |---|---|---|---|
 | CreateQueue, DeleteQueue, GetQueueUrl | F | F | |
-| ListQueues | F | F | Ignores `MaxResults` and `NextToken` today. See SQS-6. |
+| ListQueues | F | F | `MaxResults` 1 to 1,000 and `NextToken`. Closed: SQS-6. |
 | GetQueueAttributes, SetQueueAttributes | F | F | Per-attribute tier below. |
 | TagQueue, UntagQueue, ListQueueTags | F | F | |
 | SendMessage, SendMessageBatch | F | F | |
-| ReceiveMessage | F | F | See SQS-5. |
+| ReceiveMessage | F | F | 1 to 10 (SQS-5); `ReceiveRequestAttemptId` (SQS-22); `prefix.*` name selection (SQS-21). |
 | DeleteMessage, DeleteMessageBatch | F | F | |
 | ChangeMessageVisibility, ChangeMessageVisibilityBatch | F | F | |
 | PurgeQueue | F | F | |
 | ListDeadLetterSourceQueues | F | F | |
-| StartMessageMoveTask, ListMessageMoveTasks, CancelMessageMoveTask | F | F | `DestinationArn` is required here and optional on AWS. See SQS-7. |
-| AddPermission, RemovePermission | F | F | |
+| StartMessageMoveTask, ListMessageMoveTasks, CancelMessageMoveTask | F | F | `DestinationArn` optional (SQS-7); a move completes at once, so nothing is ever `RUNNING` and a cancel always finds a finished task. |
+| AddPermission, RemovePermission | F | F | The rules of SQS-18. |
 | DozePeek | extension | extension | Read without consuming. Not an AWS operation. |
 
 Queue attributes need their own tiers, because "SetQueueAttributes is F" hides
@@ -41,13 +41,14 @@ which settings do anything:
 
 | Attribute | Target | To confirm |
 |---|---|---|
-| VisibilityTimeout, DelaySeconds, MessageRetentionPeriod, MaximumMessageSize, ReceiveMessageWaitTimeSeconds | F | Ranges are enforced today. |
+| VisibilityTimeout, DelaySeconds, MessageRetentionPeriod, MaximumMessageSize, ReceiveMessageWaitTimeSeconds | F | Ranges enforced; `MaximumMessageSize` is 1,024 to 1,048,576 (SQS-11). |
 | RedrivePolicy | F | Target exists, same type, 1 to 1000, not itself. |
-| RedriveAllowPolicy | ? | It is in the attribute enum. Whether it is enforced is not established. |
+| RedriveAllowPolicy | F | Validated, and checked when a queue names this one as its dead-letter queue (`allowAll`, `denyAll`, `byQueue` with at most 10 ARNs). |
 | FifoQueue, ContentBasedDeduplication | F | |
-| DeduplicationScope, FifoThroughputLimit | ? | Stored. Whether dedup scope changes behaviour is not established. |
-| KmsMasterKeyId, KmsDataKeyReusePeriodSeconds, SqsManagedSseEnabled | C | Stored, not enforced. The console must say so. |
-| Policy | F | Evaluated under soft and enforce. Whether an unparseable document is refused is not established (SQS-8). |
+| DeduplicationScope | F | `messageGroup` scopes a duplicate to its group. FIFO only. |
+| FifoThroughputLimit | C | Validated, FIFO only, `perMessageGroupId` needs `messageGroup`; nothing is throttled here. |
+| KmsMasterKeyId, KmsDataKeyReusePeriodSeconds, SqsManagedSseEnabled | C | Stored, not enforced; the reuse period is held to 60 to 86,400 and the boolean to true/false. The console must say so. |
+| Policy | F | Validated when stored (SQS-8); evaluated under soft and enforce. |
 
 ## 3. Where it stands
 
@@ -67,7 +68,7 @@ rules are hand-derived from the API reference. That makes every one of them a
 
 | Id | Sev | What | Where | Evidence | AWS source | Test to write first |
 |---|---|---|---|---|---|---|
-| SQS-1 | P0 | A queue and its dead-letter queue declared together fail when the DLQ's name sorts after the queue's (`x`, `x-dlq`, the usual naming). `provision` applies queues in name order, so the redrive target does not exist yet; the stack rolls back. | `internal/provision/svc_sqs.go`, the `sortedNames` loop | run | n/a (ordering is ours) | A provision test with `orders` and `orders-dlq`; a CloudFormation test with the same template |
+| SQS-1 | P0 | **Closed** (`internal/provision/dlq_order_test.go`, `cloudformation/dlq_order_apply_test.go`; queues apply in dependency order). A queue and its dead-letter queue declared together fail when the DLQ's name sorts after the queue's (`x`, `x-dlq`, the usual naming). `provision` applies queues in name order, so the redrive target does not exist yet; the stack rolls back. | `internal/provision/svc_sqs.go`, the `sortedNames` loop | run | n/a (ordering is ours) | A provision test with `orders` and `orders-dlq`; a CloudFormation test with the same template |
 | SQS-2 | P2 | The create form's Advanced section says of the access policy "stored and returned; doze-aws does not evaluate queue policies". The Configuration tab and the ledger say it is evaluated under soft and enforce. | `internal/console/templates/create.html`, `sqs_create` | read | n/a | Browser test asserts the hint; an enforce test shows the policy deciding |
 | SQS-3 | P2 | The create form's browser `pattern` allows a period anywhere; the service refuses one except as the `.fifo` suffix. A name like `a.b` passes the browser and is refused by the server. | `create.html`, the name input; `sqs/store.go` `validQueueName` | read | doc | Browser test types `a.b` |
 | SQS-4 | P2 | With FIFO on, the "create one alongside" preview builds the DLQ name by appending to what was typed, so a name typed with `.fifo` previews as `x.fifo-dlq.fifo`. What the server then creates is not established. | `create.html`, the `x-text` on the DLQ mode | read | n/a | Handler test for `name=x.fifo`, `dlq_mode=new` |
@@ -75,8 +76,34 @@ rules are hand-derived from the API reference. That makes every one of them a
 | SQS-6 | P1 | **Closed** (`sqs/paging_test.go`; ListDeadLetterSourceQueues too).  `ListQueues` ignores `MaxResults` and never returns `NextToken`. The ledger says so; a caller that pages gets everything on page one. | `sqs/actions.go` | read (ledger) | doc | SDK test with `MaxResults: 1` over three queues |
 | SQS-7 | P1 | **Closed** (`sqs/move_task_test.go`; decided: AWS semantics, provenance kept as DeadLetterQueueSourceArn).  `StartMessageMoveTask` refuses a call with no `DestinationArn` ("doze-aws does not track per-message origin queues"). AWS treats it as optional and returns each message to the queue it came from. Stricter than AWS, not more forgiving, and documented; it still breaks a correct caller. | `sqs/actions_ext.go` | read | doc | Decide first (see section 10), then an SDK test either way |
 | SQS-8 | P1 | **Closed** (`sqs/policy_test.go`, nine documents on both protocols; shared validator from foundation B9).  Whether `SetQueueAttributes` refuses a `Policy` that is not a valid policy document is not established. Kinesis and SNS store anything and then silently ignore it. | `sqs/attrs.go`, `sqs/guard.go` | not yet checked | doc | Attribute test with `Policy: "not json"` and with a statement missing `Effect` |
-| SQS-9 | P1 | **Closed** (`sqs/tags_test.go`, five refusals red, and the 50-tag limit).  `TagQueue` accepts a tag key of 129 characters. AWS limits a key to 128 and a value to 256 characters, refuses the reserved `aws:` prefix, and allows 50 tags on a queue. Found by the console's atomic tag-save test, which needed a refusal to provoke and got none from SQS (Secrets Manager's model refuses it). More forgiving than AWS. | `sqs/` tag handlers | run | doc: the SQS developer guide's cost-allocation tag page | Rejection-parity cases for key 129, value 257, `aws:` prefix and a 51st tag |
+| SQS-9 | P1 | **Closed** (`sqs/tags_test.go`, five refusals red; the 50-tag limit turned out to be advice, see SQS-16).  `TagQueue` accepts a tag key of 129 characters. AWS limits a key to 128 and a value to 256 characters, refuses the reserved `aws:` prefix, and allows 50 tags on a queue. Found by the console's atomic tag-save test, which needed a refusal to provoke and got none from SQS (Secrets Manager's model refuses it). More forgiving than AWS. | `sqs/` tag handlers | run | doc: the SQS developer guide's cost-allocation tag page | Rejection-parity cases for key 129, value 257, `aws:` prefix and a 51st tag |
 | SQS-10 | P1 | **Closed** with SQS-5.  `SendMessage` accepts `DelaySeconds` 9999 and answers 200. AWS's range is 0 to 900, and neither did a batch entry's. Found writing the wire-dock test, which wanted a refused send. More forgiving than AWS. | `sqs/actions.go` `hSendMessage`; `sqs/store.go` `sendIn` | run | doc: the SendMessage API reference | Rejection-parity cases for 901 and -1 on the single send |
+
+**Found by reading the model's own documentation (`.audit-models/sqs.json`).**
+The first pass wrote these rules from memory and from older developer-guide
+pages; the model's member and operation docs and its error shapes are the
+current statement. Every row below was red first (`sqs/model_docs_test.go`,
+`sqs/system_attrs_test.go`, `sqs/query_wire_test.go`, `sqs/receive_attempt.go`'s
+tests), and the direction is named, because "stricter than AWS" breaks a
+correct caller exactly as "more forgiving" breaks a deploy.
+
+| Id | Sev | What | Direction | Source |
+|---|---|---|---|---|
+| SQS-11 | P0 | **Closed.** A message, a batch and `MaximumMessageSize` were 256 KiB (1,024 to 262,144, default 262,144). The model says 1,024 to 1,048,576, default 1,048,576, and 1 MiB for a batch's total. | stricter | model: SendMessage, SendMessageBatch, CreateQueue.Attributes |
+| SQS-12 | P0 | **Closed.** `MessageGroupId` on a standard queue was refused. The model: "In standard queues, using MessageGroupId enables fair queues." It is held to its format there and returned as a system attribute; `MessageDeduplicationId` on a standard queue stays refused (the model says it applies only to FIFO queues; the wording is memory). | stricter | model: SendMessage.MessageGroupId |
+| SQS-13 | P0 | **Closed.** The Query wire refused TagQueue, UntagQueue, SetQueueAttributes and all three batch operations on every valid request ("Member must not be null"): the model's required-member check read the model's names (`Tags`, `Entries`, `Attributes`, `TagKeys`), and the wire spells flattened lists and maps by their `xmlName` (`Tag.N.Key`, `SendMessageBatchRequestEntry.N`, `Attribute.N.Name`, `TagKey.N`). aws-sdk-go v1 speaks JSON for SQS now, so nothing had been exercising this wire. ListQueueTags also answered `<Attribute><Name>` for `<Tag><Key>`. `TestEveryOperationIsAcceptedOnTheQueryWire` posts all 23. | stricter, and wrong shape | model: xmlName and xmlFlattened traits |
+| SQS-14 | P1 | **Closed.** A character outside the allowed set was `InvalidParameterValue`; the model says `InvalidMessageContents` (also per batch entry). | wrong code | model: SendMessage |
+| SQS-15 | P1 | **Closed.** A malformed receipt handle was `InvalidParameterValue`; the model lists `ReceiptHandleIsInvalid` for DeleteMessage and ChangeMessageVisibility (404 on the Query wire, per its `awsQueryError`). | wrong code | model: error shapes |
+| SQS-16 | P1 | **Closed.** More than 50 tags was refused. The model: "isn't recommended". Not a refusal. | stricter | model: TagQueue |
+| SQS-17 | P1 | **Closed.** The move-task operations: a missing queue is `ResourceNotFoundException` (not `QueueDoesNotExist`); `ListMessageMoveTasks` `MaxResults` is 1 to 10; the `TaskHandle` is "only populated for tasks that are in RUNNING status"; `DestinationArn` is absent when none was named (it was minted as the ARN of an empty name); `ApproximateNumberOfMessagesToMove` and `MaxNumberOfMessagesPerSecond` (at most 500) are recorded; newest-first held only to the second (the key now carries nanoseconds). | wrong shape | model |
+| SQS-18 | P1 | **Closed.** AddPermission: `Actions` are "the name of any action or *" (it took ten); at most seven per statement (`OverLimit`); "does not support adding a non-account principal" (it took ARNs); label at most 80 of letters, digits, hyphen, underscore (unchecked); account numbers are twelve digits. | both | model: AddPermission |
+| SQS-19 | P1 | **Closed.** `ChangeMessageVisibility` past "the maximum time left" (twelve hours from the receive) is refused. | more forgiving | model: ChangeMessageVisibility |
+| SQS-20 | P1 | **Closed.** A batch entry's `AWSTraceHeader` was dropped on both protocols (the path an SNS fan-out takes, so the trace stopped there); the Query spelling was `MessageSystemAttribute.entry.N` only; `MD5OfMessageSystemAttributes` was never returned. | wrong | model: SendMessageBatchRequestEntry, SendMessageResult |
+| SQS-21 | P2 | **Closed.** `MessageAttributeNames` took no `prefix.*` ("all message attributes starting with a prefix, for example bar.*"). | wrong | model: ReceiveMessage |
+| SQS-22 | P1 | **Closed.** `ReceiveRequestAttemptId` was ignored. A FIFO retry within five minutes returns the same messages and handles, starting the timeout again, until one is deleted or changed; on a standard queue it is refused (wording memory). In memory: a restart inside the five minutes forgets it. | missing | model: ReceiveMessage |
+| SQS-23 | P1 | **Closed.** A queue URL names its owner (`/<account>/<name>`) and was resolved by name alone; `GetQueueUrl` ignored `QueueOwnerAWSAccountId`. A hard-coded account id worked locally and failed on deploy. | more forgiving | model: GetQueueUrl |
+| SQS-24 | P2 | **Closed.** `KmsDataKeyReusePeriodSeconds` had no range (60 to 86,400); `FifoQueue`, `ContentBasedDeduplication` and `SqsManagedSseEnabled` read any value other than "true" as false ("Valid values are true and false"). | more forgiving | model: CreateQueue.Attributes |
+
 
 **Moved into this stage from other services.** They keep their own ids, and
 are closed here because leaving them would sign SQS off too early (the plan's
@@ -101,63 +128,77 @@ function's poller still receiving (Lambda, LAM-1). All are in section 9.
 
 Beyond the common criteria. Each line is checked on **both** protocols.
 
+**Ticked 2026-10-11**, each against a test that was red first or an existing one
+named here. The Query wire is held by `sqs/query_wire_test.go` (all 23
+operations accepted, spelled as the API reference spells them) and
+`TestTheQueryWireHoldsTheSameRules`; the rules themselves are in
+`sqs/section5_test.go`, `model_docs_test.go`, `system_attrs_test.go`,
+`permission_test.go`, `fifo_attrs_test.go`, `move_task_test.go`,
+`policy_test.go`, `tags_test.go`, `visibility_rules_test.go`, and across a
+restart `persistence_sqs_test.go`. The numbers in this section were first
+written from memory; the corrections are SQS-11 to SQS-24 in section 4.
+
 **Queues**
-- [ ] Name rules: 1 to 80, letters, digits, hyphen, underscore; `.fifo` only as
+- [x] Name rules: 1 to 80, letters, digits, hyphen, underscore; `.fifo` only as
       the suffix and only with `FifoQueue`; the suffix counts toward 80.
-- [ ] Re-creating a queue with the same attributes succeeds; with a different
+- [x] Re-creating a queue with the same attributes succeeds; with a different
       value it answers `QueueAlreadyExists` (Query) / `QueueNameExists` (JSON)
       naming the attribute.
-- [ ] Deleting a queue and recreating it at once: AWS asks for 60 seconds
-      (`QueueDeletedRecently`). Decide whether to model it; if not, it is a
-      listed difference.
-- [ ] `PurgeQueue` twice inside 60 seconds: AWS answers `PurgeQueueInProgress`.
-      Same decision.
-- [ ] Every attribute's range, and a non-numeric value, refused with
+- [x] Deleting a queue and recreating it at once: AWS asks for 60 seconds
+      (`QueueDeletedRecently`). **Decided: not modelled.** A delete here is immediate,
+      so there is no minute to wait out; a listed difference, and the entry
+      goes into `deviations.py` when the scenario is recorded
+      (`test_recreate_after_delete`).
+- [x] `PurgeQueue` twice inside 60 seconds: AWS answers `PurgeQueueInProgress`.
+      **Decided: not modelled**, the same way: a purge here is immediate
+      (`test_purge_twice`).
+- [x] Every attribute's range, and a non-numeric value, refused with
       `InvalidAttributeValue`; an unknown attribute name refused.
-- [ ] Clearing an attribute removes it (there is a test; keep it).
+- [x] Clearing an attribute removes it (there is a test; keep it).
 
 **Messages**
-- [ ] Body: the allowed character set, and the size limit counting the body
+- [x] Body: the allowed character set, and the size limit counting the body
       **and** the attributes.
-- [ ] Message attributes: at most 10, name rules, `String` / `Number` /
+- [x] Message attributes: at most 10, name rules, `String` / `Number` /
       `Binary` and custom type suffixes, and the MD5 of attributes that the SDK verifies.
-- [ ] Batches: 1 to 10 entries, distinct ids, the id pattern, total size, and
+- [x] Batches: 1 to 10 entries, distinct ids, the id pattern, total size, and
       per-entry failures returned in `Failed` without failing the batch.
-- [ ] Delay: queue-level, and per message on a standard queue; a per-message
+- [x] Delay: queue-level, and per message on a standard queue; a per-message
       delay on a FIFO queue is refused.
-- [ ] Receive: 1 to 10 (SQS-5), `WaitTimeSeconds` 0 to 20, `VisibilityTimeout`
+- [x] Receive: 1 to 10 (SQS-5), `WaitTimeSeconds` 0 to 20, `VisibilityTimeout`
       override, attribute and message-attribute selection, an empty receive.
-- [ ] Visibility: `ChangeMessageVisibility` on a message not in flight, with an
+- [x] Visibility: `ChangeMessageVisibility` on a message not in flight, with an
       invalid or expired receipt handle, and the 12-hour total.
-- [ ] A message not deleted returns with `ApproximateReceiveCount` one higher,
+- [x] A message not deleted returns with `ApproximateReceiveCount` one higher,
       and moves to the DLQ on the receive that reaches `maxReceiveCount`.
 
 **FIFO**
-- [ ] `MessageGroupId` required; `MessageDeduplicationId` required unless
+- [x] `MessageGroupId` required; `MessageDeduplicationId` required unless
       content-based dedup is on; the 5-minute dedup window; the same dedup id
       returns the original `MessageId` and `SequenceNumber`.
-- [ ] Group locking: while one message of a group is in flight, no later one
+- [x] Group locking: while one message of a group is in flight, no later one
       from that group is delivered; other groups are.
-- [ ] Sequence numbers increase within a group.
-- [ ] `DeduplicationScope` and `FifoThroughputLimit`: establish what they do
+- [x] Sequence numbers increase within a group.
+- [x] `DeduplicationScope` and `FifoThroughputLimit`: establish what they do
       here and set the tier.
 
 **Redrive**
-- [ ] `RedrivePolicy` validation: all five rules in the ledger.
-- [ ] `RedriveAllowPolicy`: establish whether it is enforced and set the tier.
-- [ ] `ListDeadLetterSourceQueues` lists exactly the queues pointing at this one.
-- [ ] A move task: with and without `MaxNumberOfMessagesPerSecond`, the task
-      record, and what happens to each message's receive count (not established).
+- [x] `RedrivePolicy` validation: all five rules in the ledger.
+- [x] `RedriveAllowPolicy`: establish whether it is enforced and set the tier.
+- [x] `ListDeadLetterSourceQueues` lists exactly the queues pointing at this one.
+- [x] A move task: with and without `MaxNumberOfMessagesPerSecond`, the task
+      record, and what happens to each message's receive count (reset to 0 here;
+      **not established**, so in the recording queue: `test_redrive_receive_count`).
 
 **Access**
-- [ ] `AddPermission` writes the statement AWS writes; a label in use is
+- [x] `AddPermission` writes the statement AWS writes; a label in use is
       refused; `RemovePermission` on a missing label.
-- [ ] Under enforce, a `Deny` in the queue policy refuses the root; an SNS
+- [x] Under enforce, a `Deny` in the queue policy refuses the root; an SNS
       service principal needs its own statement.
 
 **Lifecycle**
-- [ ] Retention: a message older than the period is dropped on a queue nobody reads.
-- [ ] Everything above survives a restart, including in-flight timers and dedup state.
+- [x] Retention: a message older than the period is dropped on a queue nobody reads.
+- [x] Everything above survives a restart, including in-flight timers and dedup state.
 
 ## 6. Console
 
@@ -234,6 +275,18 @@ Every one of these is `doc` or `memory` today.
 | `StartMessageMoveTask` with no destination returns each message to its origin; a source that is no queue's DLQ is refused; a message with no origin fails the task | doc | `move_task_default_destination` |
 | An invalid `Policy` at `SetQueueAttributes` | memory | `invalid_policy` |
 | Message attribute limits and MD5 | doc | `message_attributes` |
+| `MaximumMessageSize` default and range (1 MiB), a batch total of 1 MiB | model | `test_message_limits`, `test_batch_total_size` |
+| `MessageGroupId` accepted on a standard queue; `MessageDeduplicationId` there refused (wording memory) | model, memory | `test_message_group_on_a_standard_queue` |
+| The code for a body character outside the set (`InvalidMessageContents`) and for a malformed handle (`ReceiptHandleIsInvalid`, 404 on the Query wire) | model | `test_message_limits`, `test_refusals` |
+| More than 50 tags accepted | model | `test_tag_limits` |
+| `AddPermission`: any action, seven at most (`OverLimit`), no ARN principal, label rules | model | `test_add_permission_rules` |
+| The twelve hours from the receive | model | `test_twelve_hours_from_the_receive` |
+| `ReceiveRequestAttemptId` replay, and refusal on a standard queue | model, memory | `test_receive_request_attempt_id` |
+| A queue URL's account and `QueueOwnerAWSAccountId` | model | `test_queue_in_another_account` |
+| Boolean and KMS attribute values; `DeduplicationScope` on a standard queue | model | `test_fifo_attribute_rules` |
+| An old receipt handle after the message was received again: the request succeeds but the message "might not be deleted" (here a handle is the message's, not the receive's, so it deletes) | model | `test_an_old_receipt_handle` |
+| The statement count at which `AddPermission` is `OverLimit` (the model says a limit exists, not its value); the in-flight limit of about 120,000 `OverLimit` on ReceiveMessage (not modelled, a listed difference) | model | `test_add_permission_statement_limit` |
+| `RedrivePolicy` without `maxReceiveCount`: the model says the default is 10; doze-aws refuses it | model | `test_redrive_policy_without_max_receive_count` |
 
 ## 9. Owed to integration
 

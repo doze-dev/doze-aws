@@ -2539,22 +2539,22 @@ validation passes.
 |---|---|---|
 | CreateQueue | F | standard + FIFO (.fifo naming rule enforced), attributes, tags; idempotent re-create merges attributes |
 | DeleteQueue | F | drops messages and dedup state |
-| ListQueues | F | prefix filter; no pagination (local queue counts don't need it) |
+| ListQueues | F | prefix filter; `MaxResults` 1–1,000 and `NextToken` |
 | GetQueueUrl | F | |
 | GetQueueAttributes | F | incl. ApproximateNumberOfMessages(NotVisible), QueueArn, RedrivePolicy |
-| SetQueueAttributes | F | visibility, delay, retention, max size, receive wait, redrive policy, FIFO dedup |
+| SetQueueAttributes | F | visibility, delay, retention, max size (1 KiB to 1 MiB), receive wait, redrive policy, `RedriveAllowPolicy` (checked when a queue names this one as its DLQ), `Policy` (validated), `DeduplicationScope`, `FifoThroughputLimit` (validated, nothing throttled), FIFO dedup; a boolean other than true/false and an unknown attribute are refused |
 | TagQueue / UntagQueue / ListQueueTags | F | |
-| SendMessage / SendMessageBatch | F | delay, message attributes (String/Number/Binary), FIFO group + dedup id, content-based dedup |
-| ReceiveMessage | F | long polling (notifier-driven, no spin), visibility timeout + per-receive override, FIFO group locking, system + message attribute selection |
+| SendMessage / SendMessageBatch | F | delay, message attributes (String/Number/Binary), FIFO group + dedup id, content-based dedup; a message and a batch are 1 MiB counting attributes; `MessageGroupId` is accepted on a standard queue (fair queues: held to its format and returned, no fairness is modelled); `AWSTraceHeader` on every entry, with `MD5OfMessageSystemAttributes`; a bad character is `InvalidMessageContents` |
+| ReceiveMessage | F | long polling (notifier-driven, no spin), visibility timeout + per-receive override, FIFO group locking, system + message attribute selection (`All`, `.*`, `prefix.*`), `ReceiveRequestAttemptId` on a FIFO queue (a retry inside five minutes returns the same messages and handles until one is deleted or changed; kept in memory) |
 | DeleteMessage / DeleteMessageBatch | F | |
-| ChangeMessageVisibility | F | |
+| ChangeMessageVisibility | F | refused for a message not in flight (`MessageNotInflight`), and past the twelve hours from the receive; a malformed handle is `ReceiptHandleIsInvalid` |
 | ChangeMessageVisibilityBatch | F | via per-entry ChangeMessageVisibility semantics |
 | PurgeQueue | F | |
 | ListDeadLetterSourceQueues | F | |
-| StartMessageMoveTask | F | completes synchronously (local volumes); DestinationArn required — doze-aws does not track per-message origin queues |
-| ListMessageMoveTasks | F | returns the recorded (terminal) tasks |
+| StartMessageMoveTask | F | completes synchronously; `DestinationArn` is optional and each message returns to the queue it was dead-lettered from (kept as `DeadLetterQueueSourceArn`); the source must be some queue's DLQ; `MaxNumberOfMessagesPerSecond` (1–500) is recorded, nothing is throttled; a missing queue is `ResourceNotFoundException` |
+| ListMessageMoveTasks | F | the recorded tasks, newest first, `MaxResults` 1–10; a finished task lists no `TaskHandle`, as the model says only a RUNNING one does |
 | CancelMessageMoveTask | F | always "task is not active" — local moves complete synchronously, matching AWS's answer for a finished task |
-| AddPermission / RemovePermission | F | AddPermission writes the statement AWS writes into the `Policy` attribute (Sid = Label, the account roots as principals, `SQS:<action>` on the queue; a label in use is refused), RemovePermission drops it by label. The queue policy is evaluated on every request naming the queue under IAM `soft` and `enforce`; an SNS fan-out into the queue needs a `Service: sns.amazonaws.com` statement under `enforce`, as on AWS |
+| AddPermission / RemovePermission | F | AddPermission writes the statement AWS writes into the `Policy` attribute (Sid = Label, the account roots as principals, `SQS:<action>` on the queue); a label of at most 80 letters, digits, hyphens and underscores, in use refused; any SQS action name or `*`, at most seven (`OverLimit`); account numbers only, not ARNs. RemovePermission drops it by label (a missing label is refused). The queue policy is evaluated on every request naming the queue under IAM `soft` and `enforce`; an SNS fan-out into the queue needs a `Service: sns.amazonaws.com` statement under `enforce`, as on AWS |
 | DozePeek | — | doze extension: read-only full-queue inspection (no visibility/receive-count side effects) |
 
 Dead-letter redrive (maxReceiveCount → DLQ move) and retention expiry run on
@@ -2569,6 +2569,30 @@ too.
   checked against the API reference rather than against a generated table. It
   is the one service here where the audit could not be generated, and the
   reason its bugs surfaced first.
+- **A deleted queue can be re-created at once, and a purge is immediate.** AWS
+  refuses a CreateQueue inside 60 seconds of a delete (`QueueDeletedRecently`)
+  and a second PurgeQueue inside 60 seconds (`PurgeQueueInProgress`), because
+  both take up to a minute there. Nothing here takes a minute, so there is
+  nothing to wait out; a script that deletes and re-creates a queue works here
+  and can fail on deploy. A listed difference, to be entered in
+  `conformance/deviations.py` when the scenarios are recorded.
+- **A move task is finished when it is started.** AWS moves asynchronously and
+  a task can be observed `RUNNING` and cancelled. Here the status is
+  `COMPLETED` (or `FAILED` when a message had nowhere to return to), a cancel
+  always finds a finished task, and nothing is throttled.
+- **A receipt handle is the message's, not the receive's.** On AWS each receive
+  returns a new handle and an old one "might not" delete the message. Here any
+  handle for the message deletes it.
+- **There is no in-flight limit.** AWS answers `OverLimit` at about 120,000
+  messages in flight on a standard queue.
+- **Fair queues are accepted, not modelled.** A standard queue takes
+  `MessageGroupId`; delivery is not reordered to keep one tenant from
+  crowding out another.
+- **`FifoThroughputLimit` is validated and returned**, and nothing is
+  throttled; `KmsMasterKeyId`, `KmsDataKeyReusePeriodSeconds` and
+  `SqsManagedSseEnabled` are stored, and nothing is encrypted.
+- **`ReceiveRequestAttemptId` is remembered in memory.** A restart inside the
+  five minutes forgets it and the retry is a new receive.
 - **Redrive and retention run on the receive path and a janitor**, rather than
   continuously server-side. A queue nobody reads is still swept, so the
   observable result converges; the timing of a move to the DLQ does not have
@@ -2593,6 +2617,21 @@ too.
   by a queue delete used to strand a wakeup channel in the long-poll notifier.
 - **Model-derived rejection parity** (`rejection_parity_test.go`), which asserts
   the error **code** an SDK sees rather than only that something failed.
+- **What the model's own documentation says** (`model_docs_test.go`,
+  `system_attrs_test.go`): the 1 MiB limits, fair queues, the error codes, the
+  move-task entries, AddPermission, the twelve hours and a queue in another
+  account, on both wires.
+- **The Query wire, operation by operation** (`query_wire_test.go`): all 23
+  operations accepted as the API reference spells them (`Tag.N.Key`,
+  `SendMessageBatchRequestEntry.N`, `Attribute.N.Name`, `TagKey.N`). aws-sdk-go v1
+  speaks JSON for SQS now, so for a while nothing exercised this wire; TagQueue,
+  UntagQueue, SetQueueAttributes and the batch operations were refused on every
+  valid Query request until it did.
+- **Across a restart** (`persistence_sqs_test.go`): a message in flight keeps its
+  timer and its receipt handle, a deduplication window stays open, a move task
+  is on record, and the policy, tags and redrive policy come back.
+- **Under enforce** (`enforce_sqs_test.go`): a `Deny` in the queue policy refuses
+  the root for the action it names and no other, stamped as IAM's refusal.
 
 ### Input validation
 
@@ -2610,7 +2649,23 @@ passes on deploy.
 | `VisibilityTimeout` 0–43200 | ✅ |
 | `DelaySeconds` 0–900 | ✅ |
 | `MessageRetentionPeriod` 60–1209600 | ✅ |
-| `MaximumMessageSize` 1024–262144 | ✅ |
+| `MaximumMessageSize` 1024–1048576, default 1048576 | ✅ (it was 262144; the model says 1 MiB) |
+| A message body and a batch's total at most the queue's size and 1 MiB, counting attributes | ✅ |
+| A body character outside #x9 \| #xA \| #xD \| #x20–#xD7FF \| #xE000–#xFFFD \| #x10000–#x10FFFF | ✅ `InvalidMessageContents` |
+| At most 10 message attributes; name 256 characters, no `AWS.`/`Amazon.` prefix in any case, no leading, trailing or doubled period; `String`/`Number`/`Binary` with a custom suffix | ✅ |
+| `MessageGroupId` up to 128 characters of alphanumerics and punctuation; required on FIFO, accepted on standard (fair queues) | ✅ |
+| `MessageDeduplicationId` on a standard queue | ✅ refused (the model: "applies only to FIFO queues"; the wording is memory) |
+| `DelaySeconds` on a message of a FIFO queue | ✅ refused |
+| `ReceiveMessage` `MaxNumberOfMessages` 1–10, `WaitTimeSeconds` 0–20, `VisibilityTimeout` 0–43200 | ✅ |
+| `ChangeMessageVisibility` past the twelve hours from the receive | ✅ |
+| `ListQueues` / `ListDeadLetterSourceQueues` `MaxResults` 1–1000 | ✅ |
+| `ListMessageMoveTasks` `MaxResults` 1–10; `MaxNumberOfMessagesPerSecond` 1–500 | ✅ |
+| `Policy`: valid JSON, a Statement with Effect, Principal, Action and Resource | ✅ refused otherwise |
+| `RedriveAllowPolicy`: `allowAll`, `denyAll`, `byQueue` with at most 10 source ARNs | ✅ |
+| `DeduplicationScope` queue/messageGroup, `FifoThroughputLimit` perQueue/perMessageGroupId (the latter needs `messageGroup`), both FIFO only | ✅ |
+| `KmsDataKeyReusePeriodSeconds` 60–86400; booleans true/false | ✅ |
+| Tags: key 1–128 characters, value 0–256, no `aws:` prefix | ✅ (more than 50 is "not recommended" in the model, so accepted) |
+| A queue URL's account, and `QueueOwnerAWSAccountId`, must be this account | ✅ `QueueDoesNotExist` otherwise |
 | `ReceiveMessageWaitTimeSeconds` 0–20 | ✅ |
 | Non-numeric attribute values | ✅ refused (previously silently ignored) |
 | Queue name — charset | ✅ alphanumeric, `-`, `_` only (a period is legal only as the `.fifo` suffix) |

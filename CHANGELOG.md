@@ -178,6 +178,44 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   fidelity panel finds CloudWatch's ledger and shows HTTP APIs theirs; the
   wiring strip no longer claims nothing feeds a resource it cannot see the
   producers of; each form's CLI preview is the call the form makes.
+- **SQS, read against the service model's own documentation** (the first pass
+  wrote its limits from memory):
+  - **A message and a batch are 1 MiB**, and `MaximumMessageSize` is 1,024 to
+    1,048,576 with a default of 1,048,576. It was 262,144 throughout, so a
+    correct 500 KB message was refused. Queues created by an earlier build keep
+    the 262,144 they were given.
+  - **`MessageGroupId` is accepted on a standard queue** (fair queues). It was
+    refused. `MessageDeduplicationId` there is still refused.
+  - **The Query wire accepts every operation.** TagQueue, UntagQueue,
+    SetQueueAttributes and all three batch operations were refused on every
+    valid Query request ("Member must not be null"), and ListQueueTags answered
+    `<Attribute><Name>` for `<Tag><Key>`. aws-sdk-go v1 speaks JSON for SQS now,
+    so nothing had been exercising this wire.
+  - **Codes:** a bad character is `InvalidMessageContents`, a malformed receipt
+    handle `ReceiptHandleIsInvalid`, the move-task operations answer
+    `ResourceNotFoundException` for a queue that is not there.
+  - **Move tasks** record what they were to move and the rate asked for, list no
+    `TaskHandle` once finished (the model: only RUNNING tasks have one) and no
+    invented `DestinationArn`; `ListMessageMoveTasks` takes at most 10; two tasks
+    in one second list newest first.
+  - **`ReceiveRequestAttemptId`** replays a FIFO receive inside five minutes.
+    A batch entry's `AWSTraceHeader` is kept (it was dropped on both protocols)
+    and `MD5OfMessageSystemAttributes` is returned. `MessageAttributeNames`
+    takes `prefix.*`.
+  - **`ChangeMessageVisibility`** past the twelve hours from the receive is
+    refused. A queue URL naming another account is not this queue.
+  - **AddPermission** takes any action name or `*` (it took ten), at most seven,
+    account numbers only, a label of at most 80 letters, digits, hyphens and
+    underscores. More than 50 tags is advice, not a refusal.
+  - **Earlier in the same stage:** a queue and its dead-letter queue apply in
+    dependency order (a stack declaring `orders` and `orders-dlq` rolled back);
+    `AWS::SQS::QueuePolicy` reaches the queue; `DestinationArn` is optional on a
+    move task; a Policy is validated when stored; `RedriveAllowPolicy` and
+    `DeduplicationScope` do what they say; ranges on every request member;
+    Lambda's poller asks for at most 10 at a time.
+  - **Not modelled, and listed in the ledger:** the 60 seconds before a deleted
+    queue's name or a purged queue can be reused, asynchronous move tasks,
+    per-receive receipt handles, the in-flight limit, fair-queue fairness.
 - The ledger no longer says IAM defaults to `off`. It is `soft`.
 - Found by deploying with the real tools (`e2e/deploy/`, run on every push):
   - **Terraform's AWS provider** applies a 22-resource stack and plans no drift.

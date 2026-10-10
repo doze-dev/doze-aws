@@ -49,3 +49,6 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | `RedriveAllowPolicy` `denyAll` refuses a source naming the queue; a bad `redrivePermission` and `byQueue` without `sourceQueueArns` are refused | model | test_sqs::test_redrive_allow_policy |
 | A queue URL whose account is another's, and a `QueueOwnerAWSAccountId` that is not this account, name no queue here | model | test_sqs::test_queue_in_another_account |
 | Setting an attribute back to its default reads as the default | doc | test_sqs::test_setting_an_attribute_back_to_its_default |
+| An old receipt handle after a re-receive: "the request will succeed, but the message might not be deleted" (doze-aws's handle is the message's, so it deletes) | model | test_sqs::test_an_old_receipt_handle |
+| `RedrivePolicy` without `maxReceiveCount`: the model documents "Default: 10" (doze-aws refuses it) | model | test_sqs::test_redrive_policy_without_max_receive_count |
+| The number of permissions at which `AddPermission` is `OverLimit` (the model names the error, not the number) | model | test_sqs::test_add_permission_statement_limit |

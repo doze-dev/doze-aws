@@ -600,3 +600,48 @@ def test_setting_an_attribute_back_to_its_default(client, names, cleanup, snapsh
     url = make_queue(sqs, names, cleanup, Attributes={"DelaySeconds": "30"})
     sqs.set_queue_attributes(QueueUrl=url, Attributes={"DelaySeconds": "0"})
     snapshot.match("after", sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["DelaySeconds"]))
+
+
+def test_an_old_receipt_handle(client, names, cleanup, snapshot, eventually):
+    """"If you use an old ReceiptHandle, the request will succeed, but the
+    message might not be deleted." Here a handle is the message's, not the
+    receive's, so it deletes: recorded, this says whether that is a difference."""
+    import time
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup, Attributes={"VisibilityTimeout": "1"})
+    sqs.send_message(QueueUrl=url, MessageBody="x")
+    old = receive(sqs, eventually, url)[0]["ReceiptHandle"]
+    time.sleep(2)
+    new = receive(sqs, eventually, url)[0]["ReceiptHandle"]
+    snapshot.match("handles-differ", {"differ": old != new})
+    snapshot.outcome("delete-with-the-old-handle", lambda: sqs.delete_message(QueueUrl=url, ReceiptHandle=old))
+    snapshot.match("after", {"visible": len(sqs.receive_message(QueueUrl=url, WaitTimeSeconds=3).get("Messages", []))})
+
+
+def test_redrive_policy_without_max_receive_count(client, names, cleanup, snapshot):
+    """The model's RedrivePolicy documents "Default: 10" for maxReceiveCount."""
+    sqs = client("sqs")
+    dlq = make_queue(sqs, names, cleanup, "queue-dlq")
+    arn = queue_arn(sqs, dlq)
+    out = snapshot.outcome("no-max-receive-count", lambda: sqs.create_queue(
+        QueueName=names("queue"), Attributes={"RedrivePolicy": json.dumps({"deadLetterTargetArn": arn})}))
+    if isinstance(out, dict):
+        cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+        snapshot.match("policy", sqs.get_queue_attributes(QueueUrl=out["QueueUrl"], AttributeNames=["RedrivePolicy"]),
+                       opaque=("RedrivePolicy",))
+
+
+def test_add_permission_statement_limit(client, names, cleanup, snapshot):
+    """The model says AddPermission is OverLimit when "the maximum number of
+    permissions for the queue is reached" and not what the number is."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    first_refused = None
+    for i in range(1, 31):
+        try:
+            sqs.add_permission(QueueUrl=url, Label=f"l{i}", AWSAccountIds=["111122223333"], Actions=["SendMessage"])
+        except Exception as e:  # noqa: BLE001 - recorded, not judged
+            first_refused = (i, getattr(e, "response", {}).get("Error", {}).get("Code"))
+            break
+    snapshot.match("first-refusal", {"at": first_refused[0] if first_refused else None,
+                                     "code": first_refused[1] if first_refused else None})
