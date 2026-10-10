@@ -93,12 +93,9 @@ func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
 	if source == "" {
 		return nil, errInvalid("SourceArn is required")
 	}
+	// Optional: without one each message returns to the queue it was
+	// dead-lettered from (doc: the StartMessageMoveTask API reference).
 	dest := arnQueueName(req.p.str("DestinationArn"))
-	if dest == "" {
-		// AWS defaults to each message's original source queue; doze-aws does
-		// not track message provenance, so the destination must be explicit.
-		return nil, errInvalid("DestinationArn is required (doze-aws does not track per-message origin queues)")
-	}
 	task, err := s.StartMessageMoveTask(source, dest)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -122,10 +119,7 @@ func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 			DestinationArn:                   s.queueARN(t.Destination),
 			ApproximateNumberOfMessagesMoved: int64(t.Moved),
 			StartedTimestamp:                 t.StartedAt * 1000, // epoch millis
-			// FailureReason is deliberately left unset: a local move is one
-			// bbolt transaction, so a failure is an API error from
-			// StartMessageMoveTask rather than a task anyone can list. See
-			// MoveTask. It stays in the wire shape because AWS has it.
+			FailureReason:                    t.FailureReason,
 		})
 	}
 	return res, nil

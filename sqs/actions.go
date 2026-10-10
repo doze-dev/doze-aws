@@ -398,6 +398,9 @@ func systemAttrs(m message, names []string) kvAttrs {
 	if m.DedupID != "" {
 		add("MessageDeduplicationId", m.DedupID)
 	}
+	if m.SourceArn != "" {
+		add("DeadLetterQueueSourceArn", m.SourceArn)
+	}
 	// System attributes the sender set. AWSTraceHeader is the only one AWS
 	// defines, and it comes back here rather than with the user's message
 	// attributes — which is what lets a consumer continue a trace without the

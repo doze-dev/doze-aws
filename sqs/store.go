@@ -88,9 +88,13 @@ type message struct {
 	// alongside SentTimestamp rather than with the user's attributes, so
 	// storing them together would corrupt both.
 	SysAttrs map[string]string `json:"sys_attrs,omitempty"`
-	GroupID  string            `json:"group_id,omitempty"`
-	DedupID  string            `json:"dedup_id,omitempty"`
-	Seq      uint64            `json:"seq"`
+	// SourceArn is the queue this message was dead-lettered from, which AWS
+	// reports as DeadLetterQueueSourceArn and which a move task without a
+	// destination returns it to. Empty for a message that was sent here.
+	SourceArn string `json:"source_arn,omitempty"`
+	GroupID   string `json:"group_id,omitempty"`
+	DedupID   string `json:"dedup_id,omitempty"`
+	Seq       uint64 `json:"seq"`
 }
 
 // store is the bbolt-backed SQS state.

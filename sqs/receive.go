@@ -149,7 +149,7 @@ func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []me
 			_ = mb.Delete(k)
 		}
 		for i := range dlqMsgs {
-			moved, err := s.moveToDLQ(tx, q.DeadLetterTarget, &dlqMsgs[i])
+			moved, err := s.moveToDLQ(tx, q.DeadLetterTarget, q.Name, &dlqMsgs[i])
 			if err != nil {
 				return err
 			}
@@ -223,7 +223,7 @@ func (s *store) Peek(queue string, max int) ([]message, error) {
 // happened: if the DLQ no longer exists it returns (false, nil) so the caller
 // leaves the message in the source queue instead of destroying it (real SQS
 // does not lose the message when redrive can't complete).
-func (s *store) moveToDLQ(tx *bolt.Tx, dlq string, m *message) (bool, error) {
+func (s *store) moveToDLQ(tx *bolt.Tx, dlq, from string, m *message) (bool, error) {
 	if _, err := s.getQueue(tx, dlq); err != nil {
 		return false, nil // DLQ gone; do not drop the message
 	}
@@ -236,6 +236,7 @@ func (s *store) moveToDLQ(tx *bolt.Tx, dlq string, m *message) (bool, error) {
 	moved.Seq = seq
 	moved.ReceiveCount = 0
 	moved.VisibleAt = s.now().UnixNano()
+	moved.SourceArn = s.queueARN(from)
 	if err := putMessage(db, &moved); err != nil {
 		return false, err
 	}
