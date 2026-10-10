@@ -74,6 +74,9 @@ func hAddPermission(s *store, req *request) (any, *apiError) {
 		return nil, &apiError{Code: "MissingParameter", Status: 400, SenderFault: true,
 			Message: "Label, AWSAccountIds and Actions are required"}
 	}
+	if aerr := validPermission(label, accounts, actions); aerr != nil {
+		return nil, aerr
+	}
 	if raw := attrs["Policy"]; raw != "" && !json.Valid([]byte(raw)) {
 		// A stored policy this cannot read is not silently replaced.
 		return nil, &apiError{Code: "InvalidParameterValue", Status: 400, SenderFault: true,
@@ -99,7 +102,7 @@ func hAddPermission(s *store, req *request) (any, *apiError) {
 		if a == "*" {
 			acts = append(acts, "SQS:*")
 		} else {
-			acts = append(acts, "SQS:"+strings.TrimPrefix(strings.TrimPrefix(a, "SQS:"), "sqs:"))
+			acts = append(acts, "SQS:"+a)
 		}
 	}
 	doc.Statement = append(doc.Statement, map[string]any{
@@ -111,6 +114,48 @@ func hAddPermission(s *store, req *request) (any, *apiError) {
 		return nil, asAPIError(err)
 	}
 	return nil, nil
+}
+
+// permissionActions are the values the AddPermission page lists for Actions
+// (doc: the AddPermission API reference), and "*" for all of them.
+var permissionActions = map[string]bool{
+	"*": true, "ChangeMessageVisibility": true, "DeleteMessage": true, "GetQueueAttributes": true,
+	"GetQueueUrl": true, "ListDeadLetterSourceQueues": true, "ListQueues": true, "PurgeQueue": true,
+	"ReceiveMessage": true, "SendMessage": true,
+}
+
+// validPermission applies what the AddPermission page states: a label of at
+// most 80 characters of letters, digits, hyphens and underscores; actions from
+// the list above; principals that are twelve-digit account numbers (an ARN is
+// still accepted, which the page does not rule out). The model states none of
+// it.
+func validPermission(label string, accounts, actions []string) *apiError {
+	bad := func(param, why string) *apiError {
+		return &apiError{Code: "InvalidParameterValue", Status: 400, SenderFault: true,
+			Message: "Value for parameter " + param + " is invalid. Reason: " + why}
+	}
+	if len(label) > 80 {
+		return bad("Label", "a label is at most 80 characters.")
+	}
+	for _, r := range label {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+			return bad("Label", "a label has only letters, digits, hyphens and underscores.")
+		}
+	}
+	for _, a := range accounts {
+		if strings.HasPrefix(a, "arn:") {
+			continue
+		}
+		if len(a) != 12 || strings.Trim(a, "0123456789") != "" {
+			return bad("AWSAccountIds", "an account number is twelve digits.")
+		}
+	}
+	for _, a := range actions {
+		if !permissionActions[a] {
+			return bad("Actions", "\""+a+"\" is not an action AddPermission accepts.")
+		}
+	}
+	return nil
 }
 
 func hRemovePermission(s *store, req *request) (any, *apiError) {
