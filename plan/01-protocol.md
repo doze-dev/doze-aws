@@ -222,6 +222,9 @@ ticked. "N/A" is allowed only with a sentence saying why.
       clean on the service's pages; keyboard paths (`j` `k` Enter `/` `c` Esc)
       work on its list and forms.
 - [ ] The service's pages work under a non-default account and region.
+- [ ] The browser suite and the Go suites were run under a second identity
+      (`E2E_ACCOUNT_ID`, `E2E_REGION`) **at the close of this stage**, and every
+      caller of a rule this stage made stricter was searched for (L13).
 
 ### Close
 

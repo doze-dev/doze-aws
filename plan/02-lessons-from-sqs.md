@@ -109,6 +109,19 @@ draws a two-letter mark (`SQ`, `S3`) it is the board's placeholder for that
 service's icon and the page keeps the icon. Nothing else about the board's
 chrome is exempt.
 
+## The close
+
+**L13. A stricter rule has callers.** SQS-23 made SQS compare a queue URL's
+account with its own, which was right, and broke every internal delivery to a
+queue under any other `--account-id`: `internal/peercall` named the default
+account in a URL, under a comment that said the account was never compared. A
+stage that makes a service refuse something it used to accept greps for who
+relied on the old behaviour (including comments that say they do), across
+`peercall`, `provision`, the console clients and the other services' delivery
+paths, and runs the two-identity pass (`E2E_ACCOUNT_ID`, `E2E_REGION`) at
+the close, not once in the foundation. Stage 1 was signed off without it and
+SQS-30 was found a day later by another service's review.
+
 ## How a document answers
 
 For each of L1 to L12, one of: *findings* (ids, severity, direction, source), or
