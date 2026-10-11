@@ -24,8 +24,8 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | Tags set at creation and by TagQueue are listed; UntagQueue removes them | model | test_sqs::test_tags_visibility_and_purge |
 | Every attribute's range (delay 0–900, visibility 0–43,200, retention 60–1,209,600, size 1,024–1,048,576, wait 0–20, KMS reuse 60–86,400) and a non-number are refused `InvalidAttributeValue` | model | test_sqs::test_attribute_ranges |
 | `ReceiveMessage` with `MaxNumberOfMessages` 0 or 11 is refused (the code it is refused with is `ReadCountOutOfRange`) | memory | test_sqs::test_receive_out_of_range |
-| Re-creating a queue within 60 s of deleting it is refused `QueueDeletedRecently` (doze-aws deletes at once and does not model this: a listed difference, entered in `deviations.py` when recorded) | model | test_sqs::test_recreate_after_delete |
-| A second `PurgeQueue` within 60 s is refused `PurgeQueueInProgress` (doze-aws purges at once; listed difference) | model | test_sqs::test_purge_twice |
+| Re-creating a queue within 60 s of deleting it is refused `QueueDeletedRecently` (doze-aws deletes at once unless `--sqs-strict` is on, so recorded against the default it is a listed difference, entered in `deviations.py`) | model | test_sqs::test_recreate_after_delete |
+| A second `PurgeQueue` within 60 s is refused `PurgeQueueInProgress` (doze-aws purges at once unless `--sqs-strict` is on; listed difference) | model | test_sqs::test_purge_twice |
 | A redriven message's `ApproximateReceiveCount` after it moves to the dead-letter queue, and its `DeadLetterQueueSourceArn` | memory | test_sqs::test_redrive_receive_count |
 | Changing the queue's visibility timeout leaves messages already in flight on the timeout they were received with | model | test_sqs::test_visibility_change_in_flight |
 | `ChangeMessageVisibility` past the twelve hours from the receive ("greater than the maximum time left") is refused | model | test_sqs::test_twelve_hours_from_the_receive |
@@ -49,7 +49,7 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | `RedriveAllowPolicy` `denyAll` refuses a source naming the queue; a bad `redrivePermission` and `byQueue` without `sourceQueueArns` are refused | model | test_sqs::test_redrive_allow_policy |
 | A queue URL whose account is another's, and a `QueueOwnerAWSAccountId` that is not this account, name no queue here | model | test_sqs::test_queue_in_another_account |
 | Setting an attribute back to its default reads as the default | doc | test_sqs::test_setting_an_attribute_back_to_its_default |
-| An old receipt handle after a re-receive: "the request will succeed, but the message might not be deleted" (doze-aws's handle is the message's, so it deletes) | model | test_sqs::test_an_old_receipt_handle |
+| An old receipt handle after a re-receive: "the request will succeed, but the message might not be deleted" (doze-aws: the same, a delete with an earlier receive's handle succeeds and leaves the message) | model | test_sqs::test_an_old_receipt_handle |
 | `RedrivePolicy` without `maxReceiveCount`: the model documents "Default: 10" (doze-aws refuses it) | model | test_sqs::test_redrive_policy_without_max_receive_count |
 | The number of permissions at which `AddPermission` is `OverLimit` (the model names the error, not the number) | model | test_sqs::test_add_permission_statement_limit |
 | `GetQueueAttributes` with no `AttributeNames` returns an empty result | model | test_sqs::test_get_queue_attributes_without_names |

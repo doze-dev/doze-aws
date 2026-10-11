@@ -96,6 +96,7 @@ dozeaws: field StackConfig.LambdaQuiet bool
 dozeaws: field StackConfig.LambdaRuntimes map[string]string
 dozeaws: field StackConfig.Logf func(format string, args ...any)
 dozeaws: field StackConfig.Peers func(peers.Directory) peers.Directory
+dozeaws: field StackConfig.SQSStrict bool
 dozeaws: field StackConfig.Services []string
 dozeaws: field StackConfig.Shared *Shared
 dozeaws: field StackConfig.Suffix string
@@ -305,6 +306,7 @@ sqs: field Options.IAMMode string
 sqs: field Options.Identity awsident.Identity
 sqs: field Options.Logf func(format string, args ...any)
 sqs: field Options.Peers peers.Directory
+sqs: field Options.Strict bool
 sqs: func (*Server) Close() error
 sqs: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 sqs: func New(opts Options) (*Server, error)

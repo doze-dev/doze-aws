@@ -107,7 +107,10 @@ type store struct {
 	// id is the region and account ARNs are minted for. Stamped by New after
 	// construction, like clock: a queue decoded out of bbolt carries no pointer
 	// back to the Server that owns it.
-	id     awsident.Identity
+	id awsident.Identity
+	// strict turns on the 60-second rules (strict.go). Off by default.
+	strict bool
+	minute minuteRules
 	notify *notifier
 	// attempts is what ReceiveRequestAttemptId matches a retry against. Empty
 	// until a FIFO receive carries one.
@@ -177,6 +180,9 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 	}
 	var out *queue
 	err := s.db.Update(func(tx *bolt.Tx) error {
+		if _, err := s.getQueue(tx, name); err != nil && s.strict && s.minute.deletedRecently(name, s.now()) {
+			return errQueueDeletedRecently()
+		}
 		if q, err := s.getQueue(tx, name); err == nil {
 			have := s.configuredAttrs(q)
 			keys := make([]string, 0, len(attrs))
@@ -229,6 +235,9 @@ func (s *store) DeleteQueue(name string) error {
 		return nil
 	}); err != nil {
 		return err
+	}
+	if s.strict {
+		s.minute.noteDeleted(name, s.now())
 	}
 	// A receive registers interest before it checks the store, and a receive
 	// that SUCCEEDS returns without removing it — harmless while the queue
@@ -441,6 +450,9 @@ func (s *store) Purge(queue string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
+		}
+		if s.strict && !s.minute.purgeAllowed(queue, s.now()) {
+			return errPurgeInProgress()
 		}
 		if tx.Bucket(msgBucket(queue)) != nil {
 			if err := tx.DeleteBucket(msgBucket(queue)); err != nil {

@@ -26,6 +26,9 @@ type Config struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero.
 	LambdaIdleTimeout time.Duration
+	// SQSStrict refuses what SQS refuses for a minute after a delete or a purge:
+	// re-creating a name deleted under 60 seconds ago, and a second purge.
+	SQSStrict bool
 	// LambdaQuiet stops function output (stdout and stderr of the function
 	// processes) from being echoed to the doze-aws log. The lines still reach
 	// the logs service.

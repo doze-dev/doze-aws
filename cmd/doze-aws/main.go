@@ -324,6 +324,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.Var(servicesFlag{&dst.Regions}, "regions", "comma-separated extra regions to serve (any region a signed request names is created on first use regardless)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
+	fs.BoolVar(&dst.SQSStrict, "sqs-strict", dst.SQSStrict, "refuse what SQS refuses for 60 seconds after a delete or a purge: re-creating a deleted queue's name, and purging twice")
 	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
 	fs.StringVar(&dst.TemplateFile, "template", dst.TemplateFile, "CloudFormation/SAM template to apply at boot (default: ./template.yaml if present)")
 	fs.StringVar(&dst.IAMMode, "iam-mode", dst.IAMMode, "IAM enforcement: soft (default: evaluate and record, never block), off (no evaluation), enforce (deny for real)")
@@ -419,6 +420,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
 		LambdaQuiet:       cfg.LambdaQuiet,
 		LambdaRuntimes:    cfg.LambdaRuntimes,
+		SQSStrict:         cfg.SQSStrict,
 		IAMMode:           iamMode,
 		Endpoint:          binds.endpoint,
 		Suffix:            cfg.Suffix,

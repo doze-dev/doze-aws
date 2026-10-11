@@ -49,6 +49,7 @@ Flags apply to serving and to `config print`.
 | `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [SUPPORT.md](SUPPORT.md#iam--api-support). |
 | `--console` | on | Serve the web management console at `/_console`. |
 | `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
+| `--sqs-strict` | off | Refuse what SQS refuses for 60 seconds after a delete or a purge: re-creating a deleted queue's name, and purging a queue twice. Both are immediate here by default. See [SUPPORT.md](SUPPORT.md#sqs--api-support). |
 | `--yes` | off | Answer yes to the confirmation described below. For scripts, and for anyone who does this daily. |
 
 ### When a flag overrules the config file

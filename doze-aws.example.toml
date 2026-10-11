@@ -36,6 +36,14 @@ data-dir = "data"
 # "off" (no evaluation at all), or "enforce" (real AccessDenied responses).
 # iam-mode = "soft"
 
+[sqs]
+# Refuse what SQS refuses for 60 seconds after a delete or a purge: re-creating
+# a queue under a name deleted a moment ago (QueueDeletedRecently) and purging
+# the same queue twice (PurgeQueueInProgress). Both are immediate here, so a
+# test suite that deletes and re-creates, or purges between cases, passes
+# locally and fails on AWS; turn this on to find that before the deploy.
+# strict = false
+
 [lambda]
 # How long a warm function keeps its process(es) before scaling to zero.
 # idle-timeout = "10m"

@@ -409,6 +409,8 @@ func jsonErrorType(code string) string {
 		return "QueueDeletedRecently"
 	case "AWS.SimpleQueueService.QueueNameExists", "QueueAlreadyExists":
 		return "QueueNameExists"
+	case "AWS.SimpleQueueService.PurgeQueueInProgress":
+		return "PurgeQueueInProgress"
 	case "AWS.SimpleQueueService.EmptyBatchRequest",
 		"AWS.SimpleQueueService.TooManyEntriesInBatchRequest",
 		"AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
@@ -445,6 +447,8 @@ func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
 	switch e.Code {
 	case "ReceiptHandleIsInvalid", "ResourceNotFoundException", "InvalidAddress":
 		e.Status = 404
+	case "AWS.SimpleQueueService.PurgeQueueInProgress":
+		e.Status = 403
 	}
 	qapi.WriteError(w, &e)
 }

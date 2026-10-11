@@ -19,7 +19,7 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Breaking
 
-- **The Go API is 372 exported symbols, down from 1,867.** If you imported
+- **The Go API is 374 exported symbols, down from 1,867.** If you imported
   doze-aws as a library at 0.x, the packages you called are still there and
   still work — `New(Options) → *Server`, `dozeaws.NewStack`, `peers`,
   `awsident` — but everything that was never part of that contract is gone.
@@ -216,9 +216,15 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     move task; a Policy is validated when stored; `RedriveAllowPolicy` and
     `DeduplicationScope` do what they say; ranges on every request member;
     Lambda's poller asks for at most 10 at a time.
-  - **Not modelled, and listed in the ledger:** the 60 seconds before a deleted
-    queue's name or a purged queue can be reused, asynchronous move tasks,
-    per-receive receipt handles, the in-flight limit, fair-queue fairness.
+  - **A receipt handle is the receive's.** A delete with the handle of an
+    earlier receive succeeds and leaves the message, as the model says, so the
+    slow-worker double-processing bug is visible locally instead of hidden by a
+    delete that always worked.
+  - **`--sqs-strict`** (off by default; `[sqs] strict = true`) refuses what SQS
+    refuses for a minute after a delete or a purge: re-creating the name
+    (`QueueDeletedRecently`) and a second purge (`PurgeQueueInProgress`).
+  - **Not simulated, and listed in the ledger:** asynchronous move tasks and the
+    rate they run at.
 - The ledger no longer says IAM defaults to `off`. It is `soft`.
 - Found by deploying with the real tools (`e2e/deploy/`, run on every push):
   - **Terraform's AWS provider** applies a 22-resource stack and plans no drift.

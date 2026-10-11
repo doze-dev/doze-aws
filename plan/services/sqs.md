@@ -13,10 +13,10 @@ bugs that touch a deploy.
 
 **Estimate:** S, two focused days, with the two items moved in from Lambda and
 CloudFormation. **Actual:** not timed, and the number would not be honest: the
-work was several times the estimate in volume. The plan listed 8 findings; 26
-were closed, and 16 of them were found by reading the service model's own
+work was several times the estimate in volume. The plan listed 8 findings; 28
+were closed, and 18 of them were found by reading the service model's own
 documentation after the first pass had written its limits from memory (SQS-11 to
-SQS-26: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
+SQS-28: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
 entries). **Re-estimate for the other fifteen services:** size each as one step
 larger than its document says until its model documentation has been read, and
 make that reading the first act of the stage (see the memory note and
@@ -112,6 +112,8 @@ correct caller exactly as "more forgiving" breaks a deploy.
 | SQS-24 | P2 | **Closed.** `KmsDataKeyReusePeriodSeconds` had no range (60 to 86,400); `FifoQueue`, `ContentBasedDeduplication` and `SqsManagedSseEnabled` read any value other than "true" as false ("Valid values are true and false"). | more forgiving | model: CreateQueue.Attributes |
 | SQS-25 | P1 | **Closed** (`TestGetQueueAttributesWithNoNamesReturnsNothing`). `GetQueueAttributes` with no `AttributeNames` returned every attribute. The model: "if you don't specify values for this parameter, the request returns empty results". A client that forgot the parameter saw everything here and nothing on AWS. | more forgiving | model: GetQueueAttributes |
 | SQS-26 | P1 | **Closed** (`sqs/query_shape_test.go`). The model's constraint walk read a Query request as one element of each list and a flattened map as a list of pairs, so on the Query wire only the first batch entry was checked, no attribute was, and only one system-attribute name met its enum: a second entry with no body was refused whole on JSON and answered as one failed entry on Query. The request is now rendered whole, in the JSON body's shape, before the walk. | more forgiving | model: xmlName, xmlFlattened |
+| SQS-27 | P1 | **Closed** (`sqs/stale_handle_test.go`). A receipt handle was the message's, so a delete with an old one removed the message. The model: "you must use the ReceiptHandle from the most recent time you received the message. If you use an old ReceiptHandle, the request will succeed, but the message might not be deleted." The slow-worker double-processing bug was invisible locally. The receive count is now in the handle (already persisted in the message; nothing new is stored), and a delete with an earlier receive's handle succeeds and leaves the message. Handles minted before this carry no count and stay good. | more forgiving | model: DeleteMessage |
+| SQS-28 | P2 | **Closed, opt-in** (`sqs/strict_test.go`). The 60-second `QueueDeletedRecently` and `PurgeQueueInProgress` rules were unmodelled. They are now there behind `--sqs-strict` / `[sqs] strict = true` (`StackConfig.SQSStrict`), off by default, with the names and times held in memory only. | more forgiving, by default | model: DeleteQueue, PurgeQueue |
 
 
 **Moved into this stage from other services.** They keep their own ids, and
@@ -145,7 +147,7 @@ operations accepted, spelled as the API reference spells them) and
 `permission_test.go`, `fifo_attrs_test.go`, `move_task_test.go`,
 `policy_test.go`, `tags_test.go`, `visibility_rules_test.go`, and across a
 restart `persistence_sqs_test.go`. The numbers in this section were first
-written from memory; the corrections are SQS-11 to SQS-26 in section 4.
+written from memory; the corrections are SQS-11 to SQS-28 in section 4.
 
 **Queues**
 - [x] Name rules: 1 to 80, letters, digits, hyphen, underscore; `.fifo` only as
@@ -154,13 +156,14 @@ written from memory; the corrections are SQS-11 to SQS-26 in section 4.
       value it answers `QueueAlreadyExists` (Query) / `QueueNameExists` (JSON)
       naming the attribute.
 - [x] Deleting a queue and recreating it at once: AWS asks for 60 seconds
-      (`QueueDeletedRecently`). **Decided: not modelled.** A delete here is immediate,
-      so there is no minute to wait out; a listed difference, and the entry
-      goes into `deviations.py` when the scenario is recorded
-      (`test_recreate_after_delete`).
+      (`QueueDeletedRecently`). **Decided: opt-in.** A delete here is immediate, so by default
+      there is no minute to wait out (a listed difference; the entry goes into
+      `deviations.py` when `test_recreate_after_delete` is recorded). `--sqs-strict`
+      / `[sqs] strict = true` refuses it as AWS does (`sqs/strict_test.go`), for the
+      person who wants the failure before the deploy. Off by default because a
+      minute in every local test loop is a worse tool.
 - [x] `PurgeQueue` twice inside 60 seconds: AWS answers `PurgeQueueInProgress`.
-      **Decided: not modelled**, the same way: a purge here is immediate
-      (`test_purge_twice`).
+      **Decided: opt-in**, the same switch (`test_purge_twice`).
 - [x] Every attribute's range, and a non-numeric value, refused with
       `InvalidAttributeValue`; an unknown attribute name refused.
 - [x] Clearing an attribute removes it (there is a test; keep it).
@@ -300,7 +303,7 @@ Every one of these is `doc` or `memory` today.
 | `ReceiveRequestAttemptId` replay, and refusal on a standard queue | model, memory | `test_receive_request_attempt_id` |
 | A queue URL's account and `QueueOwnerAWSAccountId` | model | `test_queue_in_another_account` |
 | Boolean and KMS attribute values; `DeduplicationScope` on a standard queue | model | `test_fifo_attribute_rules` |
-| An old receipt handle after the message was received again: the request succeeds but the message "might not be deleted" (here a handle is the message's, not the receive's, so it deletes) | model | `test_an_old_receipt_handle` |
+| An old receipt handle after the message was received again: the request succeeds but the message "might not be deleted" (here a delete with an earlier receive's handle succeeds and leaves it; change-visibility with one is still accepted) | model | `test_an_old_receipt_handle` |
 | The statement count at which `AddPermission` is `OverLimit` (the model says a limit exists, not its value); the in-flight limit of about 120,000 `OverLimit` on ReceiveMessage (not modelled, a listed difference) | model | `test_add_permission_statement_limit` |
 | `RedrivePolicy` without `maxReceiveCount`: the model says the default is 10; doze-aws refuses it | model | `test_redrive_policy_without_max_receive_count` |
 
@@ -319,7 +322,7 @@ Every one of these is `doc` or `memory` today.
 
 On top of every box in the protocol.
 
-- [x] SQS-1 to SQS-26 each closed, with the test that failed first named beside it (section 4).
+- [x] SQS-1 to SQS-28 each closed, with the test that failed first named beside it (section 4).
 - [x] LAM-6 closed in the same commit as SQS-5: a trigger with batch size 20
       still receives, in receives of at most 10.
 - [x] The queue part of CFN-4 closed: a stack with a queue and an

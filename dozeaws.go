@@ -99,6 +99,11 @@ type StackConfig struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero. Zero uses the service default (10m).
 	LambdaIdleTimeout time.Duration
+	// SQSStrict refuses what SQS refuses for a minute after a delete or a
+	// purge: creating a queue under a name deleted less than 60 seconds ago
+	// (QueueDeletedRecently) and a second PurgeQueue inside 60 seconds
+	// (PurgeQueueInProgress). Off by default: both are immediate here.
+	SQSStrict bool
 	// LambdaQuiet stops function output from being echoed to Logf.
 	LambdaQuiet bool
 	// LambdaRuntimes overrides the interpreter per runtime family.
@@ -339,7 +344,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := sts.New(sts.Options{DataDir: dataDir, Clock: cfg.Clock, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sqs":
-		s, err := sqs.New(sqs.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := sqs.New(sqs.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Strict: cfg.SQSStrict})
 		return s, s, err
 	case "sns":
 		s, err := sns.New(sns.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})

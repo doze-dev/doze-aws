@@ -51,6 +51,10 @@ type Options struct {
 	// Identity is the region and account this service mints ARNs for. The zero
 	// value means the conventional local identity.
 	Identity awsident.Identity
+	// Strict refuses what AWS refuses for a minute after a delete or a purge:
+	// creating a queue under a name deleted less than 60 seconds ago, and a
+	// second PurgeQueue inside 60 seconds. Off by default (strict.go says why).
+	Strict bool
 }
 
 // Server is the SQS service: an http.Handler speaking both SQS wire protocols,
@@ -91,6 +95,7 @@ func New(opts Options) (*Server, error) {
 	// The store mints ARNs for queues it decodes out of bbolt, and those records
 	// carry no owner pointer. Stamped after construction, the same way Clock is.
 	s.store.id = opts.Identity
+	s.store.strict = opts.Strict
 	go s.janitor()
 	return s, nil
 }

@@ -2571,30 +2571,30 @@ too.
   checked against the API reference rather than against a generated table. It
   is the one service here where the audit could not be generated, and the
   reason its bugs surfaced first.
-- **A deleted queue can be re-created at once, and a purge is immediate.** AWS
+- **A deleted queue can be re-created at once, and a purge is immediate**,
+  unless strict mode is on (`--sqs-strict`, `[sqs] strict = true`). AWS
   refuses a CreateQueue inside 60 seconds of a delete (`QueueDeletedRecently`)
   and a second PurgeQueue inside 60 seconds (`PurgeQueueInProgress`), because
-  both take up to a minute there. Nothing here takes a minute, so there is
-  nothing to wait out; a script that deletes and re-creates a queue works here
-  and can fail on deploy. A listed difference, to be entered in
-  `conformance/deviations.py` when the scenarios are recorded.
-- **A move task is finished when it is started.** AWS moves asynchronously and
-  a task can be observed `RUNNING` and cancelled. Here the status is
-  `COMPLETED` (or `FAILED` when a message had nowhere to return to), a cancel
-  always finds a finished task, and nothing is throttled.
-- **A receipt handle is the message's, not the receive's.** On AWS each receive
-  returns a new handle and an old one "might not" delete the message. Here any
-  handle for the message deletes it.
-- **There is no in-flight limit.** AWS answers `OverLimit` at about 120,000
-  messages in flight on a standard queue.
-- **Fair queues are accepted, not modelled.** A standard queue takes
-  `MessageGroupId`; delivery is not reordered to keep one tenant from
-  crowding out another.
-- **`FifoThroughputLimit` is validated and returned**, and nothing is
-  throttled; `KmsMasterKeyId`, `KmsDataKeyReusePeriodSeconds` and
-  `SqsManagedSseEnabled` are stored, and nothing is encrypted.
-- **`ReceiveRequestAttemptId` is remembered in memory.** A restart inside the
-  five minutes forgets it and the retry is a new receive.
+  both take up to a minute there. A test suite that deletes and re-creates a
+  queue of one name, or purges between cases, passes here and fails on AWS.
+  Making that the default would put a minute in every local test loop, so it is
+  opt-in; turn it on to find the problem before the deploy. What it remembers is
+  a name and a time, in memory, and a restart forgets it.
+- **A move task is finished when it is started.** AWS moves asynchronously, so a
+  test that asserts the moved messages straight after `StartMessageMoveTask`
+  passes here and is racy there. Here the status is `COMPLETED` (or `FAILED`
+  when a message had nowhere to return to), a cancel always finds a finished
+  task, and `MaxNumberOfMessagesPerSecond` is recorded and not applied.
+- **A receipt handle is the receive's**, as on AWS: a delete with the handle of
+  an earlier receive succeeds and leaves the message, so the slow-worker bug
+  (the timeout lapses, a second worker receives, the first deletes) shows up
+  here as it does there. `ChangeMessageVisibility` with an old handle is still
+  accepted for a message in flight; what AWS answers is not established.
+- **Not simulated, because nothing a test can observe depends on it:** the
+  in-flight limit (about 120,000 messages), fair-queue fairness (a standard
+  queue accepts `MessageGroupId`; delivery is not reordered), throughput quotas
+  (`FifoThroughputLimit` is validated and returned) and encryption (the KMS and
+  SSE attributes are stored and nothing is encrypted).
 - **Redrive and retention run on the receive path and a janitor**, rather than
   continuously server-side. A queue nobody reads is still swept, so the
   observable result converges; the timing of a move to the DLQ does not have

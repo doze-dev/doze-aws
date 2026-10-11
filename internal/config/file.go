@@ -47,10 +47,15 @@ type fileConfig struct {
 	DataDir   *string     `toml:"data-dir"`
 	Services  []string    `toml:"services"`
 	Lambda    *lambdaFile `toml:"lambda"`
+	SQS       *sqsFile    `toml:"sqs"`
 	Template  *string     `toml:"template"`
 	Region    *string     `toml:"region"`
 	AccountID *string     `toml:"account-id"`
 	Name      *string     `toml:"name"`
+}
+
+type sqsFile struct {
+	Strict *bool `toml:"strict"`
 }
 
 type lambdaFile struct {
@@ -175,6 +180,9 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	if fc.Lambda != nil && fc.Lambda.IdleTimeout != nil {
 		cfg.LambdaIdleTimeout = fc.Lambda.IdleTimeout.Duration
 	}
+	if fc.SQS != nil && fc.SQS.Strict != nil {
+		cfg.SQSStrict = *fc.SQS.Strict
+	}
 	if fc.Lambda != nil && fc.Lambda.Quiet != nil {
 		cfg.LambdaQuiet = *fc.Lambda.Quiet
 	}
@@ -206,6 +214,7 @@ func WriteTOML(w io.Writer, cfg Config) error {
 		AccountID: &cfg.AccountID,
 		Name:      &cfg.Name,
 		Lambda:    &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}, Quiet: &cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes},
+		SQS:       &sqsFile{Strict: &cfg.SQSStrict},
 	}
 	if len(cfg.Services) > 0 {
 		fc.Services = cfg.Services
