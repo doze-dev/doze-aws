@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // queueARN is a method rather than a free function because an ARN now depends
@@ -13,23 +15,42 @@ import (
 func (s *store) queueARN(name string) string { return s.id.ARN("sqs", name) }
 
 // encodeHandle builds an opaque receipt handle from the message's sequence key
-// (8 bytes) and its unique id. Binding the id into the handle prevents aliasing:
-// after a Purge or DeleteQueue+CreateQueue resets bbolt's NextSequence, a stale
-// handle's seq can collide with a brand-new message — the id check rejects it so
-// a deferred Delete can never target a different message.
-func encodeHandle(seqKey []byte, id string) string {
-	buf := make([]byte, 0, len(seqKey)+len(id))
+// (8 bytes), its unique id and the number of times it has been received.
+//
+// Binding the id into the handle prevents aliasing: after a Purge or
+// DeleteQueue+CreateQueue resets bbolt's NextSequence, a stale handle's seq can
+// collide with a brand-new message — the id check rejects it so a deferred
+// Delete can never target a different message.
+//
+// Binding the receive count makes a handle the receive's, as on AWS: a handle
+// is good for the most recent receive, and a delete with an older one succeeds
+// without deleting (doc: the model's DeleteMessage). Nothing is stored for it:
+// the count is already in the persisted message.
+func encodeHandle(seqKey []byte, id string, receives int) string {
+	buf := make([]byte, 0, len(seqKey)+len(id)+8)
 	buf = append(buf, seqKey...)
 	buf = append(buf, id...)
+	buf = append(buf, '#')
+	buf = strconv.AppendInt(buf, int64(receives), 10)
 	return base64.StdEncoding.EncodeToString(buf)
 }
 
-func decodeHandle(h string) (seqKey []byte, id string, err error) {
+// decodeHandle splits a handle. receives is -1 for a handle minted before
+// handles carried one, which is taken to be good for whatever receive is
+// current.
+func decodeHandle(h string) (seqKey []byte, id string, receives int, err error) {
 	b, derr := base64.StdEncoding.DecodeString(h)
 	if derr != nil || len(b) < 8 {
-		return nil, "", fmt.Errorf("bad handle")
+		return nil, "", 0, fmt.Errorf("bad handle")
 	}
-	return b[:8], string(b[8:]), nil
+	rest := string(b[8:])
+	receives = -1
+	if i := strings.LastIndexByte(rest, '#'); i >= 0 {
+		if n, err := strconv.Atoi(rest[i+1:]); err == nil {
+			rest, receives = rest[:i], n
+		}
+	}
+	return b[:8], rest, receives, nil
 }
 
 // md5Attributes computes MD5OfMessageAttributes per the AWS algorithm, which the

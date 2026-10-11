@@ -130,7 +130,7 @@ func (s *store) replayReceive(queue string, rec receiveAttempt, visibilityOverri
 		nowN := now.UnixNano()
 		var msgs []message
 		for i, h := range rec.handles {
-			seq, id, err := decodeHandle(h)
+			seq, id, _, err := decodeHandle(h)
 			if err != nil {
 				return nil
 			}

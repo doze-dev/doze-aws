@@ -60,13 +60,16 @@ func TestSendReceiveDeleteVisibility(t *testing.T) {
 	}
 	// After visibility timeout it reappears.
 	time.Sleep(1100 * time.Millisecond)
-	if back, _ := s.Receive("q", 1, 0, -1); len(back) != 1 {
+	back, _ := s.Receive("q", 1, 0, -1)
+	if len(back) != 1 {
 		t.Fatalf("expected message to reappear, got %d", len(back))
 	} else if back[0].ReceiveCount != 2 {
 		t.Fatalf("ReceiveCount = %d, want 2", back[0].ReceiveCount)
 	}
-	// Delete removes it for good.
-	if err := s.Delete("q", got[0].Handle()); err != nil {
+	// Delete, with the handle of the most recent receive, removes it for good.
+	// (The first receive's handle would succeed and leave it: see
+	// stale_handle_test.go.)
+	if err := s.Delete("q", back[0].Handle()); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(1100 * time.Millisecond)

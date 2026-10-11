@@ -277,7 +277,7 @@ func (s *store) DeleteBatch(queue string, handles []string) ([]error, error) {
 
 // deleteIn is one delete inside a caller's transaction.
 func (s *store) deleteIn(tx *bolt.Tx, queue, handle string) error {
-	seqKey, id, err := decodeHandle(handle)
+	seqKey, id, receives, err := decodeHandle(handle)
 	if err != nil {
 		return errReceiptHandle(handle)
 	}
@@ -295,6 +295,12 @@ func (s *store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	}
 	if m.ID != id {
 		return nil // stale handle for a message that has since been replaced
+	}
+	if receives >= 0 && receives != m.ReceiveCount {
+		// The message has been received since this handle was issued. AWS
+		// answers success and leaves it: the holder of the newer handle is the
+		// one working on it.
+		return nil
 	}
 	return mb.Delete(seqKey)
 }
@@ -335,7 +341,7 @@ func (s *store) ChangeVisibilityBatch(queue string, items []visibilityItem) ([]e
 
 // changeVisibilityIn is one change inside a caller's transaction.
 func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout int) error {
-	seqKey, id, err := decodeHandle(handle)
+	seqKey, id, _, err := decodeHandle(handle)
 	if err != nil {
 		return errReceiptHandle(handle)
 	}
@@ -386,7 +392,7 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 // Handle encodes the message's position AND identity; Delete/ChangeVisibility
 // decode both and verify the id so a stale handle can't act on a different
 // message that later reused the same sequence number.
-func (m *message) Handle() string { return encodeHandle(seqKey(m.Seq), m.ID) }
+func (m *message) Handle() string { return encodeHandle(seqKey(m.Seq), m.ID, m.ReceiveCount) }
 
 // ---- dedup tracking (FIFO) ----
 
