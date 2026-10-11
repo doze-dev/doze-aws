@@ -294,7 +294,7 @@ only when it was looked at.
 | Sqs-20 Denied, Sqs-21 Refused | matches | untouched |
 | Bad-DLQ, Queue | differs, deliberately | The design's sentence strip ("3 waiting · 0 in flight · kept 4 days") against the shell's fact strip (Type / Visible / In flight / Visibility timeout / Retention / Dead-letter) from the foundation's `res_header`. A shell decision, not an SQS one; not re-opened here. |
 
-**Where the design is wrong, and the design should change, not the console**
+**Where the design was wrong** (corrected in the working copy on 2026-10-11 in Sqs-04, Sqs-09, Sqs-18 and Sqs-21; the published canvas still carries the old text until it is republished)
 - 262 144 in three boards: 1 048 576 (SQS-11).
 - "AWS does not let that trigger be attached to a queue like this" on Sqs-18: the
   Lambda model does not say it and the developer-guide wording is memory (LAM-5).
