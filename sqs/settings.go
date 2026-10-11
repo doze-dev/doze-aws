@@ -37,6 +37,12 @@ func init() {
 		add("MaximumMessageSize", "bytes", strconv.Itoa(defMaxMessageSize))
 		add("ReceiveMessageWaitTimeSeconds", "seconds", "0")
 
+		// The redrive policy's own count is not an attribute but is a setting a
+		// form teaches: 1 to 1000, held by applyRedrive.
+		out = append(out, settings.Setting{
+			Name: "maxReceiveCount", Min: settings.Int64(1), Max: settings.Int64(1000),
+			Tier: functional, EnforcedBy: "sqs/attrs.go applyRedrive", Source: settings.Doc,
+		})
 		// Stored attributes. These three change behaviour: a dead-letter
 		// queue's RedriveAllowPolicy is checked when a queue names it, an access
 		// policy is validated and evaluated, and the deduplication scope decides

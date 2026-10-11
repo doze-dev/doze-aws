@@ -601,6 +601,7 @@ type sqsReader struct {
 	Name    string
 	URL     string
 	Timeout int  // the function's, in seconds
+	Advised int  // six times Timeout: AWS's guidance for a visibility timeout
 	Short   bool // the queue hides a message for less than the function may run
 }
 
@@ -622,7 +623,7 @@ func (c *Console) sqsReaders(ctx context.Context, conn Neighborhood, visibility 
 		if err != nil {
 			continue
 		}
-		out = append(out, sqsReader{Name: n.Name, URL: n.URL, Timeout: fn.Timeout, Short: fn.Timeout > vis})
+		out = append(out, sqsReader{Name: n.Name, URL: n.URL, Timeout: fn.Timeout, Advised: 6 * fn.Timeout, Short: fn.Timeout > vis})
 	}
 	return out
 }

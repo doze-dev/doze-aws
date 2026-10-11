@@ -465,6 +465,14 @@
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
     yes.textContent = parts.verb;
+    // The cancel button names what it keeps (the design's "Keep it") when the
+    // trigger says so, and is "Cancel" otherwise.
+    var keep = e.target && e.target.closest && e.target.closest("[data-confirm-cancel]");
+    no.textContent = keep ? keep.getAttribute("data-confirm-cancel") : "Cancel";
+    // The cancel button names what it keeps (the design's "Keep it") when the
+    // trigger says so, and is "Cancel" otherwise.
+    var keep = e.target && e.target.closest && e.target.closest("[data-confirm-cancel]");
+    no.textContent = keep ? keep.getAttribute("data-confirm-cancel") : "Cancel";
     yes.className = "btn " + (parts.destructive ? "btn-destructive" : "");
     function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
     function dismiss() { close(); settle(false); }

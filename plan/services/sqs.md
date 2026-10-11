@@ -279,16 +279,16 @@ only when it was looked at.
 | Board | Verdict | What differs |
 |---|---|---|
 | Sqs-01 None, Sqs-02 Pick | matches | copy is `copy.go`'s; the list note is there |
-| Sqs-03 Create | **differs** | The life of one message is a right-hand panel in the design (dot per step, a bar for the hidden time, the dead-letter queue named, "receive count goes to 2", and the closing sentence "a received message that is deleted never reaches step 3"); here it is a plain list under Delivery without those. Line 4 of the teaching pattern ("0 – 43 200 · default 30 · **enforced**") has no enforced/stored marker. The dead-letter paragraph ("a message that keeps coming back is probably the one your consumer cannot handle…") is missing. |
-| Sqs-04 Create FIFO | differs, in part | Five sentences here against the design's three (the extra two are grounded). The design's third ("one stuck message holds back only its own group; a dead-letter queue lets it out of the way") is missing. **The design is wrong on size**: it shows 1 024 – 262 144; the model says 1 048 576 (SQS-11). |
+| Sqs-03 Create | **matches** (built 2026-10-11, after the comparison; rendered at 1440 in light and dark and at 900) | *Was:*  The life of one message is a right-hand panel in the design (dot per step, a bar for the hidden time, the dead-letter queue named, "receive count goes to 2", and the closing sentence "a received message that is deleted never reaches step 3"); here it is a plain list under Delivery without those. Line 4 of the teaching pattern ("0 – 43 200 · default 30 · **enforced**") has no enforced/stored marker. The dead-letter paragraph ("a message that keeps coming back is probably the one your consumer cannot handle…") is missing. |
+| Sqs-04 Create FIFO | **matches** | *Was:*  Five sentences here against the design's three (the extra two are grounded). The design's third ("one stuck message holds back only its own group; a dead-letter queue lets it out of the way") is missing. **The design is wrong on size**: it shows 1 024 – 262 144; the model says 1 048 576 (SQS-11). |
 | Sqs-05 Create refused | matches | inline refusal, what you typed kept |
 | Sqs-08 Send, Sqs-09 Send refused | matches | **design text is stale**: "exceeds MaximumMessageSize 262144" (now 1 048 576, and the real wording is "Message must be shorter than N bytes (the body and its attributes were M)") |
 | Sqs-10, Sqs-11 Consume | matches | untouched |
-| Sqs-14 Redrive confirm | **differs** | A dialog with the destination picked inside it ("Move all 3 messages back?", "Move them to", Cancel / Redrive). Here the picker is a select in the header and the confirm is one sentence. |
-| Sqs-15 Redrive done | **cannot match yet** | The design shows "Redriving → X · 2 moved so far" and a task that was seen running. A move here finishes inside the call, so that state never exists. It needs the asynchronous move task (the open item). |
-| Sqs-16 Confirms | **differs** | The design's confirms have bodies and "Keep it" buttons ("The queue and the 3 messages waiting in it are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." / "Every waiting and in-flight message is dropped. The queue and its settings stay." / "It is gone for good."). Here delete queue and purge are a question with no body. |
-| Sqs-17 Config | **differs** | Two columns in the design (settings left, "In this stack" and the queue policy right); one stacked column here. The Type row's sentence is missing. "In this stack" does not compute the six-times figure ("which here would be 180 s"). |
-| Sqs-18 Config edit | **differs** | "What changes" is a right-hand panel with the intro line "Only the settings you touched. Everything is shown in the units you would say aloud." and the board's name; here it is "What saving does" below the form. The live neighbour callout inside the form ("Shorter than the reader's timeout") is missing from the edit form: it is only on the read view. The "After receives" sentence ("With 3, a message that keeps coming back is set aside on its third receive") is missing on the edit form. The unit echo is not shown below 60 s ("20 seconds") or for zero ("none"). |
+| Sqs-14 Redrive confirm | **matches** | *Was:*  A dialog with the destination picked inside it ("Move all 3 messages back?", "Move them to", Cancel / Redrive). Here the picker is a select in the header and the confirm is one sentence. |
+| Sqs-15 Redrive done | **cannot match yet** (the one open board) | The design shows "Redriving → X · 2 moved so far" and a task that was seen running. A move here finishes inside the call, so that state never exists. It needs the asynchronous move task (the open item). |
+| Sqs-16 Confirms | **matches** | *Was:*  The design's confirms have bodies and "Keep it" buttons ("The queue and the 3 messages waiting in it are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." / "Every waiting and in-flight message is dropped. The queue and its settings stay." / "It is gone for good."). Here delete queue and purge are a question with no body. |
+| Sqs-17 Config | **matches** | *Was:*  Two columns in the design (settings left, "In this stack" and the queue policy right); one stacked column here. The Type row's sentence is missing. "In this stack" does not compute the six-times figure ("which here would be 180 s"). |
+| Sqs-18 Config edit | **matches** | *Was:*  "What changes" is a right-hand panel with the intro line "Only the settings you touched. Everything is shown in the units you would say aloud." and the board's name; here it is "What saving does" below the form. The live neighbour callout inside the form ("Shorter than the reader's timeout") is missing from the edit form: it is only on the read view. The "After receives" sentence ("With 3, a message that keeps coming back is set aside on its third receive") is missing on the edit form. The unit echo is not shown below 60 s ("20 seconds") or for zero ("none"). |
 | Sqs-19 Tags | matches | foundation A5 |
 | Sqs-20 Denied, Sqs-21 Refused | matches | untouched |
 | Bad-DLQ, Queue | differs, deliberately | The design's sentence strip ("3 waiting · 0 in flight · kept 4 days") against the shell's fact strip (Type / Visible / In flight / Visibility timeout / Retention / Dead-letter) from the foundation's `res_header`. A shell decision, not an SQS one; not re-opened here. |
@@ -302,7 +302,7 @@ only when it was looked at.
 - "Takes effect on the next receive": true of this emulator (held by
   `TestAQueueVisibilityChangeLeavesHeldMessagesAlone`) and not established for AWS.
 
-**Build list, in order** (each a template or a few lines of the handler; none changes behaviour)
+**Build list, in order** (items 1 to 5 done 2026-10-11 and checked against rendered boards; 6 waits for the asynchronous move task)
 1. Teaching line 4 on every setting: enforced or stored, from the settings record's tier (kit `setting_field`).
 2. The edit form's live neighbour callout and the "After receives" sentence.
 3. Confirm bodies and the verbs (delete queue, purge, delete message), and the redrive dialog with its picker.
@@ -381,10 +381,10 @@ On top of every box in the protocol.
 - [x] The attribute tier table in section 2 has no "?" left, and every C
       attribute reads as cosmetic in the create form and the Configuration tab.
 - [ ] All 21 boards implemented from the foundation's shell with no SQS-only
-      chrome, and each `new` item reads only the data named for it. **Reopened
-      2026-10-11:** the content is built; the board-by-board comparison in 6a
-      found the shape is not (six boards differ). Ticked earlier without that
-      comparison, which was wrong.
+      chrome, and each `new` item reads only the data named for it. **20 of 21
+      (2026-10-11):** the board-by-board comparison in 6a found six differing in
+      shape and they were rebuilt and re-rendered; Sqs-15's "Redriving, N moved
+      so far" needs the asynchronous move task.
 - [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
 - [x] The three confirms say only what the code does (delete queue, purge, delete message; and the redrive confirm, corrected).
 - [x] The reader check appears in both states and names the real function.

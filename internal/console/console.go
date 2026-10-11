@@ -334,6 +334,14 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 			s, _ := settings.Lookup(svc, name)
 			return s
 		},
+		// grouped writes a bound with its digits in threes, as the design does
+		// (43 200, 1 209 600). A nil bound is empty.
+		"grouped": func(n *int64) string {
+			if n == nil {
+				return ""
+			}
+			return strings.ReplaceAll(humanCount(*n), ",", "\u00a0")
+		},
 		"region":    id.RegionName,
 		"icon":      icon,
 		"count":     humanCount,

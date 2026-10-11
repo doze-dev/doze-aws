@@ -26,7 +26,7 @@
         "Badges" (list
           (dict "Show" .Config.FIFO "Text" "FIFO" "Class" "type" "Title" (printf "First-in-first-out: strict ordering per message group%s" (or (and .Config.ContentDedup " · content-based deduplication") "")))
           (dict "Show" .IsDLQ "Text" "DLQ" "Class" "dlq" "Title" "This queue is a dead-letter target — failed messages from other queues land here (see Fed by)"))
-        "Delete" (dict "URL" (printf "%s/sqs/%s/delete-queue" .Prefix .Queue) "Confirm" (printf "Delete queue “%s”?" .Queue))
+        "Delete" (dict "URL" (printf "%s/sqs/%s/delete-queue" .Prefix .Queue) "Cancel" "Keep it" "Confirm" (printf "Delete queue “%s”? The queue and the %d message%s waiting in it%s are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." .Queue .Available (or (and (ne .Available 1) "s") "") (printf "%s" (or (and .InFlight (printf ", and the %d in flight," .InFlight)) ""))))
         "Chips" (list (dict "Label" "arn" "Value" .ARN) (dict "Label" "url" "Value" .URL))
         "Facts" (list
           (dict "K" "Type" "V" (or (and .Config.FIFO "FIFO") "Standard"))
@@ -110,6 +110,22 @@
       {{template "res_wire" dict "Prefix" .Prefix "Svc" "sqs" "Resource" .Queue "Noun" "queue"}}
     </div>
   </section>
+  {{if .Sources}}
+  {{/* The redrive dialog (design: Sqs-14). On the page, not in the message panel,
+       so the panel's live refresh cannot swap it away while a destination is
+       being chosen. The panel's button opens it. */}}
+  <div class="overlay" role="dialog" aria-modal="true" aria-label="Redrive messages" x-data="{open:false}" x-show="open" x-cloak
+       @redrive-open.window="open=true" @click.self="open=false" @keydown.escape.window="open=false"
+       x-effect="window.dozeTrap && dozeTrap($el, open)">
+    <div class="dialog anim"><form hx-post="{{.Prefix}}/sqs/{{.Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" @htmx:after:request="open=false">
+      <div class="dialog-h"><h3>Move all {{.Available}} messages back?</h3>
+        <p>They leave this queue and land in the queue you pick, along with any that are held or delayed; none stays here. {{len .Sources}} queue{{if ne (len .Sources) 1}}s are{{else}} is{{end}} set to dead-letter into this one.</p></div>
+      <div class="dialog-b"><div class="field"><label for="redrive-dest">Move them to</label>
+        <select class="input" id="redrive-dest" name="dest">{{range .Sources}}<option value="{{.}}">{{.}}</option>{{end}}</select></div></div>
+      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="open=false">Cancel</button><button type="submit" class="btn">Redrive</button></div>
+    </form></div>
+  </div>
+  {{end}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "message_panel"}}
@@ -119,14 +135,9 @@
     <div style="display:flex;align-items:center;gap:10px">
       <span class="peek" title="Peeked without consuming — refreshing never receives or hides messages">{{icon "eye"}} live peek</span>
       {{if and .Sources .Available}}
-      <form style="display:flex;align-items:center;gap:6px" hx-post="{{.Prefix}}/sqs/{{.Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML"
-            hx-confirm="Move every message in {{.Queue}} to {{if eq (len .Sources) 1}}{{range .Sources}}{{.}}{{end}}{{else}}the selected queue{{end}}? That is the {{.Available}} available now and any that are held or delayed; none stays here.">
-        {{if eq (len .Sources) 1}}{{range .Sources}}<input type="hidden" name="dest" value="{{.}}">{{end}}{{else}}
-        <select class="input" name="dest" style="height:28px;font-size:11.5px;width:auto">{{range .Sources}}<option value="{{.}}">{{.}}</option>{{end}}</select>{{end}}
-        <button class="btn btn-sm" type="submit" title="Move every message back to the source queue — the dead-letter round trip">{{icon "rotate"}} Redrive{{if eq (len .Sources) 1}}{{range .Sources}} → {{.}}{{end}}{{end}}</button>
-      </form>
+      <button class="btn btn-sm" type="button" @click="$dispatch('redrive-open')" title="Move what is in this dead-letter queue back — the dead-letter round trip">{{icon "rotate"}} Redrive{{if eq (len .Sources) 1}}{{range .Sources}} → {{.}}{{end}}{{end}}</button>
       {{end}}
-      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Purge ALL messages from {{.Queue}}?">Purge</button>
+      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Purge all messages from {{.Queue}}? Every waiting and in-flight message is dropped. The queue and its settings stay." data-confirm-cancel="Keep them">Purge</button>
     </div>
   </div>
   {{range .Tasks}}
@@ -143,7 +154,7 @@
       <div class="msg-h" style="cursor:pointer" @click="open=!open">
         <button type="button" class="msg-line rowopen" :aria-expanded="open"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></button>
         <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{zoned .SentAt}}">{{ago .SentAt}}</span>
-        <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this one message?">{{icon "trash"}}</button></span></div>
+        <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it">{{icon "trash"}}</button></span></div>
       <div class="msg-detail" x-show="open" x-cloak>
         <div class="msg-id"><code>{{.MessageID}}</code>{{if .Sum.Note}} · {{.Sum.Note}}{{end}}<button class="copy-btn" data-copy="{{.Sum.Raw}}" title="Copy message body" @click.stop>{{icon "copy"}}</button></div>
         <pre>{{.Sum.BodyHTML}}</pre>
@@ -196,48 +207,45 @@
 {{end}}
 
 {{define "sqs_config"}}
-<div id="sqs-config" x-data="{edit:false, raw:false}" style="max-width:640px">
+<div id="sqs-config" x-data="{edit:false, raw:false}">
+  <div class="cfg-cols">
+  <div class="cfg-main">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:0">
     <span>Configuration</span>
     <button class="icon-btn sm" :title="edit?'Cancel':'Edit settings'" @click="edit=!edit"><span x-show="!edit">{{icon "pencil"}}</span><span x-show="edit" x-cloak>{{icon "x"}}</span></button>
   </div>
   <div x-show="!edit">
     <div class="table-wrap"><table class="tbl kv"><tbody>
-      <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
-      {{if .Config.FIFO}}<tr><td>Content-based deduplication</td><td>{{if .Config.ContentDedup}}<span class="badge state-on">on</span> <span class="dim">duplicate bodies within 5 minutes are dropped</span>{{else}}<span class="badge state-off">off</span> <span class="dim">sends need a deduplication ID (the console auto-generates one)</span>{{end}}</td></tr>{{end}}
-      <tr><td>Visibility timeout</td><td>{{secs .Config.Visibility}} <span class="dim">a received message is hidden from other consumers this long</span></td></tr>
-      <tr><td>Message retention</td><td>{{secs .Config.Retention}} <span class="dim">a message older than this is dropped, received or not</span></td></tr>
-      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{secs .Config.Delay}}{{else}}0s{{end}} <span class="dim">a new message waits this long before it can be received</span></td></tr>
-      <tr><td>Receive wait</td><td>{{with index .Attrs "ReceiveMessageWaitTimeSeconds"}}{{if ne . "0"}}{{secs .}} <span class="dim">a receive with nothing to return waits up to this long</span>{{else}}0s <span class="dim">short polling: a receive returns at once, empty or not</span>{{end}}{{else}}0s <span class="dim">short polling: a receive returns at once, empty or not</span>{{end}}</td></tr>
-      <tr><td>Largest message</td><td>{{with index .Attrs "MaximumMessageSize"}}{{.}} bytes{{end}} <span class="dim">body and attributes together; a send over it is refused</span></td></tr>
-      {{if or (index .Attrs "KmsMasterKeyId") (eq (index .Attrs "SqsManagedSseEnabled") "true")}}<tr><td>Encryption</td><td>{{if index .Attrs "KmsMasterKeyId"}}KMS key <span class="mono">{{index .Attrs "KmsMasterKeyId"}}</span>{{else}}SQS-managed{{end}} <span class="dim">stored and returned; nothing is encrypted locally</span></td></tr>{{end}}
-      {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent)">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
+            <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td><td class="dim">{{if .Config.FIFO}}messages are delivered in order within a message group, and a repeat inside 5 minutes is dropped{{else}}delivery order is best effort, and a message may arrive more than once{{end}}</td></tr>
+            {{if .Config.FIFO}}<tr><td>Content-based deduplication</td><td>{{if .Config.ContentDedup}}<span class="badge state-on">on</span>{{else}}<span class="badge state-off">off</span>{{end}}</td><td class="dim">{{if .Config.ContentDedup}}duplicate bodies within 5 minutes are dropped{{else}}sends need a deduplication ID (the console auto-generates one){{end}}</td></tr>{{end}}
+      <tr><td>Visibility timeout</td><td>{{secs .Config.Visibility}}</td><td class="dim">a received message is hidden from other consumers this long</td></tr>
+      <tr><td>Message retention</td><td>{{secs .Config.Retention}}</td><td class="dim">a message older than this is dropped, received or not</td></tr>
+      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{secs .Config.Delay}}{{else}}0s{{end}}</td><td class="dim">a new message waits this long before it can be received</td></tr>
+            {{$wait := index .Attrs "ReceiveMessageWaitTimeSeconds"}}<tr><td>Receive wait</td><td>{{if and $wait (ne $wait "0")}}{{secs $wait}}{{else}}0s{{end}}</td><td class="dim">{{if and $wait (ne $wait "0")}}a receive with nothing to return waits up to this long{{else}}short polling: a receive returns at once, empty or not{{end}}</td></tr>
+      <tr><td>Largest message</td><td>{{with index .Attrs "MaximumMessageSize"}}{{.}} bytes{{end}}</td><td class="dim">body and attributes together; a send over it is refused</td></tr>
+            {{if or (index .Attrs "KmsMasterKeyId") (eq (index .Attrs "SqsManagedSseEnabled") "true")}}<tr><td>Encryption</td><td>{{if index .Attrs "KmsMasterKeyId"}}KMS key <span class="mono">{{index .Attrs "KmsMasterKeyId"}}</span>{{else}}SQS-managed{{end}}</td><td class="dim">stored and returned; nothing is encrypted locally</td></tr>{{end}}
+      {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent)">{{.Config.DLQ}}</a></td><td class="dim">after {{.Config.MaxReceive}} receives</td></tr>{{end}}
       {{if .Config.Created}}<tr><td>Created</td><td title="{{zoned .Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
     </tbody></table></div>
-    {{/* "In this stack": who reads this queue, and whether the queue hides a
-         message for as long as the reader may work on it. Both states are
-         shown; what is compared is the queue's VisibilityTimeout and the
-         function's Timeout, and nothing else is said about the trigger. */}}
-    {{if .Readers}}
-    <div class="sec-title">In this stack</div>
-    <ul class="stack-readers" aria-label="Functions reading this queue">
-      {{range .Readers}}
-      <li{{if .Short}} class="warn"{{end}}>
-        <a class="stack-reader-link" href="{{.URL}}">{{.Name}}</a> reads this queue · it may run for {{secs (printf "%d" .Timeout)}}, and the queue hides a message for {{secs $.Config.Visibility}}.
-        {{if .Short}}<b>The queue's visibility timeout is shorter than the function's.</b> A message can become visible again while the function is still working on it, and be delivered a second time. AWS's guidance is a visibility timeout of at least six times the function's timeout. doze-aws does not check this when the trigger is created.
-        {{else}}<span class="dim">The visibility timeout covers the function's timeout. AWS's guidance is at least six times it.</span>{{end}}
-      </li>
-      {{end}}
-    </ul>
-    {{end}}
   </div>
   <div class="panel" x-show="edit" x-cloak>
-    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
+    <form class="cfg-form" hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
       <div class="edit-grid">
         {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" .Config.Visibility "Teach" "How long a received message stays hidden from other consumers while one works on it.")}}
         {{template "setting_field" (dict "Svc" "sqs" "Name" "MessageRetentionPeriod" "Field" "retention" "Label" "Retention" "Value" .Config.Retention "Teach" "How long an unconsumed message is kept before it is dropped.")}}
         {{template "setting_field" (dict "Svc" "sqs" "Name" "DelaySeconds" "Field" "delay" "Label" "Delay" "Value" .Config.Delay "Teach" "How long a new message waits before it can be received.")}}
       </div>
+      {{/* Line five of the teaching pattern, live: the readers' own timeouts
+           against the number being typed. Quiet when it fits. */}}
+      {{if .Readers}}<div class="pub-receipt warn cfg-neighbour" role="status" x-cloak
+           x-data="{short:[], read(){ const f=$el.closest('form').elements, v=Number(f['visibility'].value), out=[];
+             if(f['visibility'].value!=='' && !isNaN(v)) { try { for (const r of JSON.parse($el.dataset.readers)) if (r.t > v) out.push(r); } catch(e){} }
+             this.short=out; this.v=v; }, v:0}"
+           data-readers='[{{range $i, $r := .Readers}}{{if $i}},{{end}}{"n":"{{$r.Name}}","t":{{$r.Timeout}}}{{end}}]'
+           x-show="short.length" x-init="read()" @input.window="read()" @change.window="read()">
+        <div class="pr-h">Shorter than the reader's timeout</div>
+        <template x-for="r in short" :key="r.n"><p style="margin:2px 0 0"><span class="mono" x-text="r.n"></span> may run for <span x-text="dozeSpan(r.t)"></span>. A message received at the start comes back after <span x-text="dozeSpan(v)"></span> and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout. doze-aws does not check this when the trigger is created.</p></template>
+      </div>{{end}}
       <div class="edit-grid" style="padding-top:0">
         <div class="field" style="grid-column:span 2"><label>Dead-letter queue</label>
           <select class="input" name="dlq">
@@ -246,7 +254,10 @@
             {{range .AllQueues}}{{if ne .Name $.Queue}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}
           </select>
         </div>
-        <div class="field"><label>After receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" value="{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}"></div>
+        <div class="field" x-data="{v:'{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}'}"><label>After receives</label>
+          <input class="input" name="max_receive" type="number" min="1" max="1000" x-model="v">
+          <span class="hint">With <b x-text="v||'…'"></b>, a message that keeps coming back is set aside on its <span x-text="v"></span><span x-text="(Number(v)%10==1&&Number(v)%100!=11)?'st':(Number(v)%10==2&&Number(v)%100!=12)?'nd':(Number(v)%10==3&&Number(v)%100!=13)?'rd':'th'"></span> receive.</span>
+          <span class="setting-meta">{{grouped (setting "sqs" "maxReceiveCount").Min}} – {{grouped (setting "sqs" "maxReceiveCount").Max}} · <span class="enf-ok">enforced</span></span></div>
       </div>
       {{/* Everything else SetQueueAttributes accepts.
 
@@ -306,28 +317,6 @@
                JSON instead of being flattened. */}}
           {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" (index .Attrs "Policy") "Rows" 8 "UID" (printf "sqspol-%s" .Queue) "Check" false}}</div>
       </div>
-      {{/* What changes: the form against what is stored, in sentences. Each
-           sentence is a thing the queue does, held by a test (the visibility
-           one by TestAQueueVisibilityChangeLeavesHeldMessagesAlone). */}}
-      <div class="what-changes" role="status" x-cloak x-show="items.length"
-           data-visibility="{{.Config.Visibility}}" data-retention="{{.Config.Retention}}" data-delay="{{.Config.Delay}}"
-           data-wait="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" data-maxbytes="{{index .Attrs "MaximumMessageSize"}}" data-maxreceive="{{.Config.MaxReceive}}"
-           x-data="{items:[],
-             read(){ const f=$el.closest('form').elements, d=$el.dataset, out=[];
-               const chg=(name,key)=>{const e=f[name]; return e && e.value!=='' && e.value!==(d[key]||'') ? e.value : null};
-               let v;
-               if((v=chg('visibility','visibility'))!==null) out.push('Visibility '+dozeSpan(d.visibility)+' → '+dozeSpan(v)+'. Messages already held keep the timeout they were received with; receives from now on hide for '+dozeSpan(v)+'.');
-               if((v=chg('retention','retention'))!==null) out.push('Retention '+dozeSpan(d.retention)+' → '+dozeSpan(v)+'. A message older than '+dozeSpan(v)+' is dropped the next time the queue is read or swept.');
-               if((v=chg('delay','delay'))!==null) out.push('Delay '+dozeSpan(d.delay||0)+' → '+dozeSpan(v)+'. Messages already waiting keep their delay; new sends wait '+dozeSpan(v)+'.');
-               if((v=chg('receive_wait','wait'))!==null) out.push('Receive wait '+dozeSpan(d.wait||0)+' → '+dozeSpan(v)+'. A receive that does not set its own wait now waits up to '+dozeSpan(v)+'.');
-               if((v=chg('max_bytes','maxbytes'))!==null) out.push('Largest message '+d.maxbytes+' → '+v+' bytes. Messages already stored are kept; a send over '+v+' bytes is refused.');
-               const dl=f['dlq']; if(dl && dl.value!=='keep') out.push(dl.value==='none' ? 'The dead-letter queue is removed: a message is no longer moved, and keeps coming back until it is deleted or expires.' : 'Dead-letter queue '+dl.value+': a message received '+(f['max_receive']?f['max_receive'].value:'')+' times and not deleted moves there on its next receive.');
-               const mr=f['max_receive']; if(mr && d.maxreceive && mr.value!==d.maxreceive && (!dl || dl.value==='keep')) out.push('Receives before a message moves to the dead-letter queue '+d.maxreceive+' → '+mr.value+'.');
-               this.items=out; }}"
-           x-init="read()" @input.window="read()" @change.window="read()">
-        <b>What saving does</b>
-        <ul><template x-for="it in items" :key="it"><li x-text="it"></li></template></ul>
-      </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px"><button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button><button type="submit" class="btn btn-sm">Save settings</button></div>
     </form>
   </div>
@@ -335,6 +324,54 @@
     <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw?'Hide raw attributes':'Show raw attributes'"></button>
     <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
   </div>
+  </div>
+  <aside class="cfg-side">
+    {{/* Beside the settings: who reads this queue (when reading), what saving
+         would do (when editing), and who may use it. */}}
+    <div x-show="!edit">
+    {{/* "In this stack": who reads this queue, and whether the queue hides a
+         message for as long as the reader may work on it (design: Sqs-17). Both
+         states are drawn; what is compared is the queue's VisibilityTimeout and
+         the function's Timeout, and the one thing said about AWS is its own
+         guidance. */}}
+    {{if .Readers}}
+    <div class="sec-title">In this stack</div>
+    <div class="stack-readers" aria-label="Functions reading this queue">
+      {{range .Readers}}
+      <div class="pub-receipt{{if .Short}} warn{{end}}">
+        <div class="pr-h">Reader: <a class="stack-reader-link" href="{{.URL}}">{{.Name}}</a></div>
+        <p style="margin:4px 0 0">Its timeout is {{secs (printf "%d" .Timeout)}} and a received message stays hidden {{secs $.Config.Visibility}}{{if .Short}}, so a message can come back while the function is still working on it, and be delivered a second time.{{else}}, so one run finishes before the message returns.{{end}}</p>
+        <p class="dim" style="margin:6px 0 0">Read from the wiring: the function is this queue's event source mapping. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be {{secs (printf "%d" .Advised)}}. doze-aws does not check this when the trigger is created.</p>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    </div>
+    <div x-show="edit" x-cloak>
+      <div class="panel what-panel" role="status" aria-label="What changes"
+           data-visibility="{{.Config.Visibility}}" data-retention="{{.Config.Retention}}" data-delay="{{.Config.Delay}}"
+           data-wait="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" data-maxbytes="{{index .Attrs "MaximumMessageSize"}}" data-maxreceive="{{.Config.MaxReceive}}"
+           x-data="{items:[],
+             read(){ const f=$el.closest('#sqs-config').querySelector('form.cfg-form').elements, d=$el.dataset, out=[];
+               const chg=(name,key)=>{const e=f[name]; return e && e.value!=='' && e.value!==(d[key]||'') ? e.value : null};
+               let v;
+               if((v=chg('visibility','visibility'))!==null) out.push(['Visibility', dozeSpan(d.visibility)+' → '+dozeSpan(v), 'Messages already held keep the timeout they were received with; receives from now on hide for '+dozeSpan(v)+'.']);
+               if((v=chg('retention','retention'))!==null) out.push(['Retention', dozeSpan(d.retention)+' → '+dozeSpan(v), 'A message older than '+dozeSpan(v)+' is dropped the next time the queue is read or swept.']);
+               if((v=chg('delay','delay'))!==null) out.push(['Delay', dozeSpan(d.delay||0)+' → '+dozeSpan(v), 'Messages already waiting keep their delay; new sends wait '+dozeSpan(v)+'.']);
+               if((v=chg('receive_wait','wait'))!==null) out.push(['Receive wait', dozeSpan(d.wait||0)+' → '+dozeSpan(v), 'A receive that does not set its own wait now waits up to '+dozeSpan(v)+'.']);
+               if((v=chg('max_bytes','maxbytes'))!==null) out.push(['Largest message', d.maxbytes+' → '+v+' bytes', 'Messages already stored are kept; a send over '+v+' bytes is refused.']);
+               const dl=f['dlq']; if(dl && dl.value!=='keep') out.push(['Dead-letter queue', dl.value==='none' ? 'removed' : dl.value, dl.value==='none' ? 'A message is no longer moved, and keeps coming back until it is deleted or expires.' : 'A message received '+(f['max_receive']?f['max_receive'].value:'')+' times and not deleted moves there on its next receive.']);
+               const mr=f['max_receive']; if(mr && d.maxreceive && mr.value!==d.maxreceive && (!dl || dl.value==='keep')) out.push(['Receives before the move', d.maxreceive+' → '+mr.value, 'Takes effect on each message\'s next receive.']);
+               this.items=out; }}"
+           x-init="read()" @input.window="read()" @change.window="read()">
+        <div class="panel-h"><h2>What changes</h2></div>
+        <div class="form-b">
+          <p class="life-sub" x-show="!items.length">Nothing yet. Change a setting and what it does appears here.</p>
+          <p class="life-sub" x-show="items.length">Only the settings you touched. Everything is shown in the units you would say aloud.</p>
+          <template x-for="it in items" :key="it[0]"><div class="what-row"><div class="what-k"><b x-text="it[0]"></b> <span class="mono" x-text="it[1]"></span></div><div class="what-v" x-text="it[2]"></div></div></template>
+        </div>
+      </div>
+    </div>
   {{/* Queue policy — AddPermission / RemovePermission.
 
        AddPermission writes the statement AWS writes (Sid = Label, the
@@ -367,6 +404,8 @@
       </select>
       <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Grant</button>
     </form>
+
+  </aside>
   </div>
 </div>
 {{end}}
@@ -449,7 +488,7 @@
           <input type="hidden" name="seconds" value="0">
           <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
         </form>
-        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="from" value="consume">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">{{icon "trash"}} Delete</button>

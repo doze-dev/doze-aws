@@ -283,7 +283,12 @@ test.describe('DLQ redrive', () => {
     const redriveBtn = page.getByRole('button', { name: /Redrive/ });
     await expect(redriveBtn).toContainText(name);
     await redriveBtn.click();
-    await confirmDialog('accept');
+    // The design's dialog: the destination is chosen inside it.
+    const dialog = page.getByRole('dialog', { name: 'Redrive messages' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('select[name=dest]')).toHaveValue(name);
+    await dialog.getByRole('button', { name: 'Redrive' }).click();
+    await expect(dialog).toBeHidden();
 
     // Moves are synchronous server-side (see sqs/store_ext.go), so the very
     // next render of the DLQ's own peek already shows the completed task and
@@ -637,46 +642,64 @@ test.describe('create form', () => {
   test('each delivery setting says what it does, with its range and default', async ({ page }) => {
     await page.goto('sqs/create');
     const vis = page.locator('.field', { has: page.locator('input[name=visibility]') });
-    await expect(vis.locator('.hint')).toContainText('becomes visible again');
-    await expect(vis.locator('.hint')).toContainText('Default 30');
-    await expect(vis.locator('.hint')).toContainText('Between 0 and 43200');
+    // The five lines of the teaching pattern: the sentence, then the range, the
+    // default and whether this emulator enforces it or only stores it.
+    await expect(vis.locator('.hint')).toContainText('it comes back');
+    await expect(vis.locator('.setting-meta')).toHaveText(/0\s–\s43\u00a0200 · default 30 · enforced/);
     const retention = page.locator('.field', { has: page.locator('input[name=retention]') });
-    await expect(retention.locator('.hint')).toContainText('Between 60 and 1209600');
+    await expect(retention.locator('.setting-meta')).toHaveText(/60\s–\s1\u00a0209\u00a0600 · default 345600 · enforced/);
+    const maxrecv = page.locator('.field', { has: page.locator('input[name=max_receive]') });
+    await expect(maxrecv.locator('.setting-meta')).toHaveText(/1\s–\s1\u00a0000 · enforced/);
     await page.locator('details.adv-sec summary').click();
     const size = page.locator('.field', { has: page.locator('input[name=max_bytes]') });
-    await expect(size.locator('.hint')).toContainText('Between 1024 and 1048576');
+    await expect(size.locator('.setting-meta')).toHaveText(/1\u00a0024\s–\s1\u00a0048\u00a0576 · default 1048576 · enforced/);
+    // The value in words, below a minute as well.
+    await page.locator('input[name=visibility]').fill('20');
+    await expect(vis.locator('.dur-echo')).toHaveText('20 seconds');
+    await page.locator('input[name=delay]').fill('0');
+    await expect(page.locator('.field', { has: page.locator('input[name=delay]') }).locator('.dur-echo')).toHaveText('none');
   });
 
   test('the life of one message follows the numbers typed', async ({ page }) => {
     await page.goto('sqs/create');
     const life = page.locator('.life');
-    await expect(life).toContainText('Visible at once');
-    await expect(life).toContainText('Hidden from other consumers for 30 seconds');
-    await expect(life).toContainText('dropped 4 days after it was sent');
+    await expect(life).toContainText('Waiting immediately. No delay is set.');
+    await expect(life).toContainText('It is hidden for 30 seconds');
+    await expect(life).toContainText('It is dropped after 4 days');
+    await expect(life).toContainText('receive count goes to 2');
+    await expect(page.locator('.life-foot')).toContainText('never reaches step 3');
+    // The panel is beside the form, as the design draws it, not under it.
+    const formBox = await page.locator('.create-main').boundingBox();
+    const lifeBox = await life.boundingBox();
+    expect(lifeBox!.x).toBeGreaterThan(formBox!.x + formBox!.width - 1);
 
     await page.locator('input[name=visibility]').fill('90');
     await page.locator('input[name=delay]').fill('10');
     await page.locator('input[name=retention]').fill('3600');
     await expect(life).toContainText('Invisible for 10 seconds');
-    await expect(life).toContainText('for 1 minute 30 seconds');
-    await expect(life).toContainText('dropped 1 hour after it was sent');
+    await expect(life).toContainText('It is hidden for 1 minute 30 seconds');
+    await expect(life).toContainText('It is dropped after 1 hour');
 
     // The dead-letter step follows the mode and the count.
     await page.locator('input[name=max_receive]').fill('5');
-    await expect(life).toContainText('Received 5 times without a delete');
+    await expect(life).toContainText('Received 5 times');
+    await expect(life).toContainText('It moves to orders-dlq instead of coming back');
+    await page.locator('input[name=name]').fill('ship');
+    await expect(life).toContainText('It moves to ship-dlq');
     await page.locator('input[name=dlq_mode][value=none]').check({ force: true });
-    await expect(life.locator('li', { hasText: 'No dead-letter queue' })).toBeVisible();
-    await expect(life.locator('li', { hasText: 'without a delete' })).toBeHidden();
+    await expect(life.locator('li', { hasText: 'Never moved' })).toBeVisible();
+    await expect(life.locator('li', { hasText: 'instead of coming back' })).toBeHidden();
   });
 
   test('how a FIFO queue behaves appears with FIFO, and only then', async ({ page }) => {
     await page.goto('sqs/create');
-    const panel = page.locator('.panel', { hasText: 'How a FIFO queue behaves' });
+    const panel = page.locator('.panel', { hasText: 'How a group behaves' });
     await expect(panel).toBeHidden();
     await page.locator('input[name=fifo]').check({ force: true });
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText('delivered in the order they were sent');
-    await expect(panel).toContainText('the next of that group waits');
+    await expect(panel).toContainText('in the order sent');
+    await expect(panel).toContainText('the next in that group waits');
+    await expect(panel).toContainText('holds back only its own group');
   });
 });
 
@@ -694,28 +717,34 @@ test.describe('configuration tab', () => {
     await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
 
     await page.goto(`sqs/${queue}?tab=config`);
-    const reader = page.locator('.stack-readers li', { hasText: fn });
-    await expect(reader).toContainText('may run for 60s');
-    await expect(reader).toContainText("visibility timeout is shorter than the function's");
+    const reader = page.locator('.stack-readers .pub-receipt', { hasText: fn });
+    await expect(reader).toContainText('Its timeout is 60s and a received message stays hidden 30s');
+    await expect(reader).toContainText('can come back while the function is still working on it');
+    await expect(reader).toContainText('which here would be 360s');
     await expect(reader).toContainText('does not check this when the trigger is created');
     await expect(reader.locator('a')).toHaveAttribute('href', new RegExp(`/lambda/${fn}$`));
 
     // The other state: a visibility timeout that covers the function.
     await postForm(request, `sqs/${queue}/attributes`, { visibility: 600 });
     await page.goto(`sqs/${queue}?tab=config`);
-    await expect(page.locator('.stack-readers li', { hasText: fn })).toContainText('covers the function');
-    await expect(page.locator('.stack-readers li.warn')).toHaveCount(0);
+    await expect(page.locator('.stack-readers .pub-receipt', { hasText: fn })).toContainText('one run finishes before the message returns');
+    await expect(page.locator('.stack-readers .pub-receipt.warn')).toHaveCount(0);
   });
 
   test('"what saving does" names each change against what is stored', async ({ page, request, uniqueName }) => {
     const queue = await createQueue(request, uniqueName('e2e-sqs-changes'), { visibility: 30 });
     await page.goto(`sqs/${queue}?tab=config`);
     await page.getByTitle('Edit settings').click();
-    const changes = page.locator('.what-changes');
-    await expect(changes).toBeHidden();
+    const changes = page.locator('.what-panel');
+    // Beside the form, with its own quiet state.
+    await expect(changes).toBeVisible();
+    await expect(changes).toContainText('Nothing yet');
+    const formBox = await page.locator('form.cfg-form').boundingBox();
+    const sideBox = await changes.boundingBox();
+    expect(sideBox!.x).toBeGreaterThan(formBox!.x + formBox!.width - 1);
 
     await page.locator('input[name=visibility]').fill('120');
-    await expect(changes).toBeVisible();
+    await expect(changes).toContainText('Only the settings you touched');
     await expect(changes).toContainText('Visibility 30 seconds → 2 minutes');
     await expect(changes).toContainText('Messages already held keep the timeout they were received with');
 
@@ -726,6 +755,61 @@ test.describe('configuration tab', () => {
     // Putting it back removes the sentence.
     await page.locator('input[name=visibility]').fill('30');
     await expect(changes).not.toContainText('Visibility');
+  });
+
+  test('typing a visibility shorter than a reader\'s timeout says so, live, in the form', async ({
+    page, request, uniqueName,
+  }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-neighbour'), { visibility: 600 });
+    const fn = uniqueName('e2e-sqs-neighbour-fn');
+    const empty = path.resolve(__dirname, `../.tmp/sqs-neighbour-${fn}`);
+    fs.mkdirSync(empty, { recursive: true });
+    await createFunction(request, fn, { code: empty, timeout: 30 });
+    await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
+
+    await page.goto(`sqs/${queue}?tab=config`);
+    await page.getByTitle('Edit settings').click();
+    const callout = page.locator('.cfg-neighbour');
+    await expect(callout).toBeHidden(); // 600 s covers 30 s: quiet when it fits
+    await page.locator('input[name=visibility]').fill('20');
+    await expect(callout).toBeVisible();
+    await expect(callout).toContainText("Shorter than the reader's timeout");
+    await expect(callout).toContainText(fn);
+    await expect(callout).toContainText('may run for 30 seconds');
+    await expect(callout).toContainText('comes back after 20 seconds');
+    await page.locator('input[name=visibility]').fill('300');
+    await expect(callout).toBeHidden();
+  });
+
+  test('the After receives field says what its number means', async ({ page, request, uniqueName }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-afterrecv'), { dlqMode: 'new', maxReceive: 3 });
+    await page.goto(`sqs/${queue}?tab=config`);
+    await page.getByTitle('Edit settings').click();
+    const field = page.locator('.field', { has: page.locator('input[name=max_receive]') });
+    await expect(field).toContainText('set aside on its 3rd receive');
+    await page.locator('input[name=max_receive]').fill('1');
+    await expect(field).toContainText('set aside on its 1st receive');
+    await expect(field.locator('.setting-meta')).toContainText('enforced');
+  });
+
+  test('the confirms say what they cost, and the cancel says what it keeps', async ({
+    page, request, uniqueName, confirmDialog,
+  }) => {
+    const queue = await createQueue(request, uniqueName('e2e-sqs-confirms'));
+    await postForm(request, `sqs/${queue}/send`, { body: 'one' });
+    await page.goto(`sqs/${queue}`);
+
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-title')).toContainText(`Delete queue “${queue}”`);
+    await expect(page.locator('#confirm-msg')).toContainText('removed from this machine');
+    await expect(page.locator('#confirm-msg')).toContainText('NonExistentQueue');
+    await expect(page.locator('#confirm-no')).toHaveText('Keep it');
+    await confirmDialog('cancel');
+
+    await page.getByRole('button', { name: 'Purge' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText('Every waiting and in-flight message is dropped. The queue and its settings stay.');
+    await expect(page.locator('#confirm-no')).toHaveText('Keep them');
+    await confirmDialog('cancel');
   });
 
   test('settings that do nothing locally say so', async ({ page, request, uniqueName }) => {

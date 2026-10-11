@@ -69,6 +69,26 @@ type Setting struct {
 	Source     Source
 }
 
+// Enforcement says in a word how real the setting is here, for the line a form
+// shows under a field: "enforced" when some operation that takes it changes
+// behaviour, "stored, not enforced" when it is accepted and returned and does
+// nothing, and "" when the record does not say.
+func (s Setting) Enforcement() string {
+	stored := false
+	for _, t := range s.Tier {
+		switch t {
+		case "F":
+			return "enforced"
+		case "C":
+			stored = true
+		}
+	}
+	if stored {
+		return "stored, not enforced"
+	}
+	return ""
+}
+
 // Int64 is a literal's address, for Min and Max.
 func Int64(n int64) *int64 { return &n }
 

@@ -2213,7 +2213,6 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 }
 
 /* The life of one message, and the FIFO sentences: plain steps, not a diagram. */
-.life { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .life-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); margin-bottom: 6px; }
 .life-steps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
 .life-steps li + li { margin-top: 2px; }
@@ -2223,3 +2222,62 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .what-changes { margin: 10px 0 0; padding: 8px 10px; font-size: 13px; border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .what-changes ul { margin: 4px 0 0; padding-left: 18px; }
 .stack-reader-link { color: var(--accent); }
+
+/* Line four of the teaching pattern: range, default, enforced or stored. */
+.setting-meta { display: block; margin-top: 2px; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--muted-foreground); }
+.setting-meta .enf-ok { color: var(--success); }
+.setting-meta .enf-stored { color: var(--muted-foreground); font-style: italic; }
+
+/* Create queue: the form and, beside it, what the numbers add up to. */
+.form-page.form-page-wide { max-width: 1100px; }
+.create-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@container pane (min-width: 860px) { .create-cols { grid-template-columns: minmax(0, 1fr) 340px; } .create-side { position: sticky; top: 12px; } }
+.create-side .panel { margin-bottom: 12px; }
+.fgrid.fgrid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@container pane (max-width: 700px) { .fgrid.fgrid-3 { grid-template-columns: minmax(0, 1fr); } }
+.life-sub { margin: 0 0 10px; font-size: 13px; color: var(--muted-foreground); }
+.life-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.life-list li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; font-size: 13px; line-height: 1.45; }
+.life-list li > div { display: grid; gap: 1px; }
+.life-list b { font-weight: 600; }
+.life-list li > div > span { color: var(--muted-foreground); }
+.life-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--muted-foreground); }
+.life-dot.ok { background: var(--success); } .life-dot.warn { background: var(--warning); } .life-dot.bad { background: var(--destructive, #b3251b); } .life-dot.mute { background: var(--border); }
+.life-bar { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.life-bar > i { display: block; height: 100%; width: var(--w, 4%); background: var(--foreground); }
+.life-foot { margin: 0 0 12px; font-size: 13px; color: var(--muted-foreground); }
+
+/* Configuration: the settings, and beside them what they mean for this stack. */
+.cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 1180px) { .cfg-cols { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); } }
+.cfg-side .sec-title:first-child { margin-top: 0; }
+.cfg-neighbour { margin: 0 16px 10px; }
+.what-row { padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
+.what-row:first-of-type { border-top: 0; }
+.what-v { color: var(--muted-foreground); }
+
+/* Configuration: the settings, and beside them what they mean for this stack. */
+.cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 1180px) { .cfg-cols { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); } }
+.cfg-side .sec-title:first-child { margin-top: 0; }
+.cfg-neighbour { margin: 0 16px 10px; }
+.what-row { padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
+.what-row:first-of-type { border-top: 0; }
+.what-v { color: var(--muted-foreground); }
+/* The design's side panels appear as soon as there is room for them, and the
+   three delivery fields only sit three across when each has a column to itself. */
+@container pane (min-width: 800px) { .create-cols { grid-template-columns: minmax(0, 1fr) 340px; } .create-side { position: sticky; top: 12px; } }
+@container pane (max-width: 940px) { .fgrid.fgrid-3 { grid-template-columns: minmax(0, 1fr); } }
+.cfg-side .tag-row-form { flex-wrap: wrap; }
+.cfg-side .tag-row-form .input { flex: 1 1 120px; min-width: 0; }
+.tbl.kv td.dim { color: var(--muted-foreground); font-size: 12px; }
+.mini-note-flush { margin: 0 0 10px; padding: 0; }
+/* A three-column key / value / sentence table (the design's Configuration):
+   the key and the value take what they need and the sentence the rest. */
+.cfg-main .tbl.kv td:first-child { width: 150px; white-space: nowrap; }
+.cfg-main .tbl.kv td:nth-child(2) { white-space: nowrap; }
+.cfg-main .tbl.kv td.dim { font-family: var(--font-sans, inherit); }
+.create-main, .cfg-form { min-width: 0; }
+.life { margin-bottom: 12px; }
+.what-panel { margin-bottom: 12px; }
+.what-k { font-size: 13px; }

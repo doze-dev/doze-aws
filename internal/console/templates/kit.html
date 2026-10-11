@@ -26,7 +26,7 @@
 {{define "res_header"}}
 <div class="det-title" role="heading" aria-level="1">{{awsIcon .Svc}} {{.Title}}
   {{range .Badges}}{{if .Show}}<span class="badge {{.Class}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}</span>{{end}}{{end}}
-  {{with .Delete}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}">{{icon "trash"}} {{if .Label}}{{.Label}}{{else}}Delete{{end}}</button></div>{{end}}
+  {{with .Delete}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}"{{if .Cancel}} data-confirm-cancel="{{.Cancel}}"{{end}}>{{icon "trash"}} {{if .Label}}{{.Label}}{{else}}Delete{{end}}</button></div>{{end}}
 </div>
 {{if .Chips}}<div class="chips">{{range .Chips}}{{template "copychip" dict "Label" .Label "Value" .Value}}{{end}}</div>{{end}}
 {{if .Facts}}<div class="factstrip">
@@ -81,8 +81,12 @@
 {{$s := setting .Svc .Name}}
 <div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v}">
   <label>{{.Label}}{{if $s.Unit}} <span class="dim">{{$s.Unit}}</span>{{end}}</label>
-  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} {{if $s.Default}}placeholder="{{$s.Default}}"{{end}} value="{{.Value}}" x-model="v">
-  {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeDur(v)"></span>{{end}}
-  <span class="hint">{{.Teach}}{{if $s.Default}} Default {{$s.Default}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}{{if and $s.Min $s.Max}} Between {{$s.Min}} and {{$s.Max}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}</span>
+  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} {{if .Placeholder}}placeholder="{{.Placeholder}}"{{else if $s.Default}}placeholder="{{$s.Default}}"{{end}} value="{{.Value}}" x-model="v">
+  {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeEcho(v)"></span>{{end}}
+  <span class="hint">{{.Teach}}</span>
+  {{/* Line four of the teaching pattern: the range, the default, and whether
+       this emulator enforces it or only stores it. Written from the settings
+       record, so the form cannot say what the service does not. */}}
+  {{if or $s.Min $s.Max $s.Default $s.Enforcement}}<span class="setting-meta">{{if and $s.Min $s.Max}}{{grouped $s.Min}} – {{grouped $s.Max}}{{end}}{{if $s.Default}}{{if and $s.Min $s.Max}} · {{end}}default {{$s.Default}}{{end}}{{if $s.Enforcement}} · <span class="{{if eq $s.Enforcement "enforced"}}enf-ok{{else}}enf-stored{{end}}">{{$s.Enforcement}}</span>{{end}}</span>{{end}}
 </div>
 {{end}}
