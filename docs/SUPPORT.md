@@ -2530,15 +2530,17 @@ constraint underneath passes without being checked.
 <!-- svc:sqs -->
 ## SQS — API support
 
-Both wire protocols are served: AWS JSON 1.0 (modern SDKs) and the legacy
-Query/XML protocol (aws-sdk-go v1 era). MD5OfMessageBody and
+Both wire protocols are served: AWS JSON 1.0 (the current SDKs, aws-sdk-go v1
+included) and the older Query/XML protocol (older SDKs, hand-written clients,
+`curl`). Every operation is held on both, by one test per operation on the Query
+wire spelled as the API reference spells it. MD5OfMessageBody and
 MD5OfMessageAttributes match AWS's algorithms — SDK client-side checksum
 validation passes.
 
 | Operation | Tier | Notes |
 |---|---|---|
 | CreateQueue | F | standard + FIFO (.fifo naming rule enforced), attributes, tags; idempotent re-create merges attributes |
-| DeleteQueue | F | drops messages and dedup state |
+| DeleteQueue | F | drops messages and dedup state; immediate, where AWS takes up to 60 seconds and refuses re-creating the name inside them (a listed difference below) |
 | ListQueues | F | prefix filter; `MaxResults` 1–1,000 and `NextToken` |
 | GetQueueUrl | F | |
 | GetQueueAttributes | F | incl. ApproximateNumberOfMessages(NotVisible), QueueArn, RedrivePolicy |
@@ -2549,7 +2551,7 @@ validation passes.
 | DeleteMessage / DeleteMessageBatch | F | |
 | ChangeMessageVisibility | F | refused for a message not in flight (`MessageNotInflight`), and past the twelve hours from the receive; a malformed handle is `ReceiptHandleIsInvalid` |
 | ChangeMessageVisibilityBatch | F | via per-entry ChangeMessageVisibility semantics |
-| PurgeQueue | F | |
+| PurgeQueue | F | immediate; AWS takes up to 60 seconds and refuses a second purge inside them (a listed difference below) |
 | ListDeadLetterSourceQueues | F | |
 | StartMessageMoveTask | F | completes synchronously; `DestinationArn` is optional and each message returns to the queue it was dead-lettered from (kept as `DeadLetterQueueSourceArn`); the source must be some queue's DLQ; `MaxNumberOfMessagesPerSecond` (1–500) is recorded, nothing is throttled; a missing queue is `ResourceNotFoundException` |
 | ListMessageMoveTasks | F | the recorded tasks, newest first, `MaxResults` 1–10; a finished task lists no `TaskHandle`, as the model says only a RUNNING one does |
