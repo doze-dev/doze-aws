@@ -56,10 +56,17 @@ func init() {
 				continue
 			}
 			where := "sqs/attrs.go storedAttrs"
-			out = append(out, settings.Setting{
+			st := settings.Setting{
 				Name: name, Tier: cosmetic, EnforcedBy: where, Source: settings.Doc,
 				Enum: map[string][]string{"FifoThroughputLimit": {"perQueue", "perMessageGroupId"}}[name],
-			})
+			}
+			// A stored attribute can still have a range (the KMS data key reuse
+			// period is 60 to 86,400): the record says so from the same table.
+			if _, ok := attrRange[name]; ok {
+				st.Min, st.Max = span(name)
+				st.Unit = "seconds"
+			}
+			out = append(out, st)
 		}
 		return out
 	})
