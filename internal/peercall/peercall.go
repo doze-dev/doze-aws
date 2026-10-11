@@ -16,23 +16,24 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/trace"
 )
 
-// A note on the account in the queue URLs below.
+// A note on the queue URLs below.
 //
-// They use awsident.AccountID — the DEFAULT — rather than the instance's, and
-// that is correct rather than an oversight. These URLs never leave the process:
-// they address a sibling service in-process over peers.Directory, and SQS
-// resolves a queue from the LAST path segment alone (sqs/codec.go,
-// queueNameFromURL), so the account is discarded before it is ever compared.
+// They name no account, on purpose. These URLs never leave the process: they
+// address a sibling service in-process over peers.Directory, and the queue is
+// the one in this stack. SQS refuses a URL whose account segment is not its own
+// (sqs.checkOwner, SQS-23), so a constant here, the default or any other, breaks
+// every delivery under the other --account-id (SQS-30, LAM-36). A URL with no
+// account segment has nothing to compare, and the queue is found by its last
+// path segment (queueNameFromURL).
 //
-// Threading an identity through every peercall signature would buy nothing and
-// cost a parameter on a dozen exported helpers. Every URL a USER sees is minted
-// elsewhere, from the instance's own identity and the request's Host.
+// Every URL a USER sees is minted elsewhere, from the instance's own identity
+// and the request's Host.
+func peerQueueURL(queue string) string { return "http://peer.invalid/" + queue }
 
 // SQSQueueMissing reports whether SQS says a queue does not exist. It is false
 // when the queue is there AND when nobody can say — no SQS in this stack, or
@@ -58,7 +59,7 @@ func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs
 		return fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":    "http://peer.invalid/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":    peerQueueURL(queue),
 		"MessageBody": body,
 	}
 	if len(attrs) > 0 {
@@ -102,7 +103,7 @@ func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, wai
 		return nil, fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":            "http://peer.invalid/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":            peerQueueURL(queue),
 		"MaxNumberOfMessages": max,
 		"WaitTimeSeconds":     waitSeconds,
 		// Ask for the trace header the sender may have left, so a poller can
@@ -264,7 +265,7 @@ func SQSDelete(ctx context.Context, dir peers.Directory, queue, receiptHandle st
 		return fmt.Errorf("no sqs peer wired")
 	}
 	return postJSON(ctx, ep, "AmazonSQS.DeleteMessage", "application/x-amz-json-1.0", map[string]any{
-		"QueueUrl":      "http://peer.invalid/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":      peerQueueURL(queue),
 		"ReceiptHandle": receiptHandle,
 	})
 }
@@ -593,7 +594,7 @@ func SQSSendDetailed(ctx context.Context, dir peers.Directory, queue, body strin
 		return "", "", fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":    "http://peer.invalid/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":    peerQueueURL(queue),
 		"MessageBody": body,
 	}
 	if len(attrs) > 0 {

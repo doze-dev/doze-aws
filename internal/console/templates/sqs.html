@@ -441,7 +441,7 @@
       <p class="dim rcv-warn">
         This consumes. Received messages are hidden from other consumers until the
         visibility timeout lapses or you delete them, and each receive increments
-        the message's receive count{{if .MaxReceive}} — at {{.MaxReceive}} it goes to the dead-letter queue{{end}}.
+        the message's receive count{{if .MaxReceive}} — after {{.MaxReceive}} deliveries the next receive moves it to the dead-letter queue{{end}}.
       </p>
     </form>
   </div>

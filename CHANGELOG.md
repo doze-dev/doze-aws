@@ -220,6 +220,11 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     earlier receive succeeds and leaves the message, as the model says, so the
     slow-worker double-processing bug is visible locally instead of hidden by a
     delete that always worked.
+  - **Other services reach a queue under any `--account-id`.** SQS compares the
+    account in a queue URL with its own, and the helpers EventBridge, S3 and
+    Lambda use to deliver to a queue named the default account, so under any
+    other account a rule, a notification or a trigger could not deliver
+    (`QueueDoesNotExist`). The in-process URL now names no account.
   - **`--sqs-strict`** (off by default; `[sqs] strict = true`) refuses what SQS
     refuses for a minute after a delete or a purge: re-creating the name
     (`QueueDeletedRecently`) and a second purge (`PurgeQueueInProgress`).
