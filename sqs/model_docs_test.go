@@ -420,3 +420,30 @@ func TestTheQueryWireHoldsTheSameRules(t *testing.T) {
 		t.Errorf("KmsDataKeyReusePeriodSeconds 59 over Query answered %d", code)
 	}
 }
+
+// "The AttributeNames parameter is optional, but if you don't specify values for
+// this parameter, the request returns empty results." A caller that forgets it
+// gets nothing on AWS and used to get everything here, and so never noticed.
+func TestGetQueueAttributesWithNoNamesReturnsNothing(t *testing.T) {
+	ts := testServer(t)
+	jsonBody(t, ts.URL, "CreateQueue", `{"QueueName":"nonames"}`)
+	q := ts.URL + "/000000000000/nonames"
+
+	code, body := jsonBody(t, ts.URL, "GetQueueAttributes", `{"QueueUrl":"`+q+`"}`)
+	if code != 200 || strings.Contains(body, "VisibilityTimeout") || strings.Contains(body, "QueueArn") {
+		t.Errorf("JSON with no names: %d %.200s, want an empty result", code, body)
+	}
+	code, body = formPost(t, ts.URL, url.Values{"Action": {"GetQueueAttributes"}, "QueueUrl": {q}})
+	if code != 200 || strings.Contains(body, "VisibilityTimeout") || strings.Contains(body, "QueueArn") {
+		t.Errorf("Query with no names: %d %.300s, want an empty result", code, body)
+	}
+	// Named, it is that one; All, everything.
+	_, body = jsonBody(t, ts.URL, "GetQueueAttributes", `{"QueueUrl":"`+q+`","AttributeNames":["DelaySeconds"]}`)
+	if !strings.Contains(body, "DelaySeconds") || strings.Contains(body, "VisibilityTimeout") {
+		t.Errorf("one name: %.200s", body)
+	}
+	_, body = jsonBody(t, ts.URL, "GetQueueAttributes", `{"QueueUrl":"`+q+`","AttributeNames":["All"]}`)
+	if !strings.Contains(body, "VisibilityTimeout") || !strings.Contains(body, "QueueArn") {
+		t.Errorf("All: %.200s", body)
+	}
+}

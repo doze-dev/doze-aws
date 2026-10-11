@@ -609,6 +609,11 @@ func (p params) asMap() map[string]any {
 				}
 			}
 		}
+		// The generic walk keeps one element of a list and leaves a flattened
+		// map as a list of pairs, which would check the first batch entry and
+		// none of the attributes. Render the members whole, in the shape the
+		// JSON protocol's body already has, so one table judges both wires.
+		p.queryShapes(m)
 		return m
 	}
 	out := make(map[string]any, len(p.obj))
@@ -619,4 +624,101 @@ func (p params) asMap() map[string]any {
 		}
 	}
 	return out
+}
+
+// queryShapes overwrites, in m, every list and map member a Query request
+// spells in flattened form with its whole JSON-shaped equivalent.
+func (p params) queryShapes(m map[string]any) {
+	lists := map[string][]string{
+		"AWSAccountId":         {"AWSAccountIds"},
+		"ActionName":           {"Actions"},
+		"AttributeName":        {"AttributeNames", "MessageSystemAttributeNames"},
+		"MessageAttributeName": {"MessageAttributeNames"},
+		"TagKey":               {"TagKeys"},
+	}
+	for wire, members := range lists {
+		vals := awsquery.Members(p.form, wire, true)
+		if len(vals) == 0 {
+			continue
+		}
+		list := make([]any, len(vals))
+		for i, v := range vals {
+			list[i] = v
+		}
+		for _, member := range members {
+			m[member] = list
+		}
+	}
+	maps := []struct {
+		wire, key string
+		members   []string
+	}{
+		{"Tag", "Key", []string{"Tags", "tags"}},
+		{"Attribute", "Name", []string{"Attributes"}},
+		{"MessageAttribute", "Name", []string{"MessageAttributes"}},
+		{"MessageSystemAttribute", "Name", []string{"MessageSystemAttributes"}},
+	}
+	for _, mp := range maps {
+		if out := queryFlatMap(p.form, mp.wire, mp.key); out != nil {
+			for _, member := range mp.members {
+				m[member] = out
+			}
+		}
+	}
+	for _, wire := range []string{"SendMessageBatchRequestEntry", "DeleteMessageBatchRequestEntry", "ChangeMessageVisibilityBatchRequestEntry"} {
+		if entries := queryEntries(p.form, wire); entries != nil {
+			m["Entries"] = entries
+		}
+	}
+}
+
+// queryFlatMap reads a flattened map: prefix.N.<keyField> is the key and
+// prefix.N.Value, or prefix.N.Value.<member>, is its value.
+func queryFlatMap(form url.Values, prefix, keyField string) map[string]any {
+	var out map[string]any
+	for i := 1; ; i++ {
+		base := prefix + "." + strconv.Itoa(i) + "."
+		key := form.Get(base + keyField)
+		if key == "" {
+			return out
+		}
+		sub := url.Values{}
+		for k, v := range form {
+			if strings.HasPrefix(k, base+"Value") {
+				sub[strings.TrimPrefix(k, base)] = v
+			}
+		}
+		if out == nil {
+			out = map[string]any{}
+		}
+		out[key] = modelcheck.FromQuery(sub)["Value"]
+	}
+}
+
+// queryEntries reads a batch's flattened entries whole: every element, each
+// with its own attribute maps in the JSON spelling.
+func queryEntries(form url.Values, prefix string) []any {
+	var out []any
+	for i := 1; ; i++ {
+		base := prefix + "." + strconv.Itoa(i) + "."
+		sub := url.Values{}
+		for k, v := range form {
+			if strings.HasPrefix(k, base) {
+				sub[strings.TrimPrefix(k, base)] = v
+			}
+		}
+		if len(sub) == 0 {
+			return out
+		}
+		elem := modelcheck.FromQuery(sub)
+		delete(elem, "MessageAttribute")
+		delete(elem, "MessageSystemAttribute")
+		if attrs := queryFlatMap(sub, "MessageAttribute", "Name"); attrs != nil {
+			elem["MessageAttributes"] = attrs
+		}
+		if attrs := queryFlatMap(sub, "MessageSystemAttribute", "Name"); attrs != nil {
+			elem["MessageSystemAttributes"] = attrs
+		}
+		out = append(out, elem)
+	}
 }

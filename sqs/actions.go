@@ -131,17 +131,17 @@ func hGetQueueAttributes(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
+	// doc: "if you don't specify values for this parameter, the request returns
+	// empty results". Returning everything would hide the omission until the
+	// code met AWS.
 	requested := req.p.attributeNames()
-	if len(requested) > 0 {
-		filtered := kvAttrs{}
-		for k, v := range attrs {
-			if wants(requested, k) {
-				filtered[k] = v
-			}
+	filtered := kvAttrs{}
+	for k, v := range attrs {
+		if wants(requested, k) {
+			filtered[k] = v
 		}
-		return getAttrsResult{Attributes: filtered}, nil
 	}
-	return getAttrsResult{Attributes: kvAttrs(attrs)}, nil
+	return getAttrsResult{Attributes: filtered}, nil
 }
 
 func hSetQueueAttributes(s *store, req *request) (any, *apiError) {
