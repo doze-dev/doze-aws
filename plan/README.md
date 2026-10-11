@@ -119,7 +119,7 @@ Updated when a stage meets its criteria, in the same commit as the work.
 | Stage | Contract | Findings fixed | Proved | Console | Ledger | Done | Actual days |
 |---|---|---|---|---|---|---|---|
 | Foundation | – | | | | – | | |
-| SQS | 2026-10-11 | 24 of 24, plus LAM-6 and CFN-4's queue part | 35 scenarios; **0 recorded** (no AWS account) | built, route gate and sweep clean | SUPPORT.md, CHANGELOG, claims | pending: mutation baseline, coverage floor, full e2e | not timed; see the SQS document, section 1 |
+| SQS | 2026-10-11 | 24 of 24, plus LAM-6 and CFN-4's queue part | 35 scenarios; **0 recorded** (no AWS account) | built, route gate and sweep clean | SUPPORT.md, CHANGELOG, claims | 2026-10-11: check:full, coverage 81.0% (floor 80.5%), lightness, api, conformance 150 passed, e2e 259 of 260 (the one a flake that passes alone) with the route gate at 370 of 371, mutation 631 / 80 | not timed; see the SQS document, section 1 |
 | Parameter Store | | | | | | | |
 | KMS | | | | | | | |
 | Secrets Manager | | | | | | | |

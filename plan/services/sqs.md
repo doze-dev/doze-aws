@@ -340,8 +340,12 @@ On top of every box in the protocol.
       gate on, and the accessibility sweep is clean on all four tabs and create.
 - [x] Conformance: scenarios for every row in section 8 exist (35 in `test_sqs.py`). Zero "answered
       differently". The unverified count is written here: **139 responses**, all of them: nothing is recorded until there is an AWS account.
-- [ ] Mutation baseline recorded here: ____ killed, ____ survived, with reasons.
-- [ ] Actual time recorded in section 1, and the plan's order table re-estimated.
+- [x] Mutation baseline recorded here: **631 killed, 80 survived, 2 timed out, 74 not covered (88.7%)**, `testdata/mutation.json`. The first record after the stage's code was 590 / 119; the edges found standing were tested (`sqs/boundaries_test.go`) and it was recorded again. Why the 80 stand:
+      - 40 are `CONDITIONALS_BOUNDARY` and 35 `CONDITIONALS_NEGATION`, almost all on guards whose other side is unreachable from a request: a value the handler has already range-checked (`max <= 0`, `waitSec > 20`, `len(x) > 0` before a loop), the error branch of a bolt write that cannot fail in a test, `FirstReceived == 0` after a receive set it, and the ends of the five-minute `ReceiveRequestAttemptId` window (`receive_attempt.go`: the window itself is held by `TestAReceiveAttemptExpiresAfterFiveMinutes`; its exact edge is memory, so not pinned).
+      - `codec.go` (15) and `responses.go` (9) are the Query wire's decoder loops and XML writers: `for i := 1; ; i++` index mutants and `len(m) > 0` guards whose effect is an empty element nobody reads. `query_wire_test.go` holds the answered element names, not their absence.
+      - `validate_message.go` (3) are the ends of the Number range (1e126, -1e128), which are memory.
+      - The 74 not covered are lines no test runs: error branches of the store and the janitor.
+- [x] Actual time recorded in section 1 (not timed; the size was several times the estimate), and the plan's order table re-estimated.
 
 ## 11. Files and order of work
 
