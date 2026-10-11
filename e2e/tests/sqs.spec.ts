@@ -736,3 +736,45 @@ test.describe('configuration tab', () => {
       .toContainText('Nothing is encrypted locally');
   });
 });
+
+// The same sweep layout.spec.ts runs over the surfaces, over the four tabs of
+// an open queue, which a list of URLs cannot name.
+test('no control on any tab of a queue is left without a name, and nothing scrolls sideways', async ({
+  page,
+  request,
+  uniqueName,
+}) => {
+  const queue = await createQueue(request, uniqueName('e2e-sqs-a11y'), { fifo: true, dlqMode: 'new' });
+  await postForm(request, `sqs/${queue}/send`, { body: 'x', group: 'g' });
+  const problems: string[] = [];
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    for (const tab of ['messages', 'consume', 'config', 'tags']) {
+      await page.setViewportSize({ width: 1500, height: 1000 });
+      await page.goto(`sqs/${queue}?tab=${tab}`);
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+      await page.waitForTimeout(150);
+      const hits = await page.evaluate(() => {
+        const out: string[] = [];
+        const label = (e: Element) => `${e.tagName.toLowerCase()}.${String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.')}`;
+        for (const e of Array.from(document.querySelectorAll('button, a.btn, .icon-btn'))) {
+          if (e.getBoundingClientRect().width === 0) continue;
+          if ((e.textContent || '').trim() || e.getAttribute('aria-label') || e.getAttribute('title')) continue;
+          out.push(`unnamed control: ${label(e)}`);
+        }
+        for (const e of Array.from(document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]), select, textarea'))) {
+          if (e.getBoundingClientRect().width === 0 || e.closest('.CodeMirror')) continue;
+          const id = e.getAttribute('id');
+          if ((id && document.querySelector(`label[for="${id}"]`)) || e.closest('label')) continue;
+          if (e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.getAttribute('title')) continue;
+          out.push(`unlabelled input: ${label(e)} name=${e.getAttribute('name') || '?'}`);
+        }
+        const de = document.documentElement;
+        if (de.scrollWidth > de.clientWidth + 2) out.push(`the page scrolls sideways (${de.scrollWidth}px)`);
+        return [...new Set(out)];
+      });
+      for (const h of hits) problems.push(`${theme} ${tab}: ${h}`);
+    }
+  }
+  expect(problems, problems.join('\n')).toEqual([]);
+});

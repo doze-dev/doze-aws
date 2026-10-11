@@ -27,11 +27,33 @@ func TestEveryOperationIsAcceptedOnTheQueryWire(t *testing.T) {
 	formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"qwire-dlq"}})
 
 	// A message in flight, for the receipt-handle operations.
+	// What each answer must contain, by the XML names the model gives
+	// (xmlName on each flattened member, doc: the model's output shapes).
+	want := map[string][]string{
+		"CreateQueue":                  {"<QueueUrl>"},
+		"GetQueueUrl":                  {"<QueueUrl>"},
+		"ListQueues":                   {"<QueueUrl>"},
+		"GetQueueAttributes":           {"<Attribute>", "<Name>", "<Value>"},
+		"ListQueueTags":                {"<Tag>", "<Key>", "<Value>"},
+		"ListDeadLetterSourceQueues":   {"<QueueUrl>"},
+		"SendMessage":                  {"<MessageId>", "<MD5OfMessageBody>", "<MD5OfMessageAttributes>", "<MD5OfMessageSystemAttributes>"},
+		"SendMessageBatch":             {"<SendMessageBatchResultEntry>", "<Id>", "<MessageId>", "<MD5OfMessageBody>"},
+		"ReceiveMessage":               {"<Message>", "<MessageId>", "<ReceiptHandle>", "<MD5OfBody>", "<Body>", "<Attribute>", "<MessageAttribute>", "<DataType>"},
+		"ChangeMessageVisibilityBatch": {"<ChangeMessageVisibilityBatchResultEntry>", "<Id>"},
+		"DeleteMessageBatch":           {"<DeleteMessageBatchResultEntry>", "<Id>"},
+		"StartMessageMoveTask":         {"<TaskHandle>"},
+		"ListMessageMoveTasks":         {"<ListMessageMoveTasksResultEntry>", "<Status>", "<SourceArn>", "<ApproximateNumberOfMessagesMoved>"},
+	}
 	step := func(name string, f url.Values) string {
 		t.Helper()
 		code, body := formPost(t, ts.URL, f)
 		if code != 200 {
 			t.Errorf("%s answered %d: %.300s", name, code, body)
+		}
+		for _, el := range want[name] {
+			if !strings.Contains(body, el) {
+				t.Errorf("%s answered without %s: %.400s", name, el, body)
+			}
 		}
 		return body
 	}

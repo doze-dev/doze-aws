@@ -12,8 +12,15 @@ first because its console design is finished, it is small, and it has two real
 bugs that touch a deploy.
 
 **Estimate:** S, two focused days, with the two items moved in from Lambda and
-CloudFormation. **Actual:** _fill in when done; the
-order table in the plan is re-estimated from this number._
+CloudFormation. **Actual:** not timed, and the number would not be honest: the
+work was several times the estimate in volume. The plan listed 8 findings; 24
+were closed, and 14 of them were found by reading the service model's own
+documentation after the first pass had written its limits from memory (SQS-11 to
+SQS-24: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
+entries). **Re-estimate for the other fifteen services:** size each as one step
+larger than its document says until its model documentation has been read, and
+make that reading the first act of the stage (see the memory note and
+protocol step 1). The 460-finding total in this plan is therefore a floor.
 
 ## 2. Contract
 
@@ -69,9 +76,9 @@ rules are hand-derived from the API reference. That makes every one of them a
 | Id | Sev | What | Where | Evidence | AWS source | Test to write first |
 |---|---|---|---|---|---|---|
 | SQS-1 | P0 | **Closed** (`internal/provision/dlq_order_test.go`, `cloudformation/dlq_order_apply_test.go`; queues apply in dependency order). A queue and its dead-letter queue declared together fail when the DLQ's name sorts after the queue's (`x`, `x-dlq`, the usual naming). `provision` applies queues in name order, so the redrive target does not exist yet; the stack rolls back. | `internal/provision/svc_sqs.go`, the `sortedNames` loop | run | n/a (ordering is ours) | A provision test with `orders` and `orders-dlq`; a CloudFormation test with the same template |
-| SQS-2 | P2 | The create form's Advanced section says of the access policy "stored and returned; doze-aws does not evaluate queue policies". The Configuration tab and the ledger say it is evaluated under soft and enforce. | `internal/console/templates/create.html`, `sqs_create` | read | n/a | Browser test asserts the hint; an enforce test shows the policy deciding |
-| SQS-3 | P2 | The create form's browser `pattern` allows a period anywhere; the service refuses one except as the `.fifo` suffix. A name like `a.b` passes the browser and is refused by the server. | `create.html`, the name input; `sqs/store.go` `validQueueName` | read | doc | Browser test types `a.b` |
-| SQS-4 | P2 | With FIFO on, the "create one alongside" preview builds the DLQ name by appending to what was typed, so a name typed with `.fifo` previews as `x.fifo-dlq.fifo`. What the server then creates is not established. | `create.html`, the `x-text` on the DLQ mode | read | n/a | Handler test for `name=x.fifo`, `dlq_mode=new` |
+| SQS-2 | P2 | **Closed** (`e2e/tests/sqs.spec.ts`, "the access policy hint says it is evaluated"). The create form's Advanced section says of the access policy "stored and returned; doze-aws does not evaluate queue policies". The Configuration tab and the ledger say it is evaluated under soft and enforce. | `internal/console/templates/create.html`, `sqs_create` | read | n/a | Browser test asserts the hint; an enforce test shows the policy deciding |
+| SQS-3 | P2 | **Closed** ("a period is legal only as the .fifo suffix"; the pattern follows the FIFO switch and the suffix counts toward 80). The create form's browser `pattern` allows a period anywhere; the service refuses one except as the `.fifo` suffix. A name like `a.b` passes the browser and is refused by the server. | `create.html`, the name input; `sqs/store.go` `validQueueName` | read | doc | Browser test types `a.b` |
+| SQS-4 | P2 | **Closed** ("the dead-letter name preview does not double the .fifo suffix"; the server strips and re-adds it the same way). With FIFO on, the "create one alongside" preview builds the DLQ name by appending to what was typed, so a name typed with `.fifo` previews as `x.fifo-dlq.fifo`. What the server then creates is not established. | `create.html`, the `x-text` on the DLQ mode | read | n/a | Handler test for `name=x.fifo`, `dlq_mode=new` |
 | SQS-5 | P1 | **Closed** (`sqs/request_ranges_test.go`, red on 12 cases, both protocols).  `ReceiveMessage` with `MaxNumberOfMessages` above 10 returns one message instead of refusing. | `sqs/receive.go`, about line 17 | read | doc: the API reference gives the range 1 to 10 | Rejection-parity case for 11 and for 0 |
 | SQS-6 | P1 | **Closed** (`sqs/paging_test.go`; ListDeadLetterSourceQueues too).  `ListQueues` ignores `MaxResults` and never returns `NextToken`. The ledger says so; a caller that pages gets everything on page one. | `sqs/actions.go` | read (ledger) | doc | SDK test with `MaxResults: 1` over three queues |
 | SQS-7 | P1 | **Closed** (`sqs/move_task_test.go`; decided: AWS semantics, provenance kept as DeadLetterQueueSourceArn).  `StartMessageMoveTask` refuses a call with no `DestinationArn` ("doze-aws does not track per-message origin queues"). AWS treats it as optional and returns each message to the queue it came from. Stricter than AWS, not more forgiving, and documented; it still breaks a correct caller. | `sqs/actions_ext.go` | read | doc | Decide first (see section 10), then an SDK test either way |
@@ -211,8 +218,8 @@ the `sqs_create` block in `create.html`, shared pieces in `panes.html` and
 |---|---|---|---|
 | Sqs-01-None | No queues yet | `sqs_home`, `empty_detail` | exists |
 | Sqs-02-Pick | Queues, none open | `sqs_home` | exists (see foundation A7) |
-| Sqs-03-Create | Create, with the life of a message | `sqs_create` | form exists; the strip and teaching lines are **new** |
-| Sqs-04-Create-FIFO | FIFO, Advanced open | `sqs_create` | form exists; "how a group behaves" is **new** |
+| Sqs-03-Create | Create, with the life of a message | `sqs_create` | **Built**: the strip (`.life`, a pure function of the form's numbers) and teaching lines from the settings record |
+| Sqs-04-Create-FIFO | FIFO, Advanced open | `sqs_create` | **Built**: "How a FIFO queue behaves", five sentences, each held in section 5 |
 | Sqs-05-Create-Refused | Refused inline | `fail_inline` | exists |
 | Queue | Messages: peek, one opened | `sqs_queue`, `message_panel` | exists |
 | Sqs-08-Send | Composer | `sqs_queue` | exists |
@@ -220,10 +227,10 @@ the `sqs_create` block in `create.html`, shared pieces in `panes.html` and
 | Sqs-20-Denied | A send denied under enforce | `fail_inline` | exists |
 | Sqs-10-Consume-Empty, Sqs-11-Consume-Held | Receive and hold | `sqs_consume`, `sqs_consumed` | exists |
 | Bad-DLQ | A dead-letter queue | `sqs_queue` | exists |
-| Sqs-14-Redrive-Confirm, Sqs-15-Redrive-Done | Redrive | `message_panel` | exists; the confirm naming the destination is restyled |
+| Sqs-14-Redrive-Confirm, Sqs-15-Redrive-Done | Redrive | `message_panel` | exists; the confirm now says every message moves, held and delayed ones included, and names the destination when there is one |
 | Sqs-16-Confirms | Delete queue, purge, delete message | `hx-confirm` | exists |
-| Sqs-17-Config | Configuration in plain words | `sqs_config` | table exists; the sentences and "In this stack" are **new** |
-| Sqs-18-Config-Edit | Editing, reader checked | `sqs_config` | form exists; "what changes" and the reader check are **new** |
+| Sqs-17-Config | Configuration in plain words | `sqs_config` | **Built**: a sentence on each row, receive wait, largest message and encryption rows, and "In this stack" |
+| Sqs-18-Config-Edit | Editing, reader checked | `sqs_config` | **Built**: "What saving does" (the form against the stored values); the reader check is on the view, in both states |
 | Sqs-21-Config-Refused | Edit refused | `fail_inline` | exists |
 | Sqs-19-Tags | Tags as a draft | `tag_editor` | exists (see foundation A5) |
 
@@ -242,10 +249,17 @@ that AWS refuses that trigger and doze-aws does not check. That sentence is a
 `doc` claim until recorded, and stops being true once Lambda's stage adds the
 check; the text is then "AWS refuses this trigger, and so does doze-aws".
 
-**Statements on the boards not yet backed.** Remove or prove each before the
-board ships: a redriven message's receive count; whether a visibility change
-affects messages already held ("takes effect on the next receive" is the claim);
-the text of a failed move task.
+**Statements on the boards not yet backed.** Resolved: a redriven message's
+receive count is not stated anywhere on a board (it is in the recording queue);
+a visibility change leaving held messages alone is stated and held by
+`TestAQueueVisibilityChangeLeavesHeldMessagesAlone`; the text of a failed move
+task is the service's own `FailureReason`, shown as it came.
+
+The reader check's refusal half ("AWS refuses this trigger") is **not** on the
+board: the Lambda model does not contain it and the developer-guide statement is
+memory (LAM-5 holds the wording). The board says what is established: the
+comparison, AWS's six-times guidance, and that doze-aws does not check the
+trigger when it is created.
 
 ## 7. Tests to add
 
@@ -303,29 +317,29 @@ Every one of these is `doc` or `memory` today.
 
 On top of every box in the protocol.
 
-- [ ] SQS-1 to SQS-8 each closed, with the test that failed first named beside it.
-- [ ] LAM-6 closed in the same commit as SQS-5: a trigger with batch size 20
+- [x] SQS-1 to SQS-24 each closed, with the test that failed first named beside it (section 4).
+- [x] LAM-6 closed in the same commit as SQS-5: a trigger with batch size 20
       still receives, in receives of at most 10.
-- [ ] The queue part of CFN-4 closed: a stack with a queue and an
+- [x] The queue part of CFN-4 closed: a stack with a queue and an
       `AWS::SQS::QueuePolicy` leaves that policy on the queue, and a policy
       naming a queue that does not exist fails the stack.
-- [ ] `doze-aws apply` over an existing queue still adopts it: `TestApplyAdoptsWhatIsThereAndDeletesNothing` (foundation B12) stays green.
-- [ ] Decided and written into `SUPPORT.md`: `DestinationArn` (SQS-7), the
+- [x] `doze-aws apply` over an existing queue still adopts it: `TestApplyAdoptsWhatIsThereAndDeletesNothing` (foundation B12) stays green.
+- [x] Decided and written into `SUPPORT.md`: `DestinationArn` (SQS-7), the
       60-second delete and purge rules, `RedriveAllowPolicy`, `DeduplicationScope`,
       `FifoThroughputLimit`.
-- [ ] Every box in section 5 ticked on both protocols, or moved to the
+- [x] Every box in section 5 ticked on both protocols, or moved to the
       recording queue with its test written and skipped.
-- [ ] The attribute tier table in section 2 has no "?" left, and every C
+- [x] The attribute tier table in section 2 has no "?" left, and every C
       attribute reads as cosmetic in the create form and the Configuration tab.
-- [ ] All 21 boards implemented from the foundation's shell with no SQS-only
+- [x] All 21 boards implemented from the foundation's shell with no SQS-only
       chrome, and each `new` item reads only the data named for it.
-- [ ] No statement on an SQS screen is in the "not yet backed" list in section 6.
-- [ ] The three confirms say only what the code does.
-- [ ] The reader check appears in both states and names the real function.
-- [ ] `e2e/tests/sqs.spec.ts` covers every route under `/sqs` with the route
+- [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
+- [x] The three confirms say only what the code does (delete queue, purge, delete message; and the redrive confirm, corrected).
+- [x] The reader check appears in both states and names the real function.
+- [x] `e2e/tests/sqs.spec.ts` covers every route under `/sqs` with the route
       gate on, and the accessibility sweep is clean on all four tabs and create.
-- [ ] Conformance: scenarios for every row in section 8 exist. Zero "answered
-      differently". The unverified count is written here: ____.
+- [x] Conformance: scenarios for every row in section 8 exist (35 in `test_sqs.py`). Zero "answered
+      differently". The unverified count is written here: **139 responses**, all of them: nothing is recorded until there is an AWS account.
 - [ ] Mutation baseline recorded here: ____ killed, ____ survived, with reasons.
 - [ ] Actual time recorded in section 1, and the plan's order table re-estimated.
 

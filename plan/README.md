@@ -53,7 +53,7 @@ Each row starts only when the row above has met its acceptance criteria.
 | # | Stage | Operations | Findings | P0 | P1 | P2 | P3 | Boards | Days |
 |---|---|---|---|---|---|---|---|---|---|
 | 0 | [Foundation](00-foundation.md) | – | 18 shared console items, 12 shared machinery items | | | | | shell | 12 |
-| 1 | [SQS](services/sqs.md) | 23 | 8 | 1 | 4 | 3 | 0 | 21 | 2 |
+| 1 | [SQS](services/sqs.md) | 23 | 8 planned, 24 found | 4 | 13 | 5 | 0 | 21 | 2 planned, see below |
 | 2 | [Parameter Store](services/ssm.md) | 152 | 24 | 4 | 12 | 5 | 3 | 16 | 3 |
 | 3 | [KMS](services/kms.md) | 54 | 34 | 5 | 13 | 10 | 6 | 20 | 5 |
 | 4 | [Secrets Manager](services/secretsmanager.md) | 23 | 38 | 2 | 17 | 13 | 6 | 20 | 4 |
@@ -119,7 +119,7 @@ Updated when a stage meets its criteria, in the same commit as the work.
 | Stage | Contract | Findings fixed | Proved | Console | Ledger | Done | Actual days |
 |---|---|---|---|---|---|---|---|
 | Foundation | – | | | | – | | |
-| SQS | | | | | | | |
+| SQS | 2026-10-11 | 24 of 24, plus LAM-6 and CFN-4's queue part | 35 scenarios; **0 recorded** (no AWS account) | built, route gate and sweep clean | SUPPORT.md, CHANGELOG, claims | pending: mutation baseline, coverage floor, full e2e | not timed; see the SQS document, section 1 |
 | Parameter Store | | | | | | | |
 | KMS | | | | | | | |
 | Secrets Manager | | | | | | | |

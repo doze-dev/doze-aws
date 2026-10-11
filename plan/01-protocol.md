@@ -35,6 +35,18 @@ List every operation in the service's AWS model and give each one a tier.
   declined or deferred. Never `InvalidAction`, "unknown path" or a validation
   error: the operation exists and the caller's input is not wrong.
 
+**Read the model's own documentation first.** `.audit-models/<service>.json`
+carries, in prose, the limits and ranges the traits do not (the member and
+operation `documentation` strings), the wire name of every flattened list and
+map (`xmlName`, `xmlFlattened`), and the error shapes with the code and status
+each protocol gives them (`awsQueryError`, each operation's `errors`). It is
+the current statement of the API and it is on disk. SQS's first pass wrote its
+limits from memory and the older developer guide: 14 of its 24 findings were
+found only by reading this text afterwards, among them a limit four times too
+small, a feature refused that AWS accepts, and a whole wire protocol that
+refused valid requests. A claim from the model's text is `model`; `doc` is
+for what is read from a named documentation page; `memory` is for the rest.
+
 Nothing may be absent, and nothing may be silently wrong: an operation that
 returns success and does nothing is C only if it says so, otherwise it is a bug.
 The contract is checked in as the service's section of
