@@ -88,6 +88,16 @@ every `new` item is built from the data it says it is built from; every teaching
 line comes from the validation table or the ledger, not from prose typed into a
 template.
 
+**Compare the shape, not only the content.** Render each board of the page group
+(the `.dc.html` files, 1440 by 900) and the real page in the same state, side
+by side, and write the result in the service document as a table: matches /
+differs (what) / the design is wrong (what, and why). SQS's first pass built every
+board's sentences and none of their layout, and called the console done without
+ever putting a board next to a page; the board-by-board table (SQS document,
+6a) is what found it. A "differs" is built, or is decided in writing as a
+deliberate deviation with its reason. A board whose facts are stale is corrected
+in the design, not copied into the console.
+
 Gates: `go tool task test:e2e` with the route gate on (every route driven, or
 `e2e/route-gaps.txt` says why), and the accessibility sweep (`e2e/audit/crawl.ts`)
 clean on the service's pages.
@@ -153,6 +163,9 @@ ticked. "N/A" is allowed only with a sentence saying why.
 
 - [ ] Every board in the service's page group is implemented, or the document
       says which were dropped and why.
+- [ ] The document has a board-by-board fidelity table made from rendered
+      boards beside rendered pages, and no row says "differs" without a
+      decision beside it.
 - [ ] Each screen's refusal states show the real code and message, in the
       vocabulary from the foundation (Refused, Denied, Not implemented, Failed).
 - [ ] Every destructive action confirms, and each confirm's sentence is true.
