@@ -645,3 +645,13 @@ def test_add_permission_statement_limit(client, names, cleanup, snapshot):
             break
     snapshot.match("first-refusal", {"at": first_refused[0] if first_refused else None,
                                      "code": first_refused[1] if first_refused else None})
+
+
+def test_get_queue_attributes_without_names(client, names, cleanup, snapshot):
+    """"if you don't specify values for this parameter, the request returns
+    empty results"."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.match("no-names", {"attributes": sqs.get_queue_attributes(QueueUrl=url).get("Attributes", {})})
+    snapshot.match("all", {"has-arn": "QueueArn" in sqs.get_queue_attributes(
+        QueueUrl=url, AttributeNames=["All"])["Attributes"]})

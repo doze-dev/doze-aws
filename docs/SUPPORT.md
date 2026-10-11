@@ -2543,7 +2543,7 @@ validation passes.
 | DeleteQueue | F | drops messages and dedup state; immediate, where AWS takes up to 60 seconds and refuses re-creating the name inside them (a listed difference below) |
 | ListQueues | F | prefix filter; `MaxResults` 1–1,000 and `NextToken` |
 | GetQueueUrl | F | |
-| GetQueueAttributes | F | incl. ApproximateNumberOfMessages(NotVisible), QueueArn, RedrivePolicy |
+| GetQueueAttributes | F | incl. ApproximateNumberOfMessages(NotVisible), QueueArn, RedrivePolicy; with no `AttributeNames` the result is empty, as the model says (`All` for everything) |
 | SetQueueAttributes | F | visibility, delay, retention, max size (1 KiB to 1 MiB), receive wait, redrive policy, `RedriveAllowPolicy` (checked when a queue names this one as its DLQ), `Policy` (validated), `DeduplicationScope`, `FifoThroughputLimit` (validated, nothing throttled), FIFO dedup; a boolean other than true/false and an unknown attribute are refused |
 | TagQueue / UntagQueue / ListQueueTags | F | |
 | SendMessage / SendMessageBatch | F | delay, message attributes (String/Number/Binary), FIFO group + dedup id, content-based dedup; a message and a batch are 1 MiB counting attributes; `MessageGroupId` is accepted on a standard queue (fair queues: held to its format and returned, no fairness is modelled); `AWSTraceHeader` on every entry, with `MD5OfMessageSystemAttributes`; a bad character is `InvalidMessageContents` |

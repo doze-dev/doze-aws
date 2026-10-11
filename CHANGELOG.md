@@ -207,6 +207,9 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   - **AddPermission** takes any action name or `*` (it took ten), at most seven,
     account numbers only, a label of at most 80 letters, digits, hyphens and
     underscores. More than 50 tags is advice, not a refusal.
+  - **`GetQueueAttributes` with no `AttributeNames` returns nothing**, as the
+    model says; it returned everything. And the Query wire request is checked
+    whole: only its first batch entry, and none of its attributes, were.
   - **Earlier in the same stage:** a queue and its dead-letter queue apply in
     dependency order (a stack declaring `orders` and `orders-dlq` rolled back);
     `AWS::SQS::QueuePolicy` reaches the queue; `DestinationArn` is optional on a

@@ -52,3 +52,4 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | An old receipt handle after a re-receive: "the request will succeed, but the message might not be deleted" (doze-aws's handle is the message's, so it deletes) | model | test_sqs::test_an_old_receipt_handle |
 | `RedrivePolicy` without `maxReceiveCount`: the model documents "Default: 10" (doze-aws refuses it) | model | test_sqs::test_redrive_policy_without_max_receive_count |
 | The number of permissions at which `AddPermission` is `OverLimit` (the model names the error, not the number) | model | test_sqs::test_add_permission_statement_limit |
+| `GetQueueAttributes` with no `AttributeNames` returns an empty result | model | test_sqs::test_get_queue_attributes_without_names |

@@ -13,10 +13,10 @@ bugs that touch a deploy.
 
 **Estimate:** S, two focused days, with the two items moved in from Lambda and
 CloudFormation. **Actual:** not timed, and the number would not be honest: the
-work was several times the estimate in volume. The plan listed 8 findings; 24
-were closed, and 14 of them were found by reading the service model's own
+work was several times the estimate in volume. The plan listed 8 findings; 26
+were closed, and 16 of them were found by reading the service model's own
 documentation after the first pass had written its limits from memory (SQS-11 to
-SQS-24: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
+SQS-26: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
 entries). **Re-estimate for the other fifteen services:** size each as one step
 larger than its document says until its model documentation has been read, and
 make that reading the first act of the stage (see the memory note and
@@ -110,6 +110,8 @@ correct caller exactly as "more forgiving" breaks a deploy.
 | SQS-22 | P1 | **Closed.** `ReceiveRequestAttemptId` was ignored. A FIFO retry within five minutes returns the same messages and handles, starting the timeout again, until one is deleted or changed; on a standard queue it is refused (wording memory). In memory: a restart inside the five minutes forgets it. | missing | model: ReceiveMessage |
 | SQS-23 | P1 | **Closed.** A queue URL names its owner (`/<account>/<name>`) and was resolved by name alone; `GetQueueUrl` ignored `QueueOwnerAWSAccountId`. A hard-coded account id worked locally and failed on deploy. | more forgiving | model: GetQueueUrl |
 | SQS-24 | P2 | **Closed.** `KmsDataKeyReusePeriodSeconds` had no range (60 to 86,400); `FifoQueue`, `ContentBasedDeduplication` and `SqsManagedSseEnabled` read any value other than "true" as false ("Valid values are true and false"). | more forgiving | model: CreateQueue.Attributes |
+| SQS-25 | P1 | **Closed** (`TestGetQueueAttributesWithNoNamesReturnsNothing`). `GetQueueAttributes` with no `AttributeNames` returned every attribute. The model: "if you don't specify values for this parameter, the request returns empty results". A client that forgot the parameter saw everything here and nothing on AWS. | more forgiving | model: GetQueueAttributes |
+| SQS-26 | P1 | **Closed** (`sqs/query_shape_test.go`). The model's constraint walk read a Query request as one element of each list and a flattened map as a list of pairs, so on the Query wire only the first batch entry was checked, no attribute was, and only one system-attribute name met its enum: a second entry with no body was refused whole on JSON and answered as one failed entry on Query. The request is now rendered whole, in the JSON body's shape, before the walk. | more forgiving | model: xmlName, xmlFlattened |
 
 
 **Moved into this stage from other services.** They keep their own ids, and
@@ -143,7 +145,7 @@ operations accepted, spelled as the API reference spells them) and
 `permission_test.go`, `fifo_attrs_test.go`, `move_task_test.go`,
 `policy_test.go`, `tags_test.go`, `visibility_rules_test.go`, and across a
 restart `persistence_sqs_test.go`. The numbers in this section were first
-written from memory; the corrections are SQS-11 to SQS-24 in section 4.
+written from memory; the corrections are SQS-11 to SQS-26 in section 4.
 
 **Queues**
 - [x] Name rules: 1 to 80, letters, digits, hyphen, underscore; `.fifo` only as
@@ -317,7 +319,7 @@ Every one of these is `doc` or `memory` today.
 
 On top of every box in the protocol.
 
-- [x] SQS-1 to SQS-24 each closed, with the test that failed first named beside it (section 4).
+- [x] SQS-1 to SQS-26 each closed, with the test that failed first named beside it (section 4).
 - [x] LAM-6 closed in the same commit as SQS-5: a trigger with batch size 20
       still receives, in receives of at most 10.
 - [x] The queue part of CFN-4 closed: a stack with a queue and an
