@@ -6,7 +6,10 @@ package sqs
 // them still standing.
 
 import (
+	"crypto/md5"
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -286,5 +289,40 @@ func TestBatchEntryDelayEdge(t *testing.T) {
 		if failed == ok {
 			t.Errorf("entry DelaySeconds %d: failed=%v, want ok=%v: %.200s", d, failed, ok, body)
 		}
+	}
+}
+
+// MD5OfMessageAttributes, from the algorithm as AWS documents it, written out
+// here independently of md5.go: names in order, and for each the length-prefixed
+// name, the length-prefixed data type, a transport byte (1 for a string or a
+// number, 2 for binary) and the length-prefixed value.
+func TestAttributeDigestMatchesTheDocumentedAlgorithm(t *testing.T) {
+	attrs := map[string]attr{
+		"b-blob": {DataType: "Binary", BinaryValue: []byte{0, 255, 7}},
+		"a-text": {DataType: "String", StringValue: "hello"},
+		"c-num":  {DataType: "Number.int", StringValue: "42"},
+	}
+	h := md5.New()
+	field := func(b []byte) {
+		var l [4]byte
+		binary.BigEndian.PutUint32(l[:], uint32(len(b)))
+		h.Write(l[:])
+		h.Write(b)
+	}
+	for _, n := range []string{"a-text", "b-blob", "c-num"} {
+		a := attrs[n]
+		field([]byte(n))
+		field([]byte(a.DataType))
+		if a.DataType == "Binary" {
+			h.Write([]byte{2})
+			field(a.BinaryValue)
+		} else {
+			h.Write([]byte{1})
+			field([]byte(a.StringValue))
+		}
+	}
+	want := fmt.Sprintf("%x", h.Sum(nil))
+	if got := md5Attributes(attrs); got != want {
+		t.Errorf("md5Attributes = %s, want %s", got, want)
 	}
 }

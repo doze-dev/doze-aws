@@ -104,3 +104,21 @@ func TestABatchDeleteWithAnOldHandleSucceedsPerEntry(t *testing.T) {
 func encodeHandleWithoutReceive(seq []byte, id string) string {
 	return base64Std(append(append([]byte{}, seq...), id...))
 }
+
+// A handle in the earlier format names no receive, so it is good for whichever
+// one is current, however many there have been.
+func TestAnEarlierFormatHandleIsGoodForTheCurrentReceive(t *testing.T) {
+	s := testStore(t)
+	s.CreateQueue("q", map[string]string{"VisibilityTimeout": "0"}, nil)
+	s.Send("q", "work", nil, -1, "", "", nil)
+	s.Receive("q", 1, 0, -1)
+	s.Receive("q", 1, 0, -1)
+	third, _ := s.Receive("q", 1, 0, -1) // the message has been received three times
+	old := encodeHandleWithoutReceive(seqKey(third[0].Seq), third[0].ID)
+	if err := s.Delete("q", old); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Receive("q", 1, 0, -1); len(got) != 0 {
+		t.Errorf("an earlier-format handle did not delete a message received three times: %v", got)
+	}
+}

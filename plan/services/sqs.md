@@ -392,11 +392,12 @@ On top of every box in the protocol.
       gate on, and the accessibility sweep is clean on all four tabs and create.
 - [x] Conformance: scenarios for every row in section 8 exist (35 in `test_sqs.py`). Zero "answered
       differently". The unverified count is written here: **139 responses**, all of them: nothing is recorded until there is an AWS account.
-- [x] Mutation baseline recorded here: **631 killed, 80 survived, 2 timed out, 74 not covered (88.7%)**, `testdata/mutation.json`. The first record after the stage's code was 590 / 119; the edges found standing were tested (`sqs/boundaries_test.go`) and it was recorded again. Why the 80 stand:
-      - 40 are `CONDITIONALS_BOUNDARY` and 35 `CONDITIONALS_NEGATION`, almost all on guards whose other side is unreachable from a request: a value the handler has already range-checked (`max <= 0`, `waitSec > 20`, `len(x) > 0` before a loop), the error branch of a bolt write that cannot fail in a test, `FirstReceived == 0` after a receive set it, and the ends of the five-minute `ReceiveRequestAttemptId` window (`receive_attempt.go`: the window itself is held by `TestAReceiveAttemptExpiresAfterFiveMinutes`; its exact edge is memory, so not pinned).
-      - `codec.go` (15) and `responses.go` (9) are the Query wire's decoder loops and XML writers: `for i := 1; ; i++` index mutants and `len(m) > 0` guards whose effect is an empty element nobody reads. `query_wire_test.go` holds the answered element names, not their absence.
-      - `validate_message.go` (3) are the ends of the Number range (1e126, -1e128), which are memory.
-      - The 74 not covered are lines no test runs: error branches of the store and the janitor.
+- [x] Mutation baseline recorded here: **708 killed, 58 survived, 5 timed out, 73 not covered (92.4%)**, `testdata/mutation.json`, recorded 2026-10-11 against the code with receipt handles, strict mode and asynchronous move tasks. It was 631 / 80 for the first stage-1 code; the edges and behaviours found standing were tested (`sqs/boundaries_test.go`, `sqs/edges_test.go`) and it was recorded again. Why the 58 stand:
+      - Mostly `CONDITIONALS_BOUNDARY` and `CONDITIONALS_NEGATION` on guards whose other side a request cannot reach (a value the handler has already range-checked, a bolt error branch, the wait before a move starts, the edge of the five-minute attempt-id window, which is memory).
+      - `codec.go` and `responses.go`: the Query wire's decoder loops and XML writers, whose effect is an empty element nobody reads.
+      - `move_task.go`: the pacing guards (`moveStartDelay > 0`, a credit under one). They change when a message moves, not whether.
+      - A few in `md5.go` (the handle's no-count sentinel and the digest's binary branch) were tested after the run and now die; the baseline still lists them, which the check allows.
+      - The 73 not covered are lines no test runs: error branches of the store and the janitor.
 - [x] Actual time recorded in section 1 (not timed; the size was several times the estimate), and the plan's order table re-estimated.
 
 ## 11. Files and order of work
