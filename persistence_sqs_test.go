@@ -17,6 +17,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -94,6 +95,21 @@ func TestSQSStateSurvivesARestart(t *testing.T) {
 			must(err)
 			if task.TaskHandle == nil {
 				t.Fatal("StartMessageMoveTask returned no handle")
+			}
+			// A task runs in the background and a running one does not survive a
+			// restart (it lives in memory), so the restart waits for it to finish
+			// and be recorded: what is held across a restart is the finished one.
+			deadline := time.Now().Add(15 * time.Second)
+			for {
+				list, err := c.ListMessageMoveTasks(ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(w.dlqARN)})
+				must(err)
+				if len(list.Results) > 0 && aws.ToString(list.Results[0].Status) != "RUNNING" {
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("the move task was still running after 15 seconds")
+				}
+				time.Sleep(50 * time.Millisecond)
 			}
 			return w
 		},

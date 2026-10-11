@@ -320,7 +320,7 @@ def dead_letter(sqs, eventually, src, dlq, body):
 
     def moved():
         sqs.receive_message(QueueUrl=src, WaitTimeSeconds=1)
-        r = sqs.receive_message(QueueUrl=dlq, WaitTimeSeconds=1, VisibilityTimeout=0,
+        r = sqs.receive_message(QueueUrl=dlq, WaitTimeSeconds=1, VisibilityTimeout=0, MaxNumberOfMessages=10,
                                 MessageSystemAttributeNames=["All"])
         assert any(m["Body"] == body for m in r.get("Messages", [])), "not in the DLQ yet"
         return r["Messages"]
@@ -655,3 +655,29 @@ def test_get_queue_attributes_without_names(client, names, cleanup, snapshot):
     snapshot.match("no-names", {"attributes": sqs.get_queue_attributes(QueueUrl=url).get("Attributes", {})})
     snapshot.match("all", {"has-arn": "QueueArn" in sqs.get_queue_attributes(
         QueueUrl=url, AttributeNames=["All"])["Attributes"]})
+
+
+def test_move_task_cancel(client, names, cleanup, snapshot, eventually):
+    """"An asynchronous task", with "only one active message movement task ...
+    per queue", cancellable "when the current status is RUNNING"."""
+    sqs = client("sqs")
+    src, dlq, dlq_arn = dlq_pair(sqs, names, cleanup)
+    for i in range(3):
+        dead_letter(sqs, eventually, src, dlq, f"poison-{i}")
+    # One message a second: three messages cannot finish before the cancel.
+    task = sqs.start_message_move_task(SourceArn=dlq_arn, MaxNumberOfMessagesPerSecond=1)
+    snapshot.match("started", task, opaque=("TaskHandle",))
+    running = sqs.list_message_move_tasks(SourceArn=dlq_arn)["Results"][0]
+    snapshot.match("running", {"status": running["Status"], "has-handle": "TaskHandle" in running})
+    snapshot.outcome("second-start", lambda: sqs.start_message_move_task(SourceArn=dlq_arn))
+    cancelled = sqs.cancel_message_move_task(TaskHandle=task["TaskHandle"])
+    snapshot.match("cancel", {"moved-is-a-number": isinstance(cancelled["ApproximateNumberOfMessagesMoved"], int)})
+
+    def settled():
+        r = sqs.list_message_move_tasks(SourceArn=dlq_arn)["Results"][0]
+        assert r["Status"] != "RUNNING" and r["Status"] != "CANCELLING", r
+        return r
+
+    final = eventually(settled, timeout=60)
+    snapshot.match("final", {"status": final["Status"], "has-handle": "TaskHandle" in final})
+    snapshot.error("cancel-again", lambda: sqs.cancel_message_move_task(TaskHandle=task["TaskHandle"]))

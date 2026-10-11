@@ -15,6 +15,7 @@ import (
 	"context"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -86,6 +87,35 @@ func (f *redriveFixture) bodies(queue string) []string {
 	return out
 }
 
+// move starts a move task and waits for it to leave RUNNING, because a task
+// runs in the background: AWS answers the start with a handle and the messages
+// follow. A refused start is returned as it came.
+func (f *redriveFixture) move(in *awssqs.StartMessageMoveTaskInput) (*awssqs.StartMessageMoveTaskOutput, error) {
+	f.t.Helper()
+	out, err := f.c.StartMessageMoveTask(f.ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	f.waitForMoves(aws.ToString(in.SourceArn))
+	return out, nil
+}
+
+func (f *redriveFixture) waitForMoves(sourceARN string) {
+	f.t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		list, err := f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(sourceARN)})
+		if err != nil {
+			f.t.Fatal(err)
+		}
+		if len(list.Results) > 0 && aws.ToString(list.Results[0].Status) != "RUNNING" {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	f.t.Fatal("a move task was still running after ten seconds")
+}
+
 func redrivePolicyTo(f *redriveFixture, dlq string) map[string]string {
 	// A visibility timeout of 0 makes a received message visible again at once,
 	// which is how a message is received "too often" inside one test.
@@ -116,7 +146,7 @@ func TestAMoveWithoutADestinationReturnsEachMessageToItsOwnQueue(t *testing.T) {
 	f.deadLetter("billing", "invoice-1")
 	f.deadLetter("orders", "order-2")
 
-	task, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])})
+	task, err := f.move(&awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])})
 	if err != nil {
 		t.Fatalf("a move with no destination: %v", err)
 	}
@@ -155,7 +185,7 @@ func TestAMessageWithNoKnownOriginIsLeftAndTheTaskSaysSo(t *testing.T) {
 	if _, err := f.c.SendMessage(f.ctx, &awssqs.SendMessageInput{QueueUrl: aws.String(f.urls["dlq"]), MessageBody: aws.String("sent-directly")}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
+	if _, err := f.move(&awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
 		t.Fatal(err)
 	}
 	if got := f.bodies("orders"); len(got) != 1 || got[0] != "from-orders" {
@@ -177,7 +207,7 @@ func TestAMoveFromAQueueThatIsNoDeadLetterQueueIsRefused(t *testing.T) {
 		{SourceArn: aws.String(f.arns["plain"])},
 		{SourceArn: aws.String(f.arns["plain"]), DestinationArn: aws.String(f.arns["elsewhere"])},
 	} {
-		if _, err := f.c.StartMessageMoveTask(f.ctx, in); err == nil {
+		if _, err := f.move(in); err == nil {
 			t.Errorf("a move from a queue that is nobody's dead-letter queue was accepted: %+v", in)
 		}
 	}
@@ -191,7 +221,7 @@ func TestAMoveWithADestinationSendsEverythingThere(t *testing.T) {
 	if _, err := f.c.SendMessage(f.ctx, &awssqs.SendMessageInput{QueueUrl: aws.String(f.urls["dlq"]), MessageBody: aws.String("two")}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{
+	if _, err := f.move(&awssqs.StartMessageMoveTaskInput{
 		SourceArn: aws.String(f.arns["dlq"]), DestinationArn: aws.String(f.arns["inbox"])}); err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +239,7 @@ func TestATaskRecordsWhatItWasToMoveAndTheRateAsked(t *testing.T) {
 	f.create("orders", redrivePolicyTo(f, "dlq"))
 	f.deadLetter("orders", "one")
 	f.deadLetter("orders", "two")
-	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{
+	if _, err := f.move(&awssqs.StartMessageMoveTaskInput{
 		SourceArn: aws.String(f.arns["dlq"]), MaxNumberOfMessagesPerSecond: aws.Int32(7)}); err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +260,7 @@ func TestATaskRecordsWhatItWasToMoveAndTheRateAsked(t *testing.T) {
 
 	// A task started without a rate reports none.
 	f.deadLetter("orders", "three")
-	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
+	if _, err := f.move(&awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
 		t.Fatal(err)
 	}
 	list, _ = f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(f.arns["dlq"])})
@@ -244,7 +274,7 @@ func TestTheRateAskedForIsHeldToItsRange(t *testing.T) {
 	f := newRedriveFixture(t, "dlq")
 	f.create("orders", redrivePolicyTo(f, "dlq"))
 	for rate, ok := range map[int32]bool{0: false, -1: false, 1: true, 500: true, 501: false} {
-		_, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{
+		_, err := f.move(&awssqs.StartMessageMoveTaskInput{
 			SourceArn: aws.String(f.arns["dlq"]), MaxNumberOfMessagesPerSecond: aws.Int32(rate)})
 		if ok && err != nil || !ok && err == nil {
 			t.Errorf("rate %d: err = %v, want ok=%v", rate, err, ok)

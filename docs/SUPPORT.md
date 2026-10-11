@@ -2553,9 +2553,9 @@ validation passes.
 | ChangeMessageVisibilityBatch | F | via per-entry ChangeMessageVisibility semantics |
 | PurgeQueue | F | immediate; AWS takes up to 60 seconds and refuses a second purge inside them (a listed difference below) |
 | ListDeadLetterSourceQueues | F | |
-| StartMessageMoveTask | F | completes synchronously; `DestinationArn` is optional and each message returns to the queue it was dead-lettered from (kept as `DeadLetterQueueSourceArn`); the source must be some queue's DLQ; `MaxNumberOfMessagesPerSecond` (1–500) is recorded, nothing is throttled; a missing queue is `ResourceNotFoundException` |
-| ListMessageMoveTasks | F | the recorded tasks, newest first, `MaxResults` 1–10; a finished task lists no `TaskHandle`, as the model says only a RUNNING one does |
-| CancelMessageMoveTask | F | always "task is not active" — local moves complete synchronously, matching AWS's answer for a finished task |
+| StartMessageMoveTask | F | an asynchronous task: it answers with a handle and is `RUNNING` while its messages move in the background, at `MaxNumberOfMessagesPerSecond` (1–500, default 500 here), after a short start-up; one running task per queue; `DestinationArn` is optional and each message returns to the queue it was dead-lettered from (kept as `DeadLetterQueueSourceArn`); the source must be some queue's DLQ; a missing queue is `ResourceNotFoundException` |
+| ListMessageMoveTasks | F | what is running, then the recorded tasks, newest first, `MaxResults` 1–10; a task lists its `TaskHandle` only while `RUNNING`, as the model says; statuses `RUNNING`, `COMPLETED`, `FAILED` (a message had nowhere to return to) and `CANCELLED` |
+| CancelMessageMoveTask | F | stops a running task and answers how many messages it had moved; what moved stays moved. A task that is not running is refused |
 | AddPermission / RemovePermission | F | AddPermission writes the statement AWS writes into the `Policy` attribute (Sid = Label, the account roots as principals, `SQS:<action>` on the queue); a label of at most 80 letters, digits, hyphens and underscores, in use refused; any SQS action name or `*`, at most seven (`OverLimit`); account numbers only, not ARNs. RemovePermission drops it by label (a missing label is refused). The queue policy is evaluated on every request naming the queue under IAM `soft` and `enforce`; an SNS fan-out into the queue needs a `Service: sns.amazonaws.com` statement under `enforce`, as on AWS |
 | DozePeek | — | doze extension: read-only full-queue inspection (no visibility/receive-count side effects) |
 
@@ -2580,11 +2580,14 @@ too.
   Making that the default would put a minute in every local test loop, so it is
   opt-in; turn it on to find the problem before the deploy. What it remembers is
   a name and a time, in memory, and a restart forgets it.
-- **A move task is finished when it is started.** AWS moves asynchronously, so a
-  test that asserts the moved messages straight after `StartMessageMoveTask`
-  passes here and is racy there. Here the status is `COMPLETED` (or `FAILED`
-  when a message had nowhere to return to), a cancel always finds a finished
-  task, and `MaxNumberOfMessagesPerSecond` is recorded and not applied.
+- **A move task is paced by the emulator, and lives in memory.** It starts
+  half a second after the call and moves at the rate asked for (500 a second
+  when none was), so a test that asserts the moved messages straight after
+  `StartMessageMoveTask` fails here as it is racy there. AWS says only that it
+  "optimizes the rate based on the queue message backlog", so those two numbers
+  are this emulator's choice. A running task is not written to the store: a
+  restart mid-move loses it, what had moved stays moved, and starting it again
+  is safe. A finished task is recorded and survives a restart.
 - **A receipt handle is the receive's**, as on AWS: a delete with the handle of
   an earlier receive succeeds and leaves the message, so the slow-worker bug
   (the timeout lapses, a second worker receives, the first deletes) shows up

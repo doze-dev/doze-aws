@@ -324,7 +324,7 @@ func TestAFinishedTasksEntryHasNoHandleAndNoInventedDestination(t *testing.T) {
 	f := newRedriveFixture(t, "dlq")
 	f.create("orders", redrivePolicyTo(f, "dlq"))
 	f.deadLetter("orders", "one")
-	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
+	if _, err := f.move(&awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
 		t.Fatal(err)
 	}
 	list, err := f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(f.arns["dlq"])})

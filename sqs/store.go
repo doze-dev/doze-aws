@@ -111,6 +111,8 @@ type store struct {
 	// strict turns on the 60-second rules (strict.go). Off by default.
 	strict bool
 	minute minuteRules
+	// moves is the move tasks that are running (move_task.go).
+	moves  moveTasks
 	notify *notifier
 	// attempts is what ReceiveRequestAttemptId matches a retry against. Empty
 	// until a FIFO receive carries one.

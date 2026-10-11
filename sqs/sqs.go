@@ -108,6 +108,9 @@ func (s *Server) Close() error {
 		// Waited on, not just signalled: a sweep inside a bolt transaction races
 		// the close below, and bolt panics on a closed DB.
 		<-s.done
+		// A move task running in the background is stopped before the store
+		// closes under it.
+		s.store.moves.stop()
 		err = s.store.db.Close()
 	})
 	return err

@@ -126,7 +126,7 @@ func TestMoveTaskTimestampIsInMilliseconds(t *testing.T) {
 	f.create("orders", redrivePolicyTo(f, "dlq"))
 	f.deadLetter("orders", "one")
 	before := time.Now().Add(-time.Minute).UnixMilli()
-	if _, err := f.c.StartMessageMoveTask(f.ctx, startMove(f.arns["dlq"])); err != nil {
+	if _, err := f.move(startMove(f.arns["dlq"])); err != nil {
 		t.Fatal(err)
 	}
 	list, err := f.c.ListMessageMoveTasks(f.ctx, listMoves(f.arns["dlq"]))

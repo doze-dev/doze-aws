@@ -13,8 +13,8 @@ bugs that touch a deploy.
 
 **Estimate:** S, two focused days, with the two items moved in from Lambda and
 CloudFormation. **Actual:** not timed, and the number would not be honest: the
-work was several times the estimate in volume. The plan listed 8 findings; 28
-were closed, and 18 of them were found by reading the service model's own
+work was several times the estimate in volume. The plan listed 8 findings; 29
+were closed, and 19 of them were found by reading the service model's own
 documentation after the first pass had written its limits from memory (SQS-11 to
 SQS-28: 1 MiB, fair queues, the whole Query wire, error codes, the move-task
 entries). **Re-estimate for the other fifteen services:** size each as one step
@@ -114,6 +114,7 @@ correct caller exactly as "more forgiving" breaks a deploy.
 | SQS-26 | P1 | **Closed** (`sqs/query_shape_test.go`). The model's constraint walk read a Query request as one element of each list and a flattened map as a list of pairs, so on the Query wire only the first batch entry was checked, no attribute was, and only one system-attribute name met its enum: a second entry with no body was refused whole on JSON and answered as one failed entry on Query. The request is now rendered whole, in the JSON body's shape, before the walk. | more forgiving | model: xmlName, xmlFlattened |
 | SQS-27 | P1 | **Closed** (`sqs/stale_handle_test.go`). A receipt handle was the message's, so a delete with an old one removed the message. The model: "you must use the ReceiptHandle from the most recent time you received the message. If you use an old ReceiptHandle, the request will succeed, but the message might not be deleted." The slow-worker double-processing bug was invisible locally. The receive count is now in the handle (already persisted in the message; nothing new is stored), and a delete with an earlier receive's handle succeeds and leaves the message. Handles minted before this carry no count and stay good. | more forgiving | model: DeleteMessage |
 | SQS-28 | P2 | **Closed, opt-in** (`sqs/strict_test.go`). The 60-second `QueueDeletedRecently` and `PurgeQueueInProgress` rules were unmodelled. They are now there behind `--sqs-strict` / `[sqs] strict = true` (`StackConfig.SQSStrict`), off by default, with the names and times held in memory only. | more forgiving, by default | model: DeleteQueue, PurgeQueue |
+| SQS-29 | P1 | **Closed** (`sqs/move_pacing_test.go`, `move_task_test.go`). A move task finished inside the call, so a test that asserted the moved messages straight after the start passed here and was racy on AWS; `RUNNING` was never seen, a cancel always failed, and the rate was a record. It is now a background task: `RUNNING` with a handle, a short start-up, the stated rate (credit-based, so a rate of 1 is one a second), one per queue, cancellable with the count moved, a restart mid-move loses the running task (memory-only by design; finished records persist), and Close stops it. | more forgiving | model: StartMessageMoveTask, ListMessageMoveTasks, CancelMessageMoveTask |
 
 
 **Moved into this stage from other services.** They keep their own ids, and
@@ -147,7 +148,7 @@ operations accepted, spelled as the API reference spells them) and
 `permission_test.go`, `fifo_attrs_test.go`, `move_task_test.go`,
 `policy_test.go`, `tags_test.go`, `visibility_rules_test.go`, and across a
 restart `persistence_sqs_test.go`. The numbers in this section were first
-written from memory; the corrections are SQS-11 to SQS-28 in section 4.
+written from memory; the corrections are SQS-11 to SQS-29 in section 4.
 
 **Queues**
 - [x] Name rules: 1 to 80, letters, digits, hyphen, underscore; `.fifo` only as
@@ -285,7 +286,7 @@ only when it was looked at.
 | Sqs-08 Send, Sqs-09 Send refused | matches | **design text is stale**: "exceeds MaximumMessageSize 262144" (now 1 048 576, and the real wording is "Message must be shorter than N bytes (the body and its attributes were M)") |
 | Sqs-10, Sqs-11 Consume | matches | untouched |
 | Sqs-14 Redrive confirm | **matches** | *Was:*  A dialog with the destination picked inside it ("Move all 3 messages back?", "Move them to", Cancel / Redrive). Here the picker is a select in the header and the confirm is one sentence. |
-| Sqs-15 Redrive done | **cannot match yet** (the one open board) | The design shows "Redriving → X · 2 moved so far" and a task that was seen running. A move here finishes inside the call, so that state never exists. It needs the asynchronous move task (the open item). |
+| Sqs-15 Redrive done | **matches** (move tasks are asynchronous since 2026-10-11; the board's running row renders and is tested) | *Was:* the design shows "Redriving → X · 2 moved so far" and a task that was seen running. A move here finishes inside the call, so that state never exists. It needs the asynchronous move task (the open item). |
 | Sqs-16 Confirms | **matches** | *Was:*  The design's confirms have bodies and "Keep it" buttons ("The queue and the 3 messages waiting in it are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." / "Every waiting and in-flight message is dropped. The queue and its settings stay." / "It is gone for good."). Here delete queue and purge are a question with no body. |
 | Sqs-17 Config | **matches** | *Was:*  Two columns in the design (settings left, "In this stack" and the queue policy right); one stacked column here. The Type row's sentence is missing. "In this stack" does not compute the six-times figure ("which here would be 180 s"). |
 | Sqs-18 Config edit | **matches** | *Was:*  "What changes" is a right-hand panel with the intro line "Only the settings you touched. Everything is shown in the units you would say aloud." and the board's name; here it is "What saving does" below the form. The live neighbour callout inside the form ("Shorter than the reader's timeout") is missing from the edit form: it is only on the read view. The "After receives" sentence ("With 3, a message that keeps coming back is set aside on its third receive") is missing on the edit form. The unit echo is not shown below 60 s ("20 seconds") or for zero ("none"). |
@@ -308,7 +309,7 @@ only when it was looked at.
 3. Confirm bodies and the verbs (delete queue, purge, delete message), and the redrive dialog with its picker.
 4. Two-column Configuration (settings / "In this stack" and the queue policy) and the right-hand "What changes" and "life of one message" panels.
 5. The life-of-a-message steps with their numbers, the dead-letter paragraph, the third FIFO sentence, the six-times figure, the Type sentence, the unit echo under a minute.
-6. Redriving → "N moved so far", which waits for the asynchronous move task.
+6. Redriving → "N moved so far": built with the asynchronous move task (SQS-29).
 
 ## 7. Tests to add
 
@@ -366,7 +367,7 @@ Every one of these is `doc` or `memory` today.
 
 On top of every box in the protocol.
 
-- [x] SQS-1 to SQS-28 each closed, with the test that failed first named beside it (section 4).
+- [x] SQS-1 to SQS-29 each closed, with the test that failed first named beside it (section 4).
 - [x] LAM-6 closed in the same commit as SQS-5: a trigger with batch size 20
       still receives, in receives of at most 10.
 - [x] The queue part of CFN-4 closed: a stack with a queue and an
@@ -381,10 +382,9 @@ On top of every box in the protocol.
 - [x] The attribute tier table in section 2 has no "?" left, and every C
       attribute reads as cosmetic in the create form and the Configuration tab.
 - [ ] All 21 boards implemented from the foundation's shell with no SQS-only
-      chrome, and each `new` item reads only the data named for it. **20 of 21
+      chrome, and each `new` item reads only the data named for it. **21 of 21
       (2026-10-11):** the board-by-board comparison in 6a found six differing in
-      shape and they were rebuilt and re-rendered; Sqs-15's "Redriving, N moved
-      so far" needs the asynchronous move task.
+      shape and they were rebuilt and re-rendered, and Sqs-15's "Redriving, N moved so far" waited on the asynchronous move task, which is now built.
 - [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
 - [x] The three confirms say only what the code does (delete queue, purge, delete message; and the redrive confirm, corrected).
 - [x] The reader check appears in both states and names the real function.

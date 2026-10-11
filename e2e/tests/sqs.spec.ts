@@ -290,10 +290,10 @@ test.describe('DLQ redrive', () => {
     await dialog.getByRole('button', { name: 'Redrive' }).click();
     await expect(dialog).toBeHidden();
 
-    // Moves are synchronous server-side (see sqs/store_ext.go), so the very
-    // next render of the DLQ's own peek already shows the completed task and
-    // an empty queue.
-    await expect(page.locator('#message-panel-wrap')).toContainText(/complete/i);
+    // A move is a background task (sqs/move_task.go): the panel first shows it
+    // running, as the design does, and then complete with the queue empty.
+    await expect(page.locator('#message-panel-wrap .mv-task')).toContainText(/Redriving|complete/i);
+    await expect(page.locator('#message-panel-wrap')).toContainText(/complete/i, { timeout: 20_000 });
     await expect(page.locator('#message-panel-wrap .empty')).toContainText('No visible messages');
 
     // The messages reappear in the source queue's peek. This is a fresh

@@ -223,8 +223,15 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   - **`--sqs-strict`** (off by default; `[sqs] strict = true`) refuses what SQS
     refuses for a minute after a delete or a purge: re-creating the name
     (`QueueDeletedRecently`) and a second purge (`PurgeQueueInProgress`).
-  - **Not simulated, and listed in the ledger:** asynchronous move tasks and the
-    rate they run at.
+  - **Move tasks are asynchronous.** A start answers with a handle and the task is
+    `RUNNING` while its messages move, at `MaxNumberOfMessagesPerSecond` (500 a
+    second when none is given) after half a second; `CancelMessageMoveTask`
+    stops it and says how many had moved; one task runs per queue at a time; a
+    finished task lists no handle. A test that asserted the moved messages
+    straight after the start passed here and was racy on AWS. The console's
+    redrive shows "Redriving, N moved so far" and then the result.
+  - **Not simulated, and listed in the ledger:** nothing a test can observe
+    depends on the rest (the in-flight limit, fair-queue fairness).
 - The ledger no longer says IAM defaults to `off`. It is `soft`.
 - Found by deploying with the real tools (`e2e/deploy/`, run on every push):
   - **Terraform's AWS provider** applies a 22-resource stack and plans no drift.

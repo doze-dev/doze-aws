@@ -112,121 +112,17 @@ func (s *store) DeadLetterSourceQueues(dlq string) ([]string, error) {
 	return out, err
 }
 
-// moveTask records one message move task.
-//
-// A local move happens inside one bbolt transaction, so it is COMPLETED the
-// moment it is started, or FAILED when some message could not be returned: a
-// message with no known origin (sent straight to the dead-letter queue) or
-// whose origin queue has been deleted. AWS moves asynchronously and can be
-// observed RUNNING; nothing here is ever in that state.
+// moveTask records one message move task (move_task.go runs them).
 type moveTask struct {
 	Handle        string `json:"handle"`
-	Status        string `json:"status"` // COMPLETED or FAILED
+	Status        string `json:"status"` // RUNNING in memory; COMPLETED, FAILED or CANCELLED once recorded
 	Source        string `json:"source"` // queue name
 	Destination   string `json:"destination,omitempty"`
 	Moved         int    `json:"moved"`
 	ToMove        int    `json:"to_move"`                  // what the source held when the task started
-	MaxPerSecond  int    `json:"max_per_second,omitempty"` // the rate asked for; a record, nothing is throttled
+	MaxPerSecond  int    `json:"max_per_second,omitempty"` // the rate asked for
 	FailureReason string `json:"failure_reason,omitempty"`
 	StartedAt     int64  `json:"started_at"` // unix seconds
-}
-
-// StartMessageMoveTask moves every message stored in source, synchronously — the
-// local equivalent of a DLQ redrive. AWS moves asynchronously with rate control;
-// locally the volumes are small enough that completing inline is deterministic.
-//
-// With a destination, everything goes there. Without one, each message goes
-// back to the queue it was dead-lettered from (its DeadLetterQueueSourceArn),
-// and a message with no origin, or whose origin queue is gone, stays where it
-// is and fails the task. The source has to be some queue's dead-letter queue.
-//
-// doc: the StartMessageMoveTask API reference.
-func (s *store) StartMessageMoveTask(source, dest string, perSecond int) (*moveTask, error) {
-	task := &moveTask{
-		Handle:       newID(),
-		Status:       "COMPLETED",
-		Source:       source,
-		Destination:  dest,
-		MaxPerSecond: perSecond,
-		StartedAt:    s.now().Unix(),
-	}
-	signalled := map[string]bool{}
-	err := s.db.Update(func(tx *bolt.Tx) error {
-		if _, err := s.getQueue(tx, source); err != nil {
-			return err
-		}
-		if dest != "" {
-			if _, err := s.getQueue(tx, dest); err != nil {
-				return err
-			}
-		}
-		if !s.isDeadLetterQueue(tx, source) {
-			return errInvalid("Value for parameter SourceArn is invalid. Reason: only the ARN of a dead-letter queue is accepted as the source of a move task.")
-		}
-		src := tx.Bucket(msgBucket(source))
-		if src == nil {
-			return s.recordMoveTask(tx, task)
-		}
-		type pending struct {
-			key    []byte
-			target string
-			m      message
-		}
-		var moves []pending
-		unplaced := 0
-		_ = src.ForEach(func(k, raw []byte) error {
-			var m message
-			if json.Unmarshal(raw, &m) != nil {
-				return nil
-			}
-			task.ToMove++
-			target := dest
-			if target == "" {
-				target = arnQueueName(m.SourceArn)
-			}
-			if target == "" {
-				unplaced++
-				return nil
-			}
-			if _, err := s.getQueue(tx, target); err != nil {
-				unplaced++ // the queue it came from has been deleted
-				return nil
-			}
-			moves = append(moves, pending{key: append([]byte(nil), k...), target: target, m: m})
-			return nil
-		})
-		for _, p := range moves {
-			dst, err := tx.CreateBucketIfNotExists(msgBucket(p.target))
-			if err != nil {
-				return err
-			}
-			seq, _ := dst.NextSequence()
-			moved := p.m
-			moved.Seq = seq
-			moved.ReceiveCount = 0
-			moved.VisibleAt = s.now().UnixNano()
-			// It is back where it came from: no longer a dead letter.
-			moved.SourceArn = ""
-			if err := putMessage(dst, &moved); err != nil {
-				return err
-			}
-			_ = src.Delete(p.key)
-			signalled[p.target] = true
-		}
-		task.Moved = len(moves)
-		if unplaced > 0 {
-			task.Status = "FAILED"
-			task.FailureReason = fmt.Sprintf("%d message(s) have no source queue to return to; they were left in the dead-letter queue", unplaced)
-		}
-		return s.recordMoveTask(tx, task)
-	})
-	if err != nil {
-		return nil, err
-	}
-	for q := range signalled {
-		s.notify.signal(q)
-	}
-	return task, nil
 }
 
 // isDeadLetterQueue reports whether some queue's redrive policy targets name.
@@ -269,6 +165,12 @@ func (s *store) ListMessageMoveTasks(source string, max int) ([]moveTask, error)
 		if _, err := s.getQueue(tx, source); err != nil {
 			return err
 		}
+		// What is running now is the newest there is.
+		var running string
+		if rt, ok := s.moves.runningFor(source); ok {
+			out = append(out, rt)
+			running = rt.Handle // its record may already be written
+		}
 		b := tx.Bucket(moveTasksBucket)
 		if b == nil {
 			return nil
@@ -276,23 +178,11 @@ func (s *store) ListMessageMoveTasks(source string, max int) ([]moveTask, error)
 		c := b.Cursor()
 		for k, raw := c.Last(); k != nil && len(out) < max; k, raw = c.Prev() {
 			var t moveTask
-			if json.Unmarshal(raw, &t) == nil && t.Source == source {
+			if json.Unmarshal(raw, &t) == nil && t.Source == source && t.Handle != running {
 				out = append(out, t)
 			}
 		}
 		return nil
 	})
 	return out, err
-}
-
-// CancelMessageMoveTask always fails locally: moves complete synchronously, so
-// by the time a cancel arrives the task is already terminal — which is exactly
-// what AWS reports for a finished task.
-func (s *store) CancelMessageMoveTask(handle string) error {
-	return &apiError{
-		Code:        "ResourceNotFoundException",
-		Status:      400,
-		Message:     "task is not active: local message move tasks complete synchronously",
-		SenderFault: true,
-	}
 }

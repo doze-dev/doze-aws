@@ -81,6 +81,10 @@ func moveTaskError(err error) *apiError {
 	return aerr
 }
 
+type cancelMoveResult struct {
+	Moved int64 `json:"ApproximateNumberOfMessagesMoved" xml:"ApproximateNumberOfMessagesMoved"`
+}
+
 type startMoveResult struct {
 	TaskHandle string `json:"TaskHandle" xml:"TaskHandle"`
 }
@@ -164,5 +168,9 @@ func hCancelMessageMoveTask(s *store, req *request) (any, *apiError) {
 	if req.p.str("TaskHandle") == "" {
 		return nil, errInvalid("TaskHandle is required")
 	}
-	return nil, asAPIError(s.CancelMessageMoveTask(req.p.str("TaskHandle")))
+	moved, err := s.CancelMessageMoveTask(req.p.str("TaskHandle"))
+	if err != nil {
+		return nil, asAPIError(err)
+	}
+	return cancelMoveResult{Moved: int64(moved)}, nil
 }
