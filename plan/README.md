@@ -47,6 +47,7 @@ things stood out in the first pass.
 | [00-foundation.md](00-foundation.md) | Work every service depends on. Done first, once. |
 | [01-protocol.md](01-protocol.md) | The seven steps every service goes through, the evidence standard, and the acceptance criteria common to all of them. |
 | [services/](services/) | One document per service, all with the same twelve sections: contract, where it stands, findings, what to check, console, tests, recording queue, owed to integration, acceptance criteria, files, and the pre-stage review. |
+| [03-shell-fidelity.md](03-shell-fidelity.md) | The shell and the cross-cutting boards (rail, top bar, list pane, key bar, the wire, the palette, States) rendered beside the page: 19 boards, 1 matches. Its build list and twelve decisions. The foundation's part C, reopened. |
 | [02-lessons-from-sqs.md](02-lessons-from-sqs.md) | The twelve mistakes SQS taught, as questions. Every service document answers them in its "Pre-stage review" before its stage starts. |
 | [90-integration.md](90-integration.md) | What is tested only once every service is individually done. |
 | [findings-overview.md](findings-overview.md) | The first cross-service list, from the design work. Superseded in detail by the service documents; kept for the story. |
@@ -75,7 +76,8 @@ Each row starts only when the row above has met its acceptance criteria.
 | 15 | [IAM and STS](services/iam.md) | 191 | 69 | 8 | 31 | 22 | 8 | 26 | about 35 |
 | 16 | [CloudFormation](services/cloudformation.md) | 90 | 68 | 8 | 38 | 16 | 6 | 21 | about 37 |
 | 17 | [Integration](90-integration.md) | – | – | | | | | – | 7 |
-| | **Total** | **1,376** | **951** | **91** | **446** | **289** | **125** | **352** | **≈ 270** |
+| 0b | [Shell, reopened](03-shell-fidelity.md) | – | 19 boards, 1 matches | | | | | 19 | about 36 |
+| | **Total** | **1,376** | **951** | **91** | **446** | **289** | **125** | **371** | **≈ 306** |
 
 "Operations" is every operation in the service's AWS model, whatever its tier.
 "Boards" is the service's page group in the console design.
@@ -84,8 +86,9 @@ Each row starts only when the row above has met its acceptance criteria.
 standard in [01-protocol.md](01-protocol.md), taken from each service
 document's own breakdown **as re-made on 2026-10-11**, after each document was
 read against its model and its boards were rendered. The first table said
-**about 113**; the same documents now say **about 270** (the range is wider:
-roughly 215 to 330), which is on the order of a year single-threaded. The
+**about 113**; the same documents now say **about 270** for the services and
+**about 36** for the shell (the range is wider: roughly 245 to 375 in all),
+which is on the order of fourteen months single-threaded. The
 earlier number was written before any stage had been run to this standard and
 before the models' own text was read. SQS was estimated at two days and took
 several times that, and every service document was found low by the same
@@ -140,9 +143,12 @@ files of the design's working copy. Nothing in the code or tests changed.
 **The console.** Of 331 boards in the fifteen page groups, **22 match**.
 The rest differ in shape or content, and none is "deliberately different"
 without a reason in writing. The design is the specification (D1) and the
-tables are its build lists. A rebuild of the shell itself (rail, top bar, list
-pane header, key bar) is its own item: [03-shell-fidelity.md](03-shell-fidelity.md)
-is written from the cross-cutting boards and is the foundation's.
+tables are its build lists. The shell itself (rail, top bar, list pane header,
+key bar, the wire page) was nobody's: [03-shell-fidelity.md](03-shell-fidelity.md)
+rendered the 19 cross-cutting boards beside the page and **1 matches**. The
+foundation's part C was ticked "landed" and is reopened, at about 36 days
+(28 to 45), with twelve decisions of yours in that document (the rail's default
+state comes first).
 
 **P0s the plan did not have** († marks the ones re-checked against the code
 after the review; the rest were reproduced by their reviewer against a built
@@ -197,9 +203,11 @@ scope):
 4. **Whether to split the 20-day-plus stages** into API, conformance and console
    sub-stages, each with its own acceptance boxes (S3, DynamoDB, Lambda,
    CloudWatch, IAM, CloudFormation). Recommended.
-5. **The shell**, see its document.
-6. **The estimate itself.** About 270 days single-threaded against the 113 the
-   plan carried. Some of that is the plan being low; some is that the
+5. **The shell**: the twelve decisions in [03-shell-fidelity.md](03-shell-fidelity.md);
+   the first is the rail's default state, which the design and the page have
+   never agreed on and nobody decided in writing.
+6. **The estimate itself.** About 306 days single-threaded (270 for the services, 36 for the shell)
+   against the 113 the plan carried. Some of that is the plan being low; some is that the
    standard is now checked. If the scope is to be cut, the cut belongs here,
    by service tier, not in the acceptance boxes.
 
