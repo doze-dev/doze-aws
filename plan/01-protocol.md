@@ -3,6 +3,16 @@
 Seven steps, in this order, for every service. The service documents in
 [services/](services/) fill in the specifics; this page is what they all share.
 
+**Before step 1 there is step 0: the pre-stage review.** Twelve questions, from
+what went wrong in SQS, are answered for the service in its own document
+([02-lessons-from-sqs.md](02-lessons-from-sqs.md)): read the model's text, the
+meaning of every optional parameter, the error codes, the direction of each
+gap, every wire, per-use tokens, asynchronous states, latency rules, what is
+persisted, the board's shape, the five teaching lines, and the icons. A stage
+does not start until the document's "Pre-stage review" section is complete and
+its fidelity table (6a) exists. All fifteen documents after SQS had it written
+on 2026-10-11, so a stage starts from true facts and a true comparison.
+
 ## The evidence standard
 
 Every statement about how AWS behaves carries where it came from. There are
@@ -98,6 +108,29 @@ ever putting a board next to a page; the board-by-board table (SQS document,
 deliberate deviation with its reason. A board whose facts are stale is corrected
 in the design, not copied into the console.
 
+**The design is followed, and it is not a compromise.** A board is the
+specification of the page's shape (columns, side panels, dialogs against
+inline), of its sentences, and of its states. "Close enough", "the same
+information in a list" and "the confirm asks the question" are the
+deviations that made SQS's console differ in six places. Two things are the
+exceptions, and only these:
+
+- **The per-service AWS icons stay.** `internal/console/static/aws/*.svg` are
+  kept in the rail, the list-pane header and the resource header. Where a board
+  draws a two-letter mark it is the board's placeholder for that icon, and the
+  page keeps the icon. Nothing else about a board's chrome is exempt.
+- **A board that is wrong about a fact is corrected, then built.** Wrong
+  against the model (262 144 for a limit of 1 048 576), or asserting an AWS
+  refusal that is `memory`: the design's working copy is edited, the change
+  is listed in the service document, and the page is built to the corrected
+  board. The design is not copied with its error, and it is not silently
+  ignored.
+
+A board that needs a behaviour that does not exist yet (a "Redriving, 2 moved
+so far" state needs an asynchronous operation) is recorded as "cannot match
+yet, waits on <finding id>" and is built in the same stage, after the finding.
+It does not become a static approximation.
+
 Gates: `go tool task test:e2e` with the route gate on (every route driven, or
 `e2e/route-gaps.txt` says why), and the accessibility sweep (`e2e/audit/crawl.ts`)
 clean on the service's pages.
@@ -164,8 +197,17 @@ ticked. "N/A" is allowed only with a sentence saying why.
 - [ ] Every board in the service's page group is implemented, or the document
       says which were dropped and why.
 - [ ] The document has a board-by-board fidelity table made from rendered
-      boards beside rendered pages, and no row says "differs" without a
-      decision beside it.
+      boards beside rendered pages (light, dark, and 900 wide for the main
+      detail page), and no row says "differs" without a decision beside it.
+- [ ] The per-service AWS icon is in the rail, the list pane and the resource
+      header. A board's two-letter mark is not drawn.
+- [ ] Every setting shown carries all five teaching lines: name and unit; the
+      value in words; what it does; range, default and **enforced or stored**;
+      the neighbour check with real numbers, live in the form.
+- [ ] Every operation that is asynchronous on AWS is decided: modelled with an
+      observable in-progress state and a rate, or immediate with the
+      difference listed. Every board that draws an in-progress state is built
+      on the first.
 - [ ] Each screen's refusal states show the real code and message, in the
       vocabulary from the foundation (Refused, Denied, Not implemented, Failed).
 - [ ] Every destructive action confirms, and each confirm's sentence is true.
@@ -223,3 +265,9 @@ two can be read side by side.
 10. **Acceptance criteria** — the service's own boxes, on top of the common ones.
 11. **Files and order of work** — the breakdown, and prior art where another
     emulator or AWS's own documents solved the same problem.
+12. **Pre-stage review** — L1 to L12 of
+    [02-lessons-from-sqs.md](02-lessons-from-sqs.md), each answered with its
+    finding ids or "checked, none" and what was read; the classes of mistake
+    this service is most at risk of. Section 6 also carries `6a. Design
+    fidelity, board by board`: board, verdict, what differs; where the design
+    is wrong; the build list in order.

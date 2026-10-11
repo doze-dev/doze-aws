@@ -52,6 +52,8 @@ is met and its test is named; "partly" says what is left.
 | B1 a claims table per service | landed | 17af7bb | `conformance/claims/README.md` is the format; `sqs.md` is the worked example (21 claims: 12 on existing scenarios, 9 to write). `TestEveryClaimNamesARealScenarioOrSaysItIsToBeWritten` holds every row; `task claims`, and the end of `task test:conformance`, print recorded / model / doc / memory / to-write per service. Today nothing is recorded: `conformance/snapshots` is empty until an account exists. |
 | C the shell kit | landed | 5c2bc52, 788f865 | `kit.html`: `res_header` (name, badges, the destructive action, copyable ids, fact strip) and `setting_field` (bounds, unit and default from `internal/settings`, plus one taught sentence). The narrow-window notice already existed at 768 px; it is the one notice, moved to 1024 px. SQS's header and its five number fields render through them; `TestFormConstraintsAreTheServicesOwnRange` now reads the rendered pages. The rest of the anatomy (rail, list pane, tabs, dock, neighbours strip, the five states, dark theme, palette create entries from the catalogue) already existed. `res_wire` is the wire underneath a resource: the app's calls to that one resource, newest first and live, loaded by the slot so a page's handler does not have to know about it (`TestTheWireUnderAResourceIsThatResourcesCalls`, and a browser test). SQS has it on every tab. The rule that SQS's pages are built entirely from the kit is stage 1's done-when. |
 | B3 the first baselines | landed | 1e93133 | `testdata/mutation.json` holds baselines for 31 packages: all of `internal/` that carries logic, and SQS, SNS, KMS, Kinesis, Secrets Manager, SSM, Logs, CloudWatch, EventBridge, STS, Step Functions (3.3 hours), IAM, DynamoDB and S3. Lambda, API Gateway and CloudFormation are recorded by `task mutate:record -- <pkg>` in their own stages, which is where the protocol's proof gates run it. A package of that size is a background job of an hour or more: Step Functions was 3.3 hours on this machine. |
+| B13 a Query request is validated whole | to build | – | Found in SQS (SQS-26). `FromQuery` keeps one element of each list; SNS, IAM, STS and CloudFormation call it directly. Before SNS's stage. |
+| B14 the fidelity pairs as a task | to build | – | SQS's board-beside-page comparison was done by hand; the pairs become one task per service. Before the next console stage. |
 
 ## A. Shared console behaviour
 
@@ -427,6 +429,16 @@ names its own bucket) run after it. **Wiring is per service, in its stage**,
 because the code and the wording are the service's: SQS-8, SNS-16, KIN-3,
 KMS-3, SM (policy), AGW-7.
 
+*Added 2026-10-11, from KMS's pre-stage review (KMS-35).* The checks above are
+what *most* resource policies share, not what every service's model accepts.
+KMS's model says a key-policy statement with no `Action` or no `Resource` is
+accepted and inert, so refusing it would be stricter than AWS and would break
+a correct caller (the direction of L4). The validator already returns a typed
+`Problem` and leaves the decision to the service; the rule is that **each
+service's stage decides, from its own model's text, which of the shared
+problems it refuses**, and says so in its pre-stage review. The wiring above
+is not "refuse every `Problem`".
+
 ### B10. The guard passes every condition key the ledger says it does — P0
 
 `internal/iamguard` hands resource-policy evaluation four context keys.
@@ -504,6 +516,80 @@ next change to the file has to pass through it: `TestApplyAdoptsWhatIsThereAndDe
 (an existing queue is converged in place, a live value stands without force
 and is overwritten with it, a resource the file does not mention is untouched).
 
+### B13. A Query request is validated whole — P1 *(added 2026-10-11, from SQS)*
+
+`modelcheck.FromQuery` rebuilds the Query protocol's flattened keys
+(`Tags.member.1.Key`, `Tags.member.2.Key`) into a tree, and keeps **one
+element** of every list: its comment says a constraint applies to every
+element, so the first is the rule. That is true of a rule and false of a
+request. Element 2 is never looked at, so a second batch entry with an
+over-long tag key, a bad name or a repeated id passes validation and reaches
+the handler. It is the same blind spot as the unflattened map in the same
+function, one level up. SQS found it (SQS-26) and walked its own request whole in
+`sqs/codec.go`; the shared function still drops the rest.
+
+Four services call it directly and have the bug until it is fixed once, here:
+SNS (`PublishBatch`, tags, `Attributes`), IAM (`Tags.member.N`, policy arns),
+STS (`Tags`, `PolicyArns`, `TransitiveTagKeys`) and CloudFormation
+(`Parameters.member.N`, `Tags.member.N`, `Capabilities`). CloudWatch is
+awsJson1_0 and does not use it.
+
+**Done when.** `FromQuery` keeps every element, in index order (a gap in the
+indices is kept, not collapsed), and the constraint walker checks each; a
+test per shape (scalar list, list of structures, map as `entry`, nested list
+in a list) puts the violation in element 2 and 3 and not in element 1; the
+Query services' rejection-parity cases are regenerated to put it there too
+(B8's "a case is built around an element that is valid on its own" is
+extended to a second element); SQS's own walk is removed if it is now the
+same thing. Lands before SNS's stage; IAM, STS and CloudFormation get it for
+free.
+
+### B14. The fidelity gate, as machinery — P1 *(added 2026-10-11, from SQS)*
+
+SQS was ticked "all 21 boards" with every test green and six boards differing
+in shape, because nothing in the repo could see a board. The protocol now
+requires a rendered board beside a rendered page (01-protocol, step 5), and
+that was done by hand, on a scratch Playwright spec, for every service's
+review. The part that is mechanical is made a tool so a stage does not
+reinvent it:
+
+- **To build:** `e2e/fidelity/` holds, per service, one spec that drives the real page into
+  each board's state (fixtures from `e2e/fixtures/api.ts`) and writes a
+  screenshot next to the board's own render, `<board>.board.png` and
+  `<board>.page.png`, at 1440 by 900, in both themes, and at 900 wide for the
+  main detail page.
+- The board list is read from the design working copy's `*.dc.html` names, so
+  a board with no driven state is a failing row, not a silent one.
+- The comparison itself stays a human reading of two pictures: the tool's job
+  is that the pictures exist and that their order of work is the service
+  document's build list. A pixel diff is not wanted: the boards use two-letter
+  marks where the pages use the AWS icons, and the data differs.
+- Icons: the per-service AWS icons in `internal/console/static/aws/*.svg` are
+  kept (rail, list-pane header, resource header). The tool masks the mark's
+  box so a placeholder against an icon never reads as a difference.
+
+**Done when.** `task console:fidelity -- <service>` writes the pairs for every
+board of the service and fails on a board with no driven state; SQS is the
+worked example and its pairs are the ones the 6a table was written from.
+
+## E. What the SQS stage taught the foundation *(2026-10-11)*
+
+The twelve mistakes are in [02-lessons-from-sqs.md](02-lessons-from-sqs.md);
+this is where they touch shared code and shared pieces rather than one service.
+
+| Lesson | What it does to the foundation |
+|---|---|
+| L1 read the model's documentation | **To build:** a `docs` subcommand on `cmd/dzaudit` that prints a service's documentation as plain text (operation, member, error shapes with their code and status), so the read is one command and not a JSON walk each time. Not a gate: a person reads it. The fifteen pre-stage reviews each wrote this dump by hand. |
+| L3 error codes are in the model | **To build:** the rejection-parity harness asserts a code today; it should take the expected code from the operation's `errors` list where the table has one (B8 already reads the member; the same data carries the code and the status each protocol gives it). |
+| L5 every wire | B13. And: a service on two protocols has one parity test per protocol, named so a protocol with none is visible in `go test -v`. |
+| L6 tokens are per use | Nothing shared. Each service's document names its tokens. |
+| L7 asynchronous is observable | The pattern is `sqs/move_task.go`: a started record, a worker that moves state at a stated rate, running state in memory, the finished record persisted, a stop on `Close`. Each service with an asynchronous operation copies the pattern and does not invent one. |
+| L8 latency rules are opt-in | One switch per service with a rule: `--<svc>-strict`, `[<svc>] strict`, `StackConfig.<Svc>Strict`, read through `config` the way `SQSStrict` is. The settings record carries it; the fidelity dialog lists what the switch changes. |
+| L9 state in memory unless it changes what the app sees | Said per piece of state in each service's document; the idle-reap fact (backends are reaped after `idle_timeout` with zero client connections, so a restart is routine) is the test. |
+| L10 the board is the spec | B14, and the "Console" acceptance box below. |
+| L11 five teaching lines | The kit's `setting_field` writes line four from the settings record, "enforced" or "stored" included, and takes a live neighbour callout. Already built; every form row uses it. |
+| L12 icons | The AWS icons stay. Stated once here so no service's stage redraws the rail or a header with a board's two-letter mark. |
+
 ## C. The console shell
 
 The "One anatomy" page of the design. Built once, used by every service page.
@@ -537,6 +623,10 @@ no service-specific chrome, and the accessibility sweep is clean on them.
 
 Status at the end of the first pass (2026-10-10). A box is ticked only when the
 criterion is met as written; the rest say what is left and why.
+
+- [ ] B13 (a Query request is validated whole) and B14 (the fidelity pairs as a
+      task), added 2026-10-11 from the SQS stage. B13 lands before SNS's
+      stage; B14 before the first console stage after SQS's.
 
 - [~] A1 to A18 each meet their "done when", with the test named. **Met:** A1,
       A2, A3, A4, A5, A6, A7, A9, A10, A11, A12, A13, A14, A16, A18. **Partly:**
