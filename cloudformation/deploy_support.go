@@ -99,9 +99,11 @@ func (s *Server) fetchS3(bucket, key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Sign the scope so the gateway routes to S3 rather than falling back.
+	// Sign the scope so the gateway routes to S3 rather than falling back, and
+	// to the S3 of this instance's region: the scope is what a router of
+	// regions reads.
 	req.Header.Set("Authorization",
-		"AWS4-HMAC-SHA256 Credential=test/20240101/us-east-1/s3/aws4_request, SignedHeaders=host, Signature=x")
+		"AWS4-HMAC-SHA256 Credential=test/20240101/"+s.id.RegionName()+"/s3/aws4_request, SignedHeaders=host, Signature=x")
 	rec := &captureWriter{header: http.Header{}}
 	s.gateway.ServeHTTP(rec, req)
 	if rec.status != 0 && rec.status != http.StatusOK {

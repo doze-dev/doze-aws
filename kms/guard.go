@@ -64,7 +64,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, action str
 		}
 		policy := k.Policy
 		if policy == "" {
-			policy = defaultKeyPolicy
+			policy = s.defaultKeyPolicy()
 		}
 		var docs []*iampolicy.Document
 		if doc, err := iampolicy.Parse(policy); err == nil {

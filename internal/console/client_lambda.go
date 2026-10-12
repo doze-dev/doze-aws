@@ -307,7 +307,7 @@ type CreateFunctionOpts struct {
 func (b *backend) CreateFunction(ctx context.Context, o CreateFunctionOpts) error {
 	in := map[string]any{
 		"FunctionName": o.Name, "Runtime": o.Runtime, "Handler": o.Handler,
-		"Role": "arn:aws:iam::000000000000:role/console",
+		"Role": b.id.GlobalARN("iam", "role/console"),
 		"Code": map[string]string{"S3Bucket": "_local_", "S3Key": o.Code},
 	}
 	if o.Timeout > 0 {

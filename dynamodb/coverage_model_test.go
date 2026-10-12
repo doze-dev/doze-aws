@@ -20,6 +20,7 @@ func TestEveryModelOperationIsAccountedFor(t *testing.T) {
 		Ops: ops,
 		Tables: []dozetest.Table{
 			dozetest.Table{Name: "handlers", Ops: dozetest.Names(handlers)},
+			dozetest.Table{Name: "requestHandlers", Ops: dozetest.Names(requestHandlers)},
 			dozetest.Table{Name: "stubActions", Ops: dozetest.Names(stubActions)},
 		},
 	})

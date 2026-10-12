@@ -23,7 +23,7 @@ func (c *Console) s3Presign(w http.ResponseWriter, r *http.Request) {
 	}
 	// The browser's own host, with no invented fallback — a presigned link to
 	// an address nothing binds is worse than a short one.
-	link := PresignURL(r.Host, bucket, key, ttl)
+	link := c.be.PresignURL(r.Host, bucket, key, ttl)
 	c.partial(w, "s3_share_link", map[string]any{"URL": link, "TTL": ttl.String()})
 }
 

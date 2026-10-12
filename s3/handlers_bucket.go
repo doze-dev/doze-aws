@@ -67,14 +67,15 @@ func (s *Server) getBucketLocation(w http.ResponseWriter, bucket string) *awshtt
 	if _, err := s.store.GetBucket(bucket); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	// us-east-1 renders as an empty LocationConstraint, the historical quirk
-	// SDKs expect.
+	// The Region the bucket resides in, which is this instance's; us-east-1
+	// renders as an empty LocationConstraint. It was empty always, so a bucket
+	// of an instance in any other region claimed to be in us-east-1.
 	type result struct {
 		XMLName xml.Name `xml:"LocationConstraint"`
 		XMLNS   string   `xml:"xmlns,attr"`
 		Value   string   `xml:",chardata"`
 	}
-	writeXML(w, 200, result{XMLNS: s3NS})
+	writeXML(w, 200, result{XMLNS: s3NS, Value: locationConstraint(s.id.RegionName())})
 	return nil
 }
 

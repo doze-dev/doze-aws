@@ -117,6 +117,15 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 			want:   "arn:aws:iam::" + testAccount + ":user/deploy",
 		},
 		{
+			// The topic's attributes carry the account three times over: the
+			// ARN, the Owner, and the default policy's SourceOwner condition.
+			svc:    "sns",
+			create: [2]string{"", `Action=CreateTopic&Name=news&Version=2010-03-31`},
+			read: [2]string{"", `Action=GetTopicAttributes&Version=2010-03-31&TopicArn=arn:aws:sns:` +
+				testRegion + `:` + testAccount + `:news`},
+			want: "<value>arn:aws:sns:" + testRegion + ":" + testAccount + ":news</value>",
+		},
+		{
 			svc: "stepfunctions",
 			create: [2]string{"AWSStepFunctions.CreateStateMachine",
 				`{"name":"pipeline","roleArn":"arn:aws:iam::` + testAccount + `:role/sfn",` +

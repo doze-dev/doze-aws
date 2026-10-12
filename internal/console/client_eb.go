@@ -383,10 +383,13 @@ func (b *backend) ListReplays(ctx context.Context) ([]EBReplay, error) {
 	return reps, nil
 }
 
-// archiveARN builds an archive ARN from its name.
-func archiveARN(name string) string {
-	return "arn:aws:events:us-east-1:000000000000:archive/" + name
-}
+// archiveARN and busARN name an archive and a bus of this instance. They are
+// what the console sends to say which one it means, so they have to be the ARNs
+// the service mints: an archive created on a bus ARN in another account watches
+// a bus that is not there.
+func (b *backend) archiveARN(name string) string { return b.id.ARN("events", "archive/"+name) }
+
+func (b *backend) busARN(name string) string { return b.id.ARN("events", "event-bus/"+name) }
 
 // prettyJSON re-indents a compact JSON string for display; non-JSON passes through.
 func prettyJSON(s string) string {

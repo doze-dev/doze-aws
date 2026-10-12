@@ -460,7 +460,7 @@ func (s *Server) configView(f *function) map[string]any {
 		"FunctionArn":      f.ARN(),
 		"Runtime":          f.Runtime,
 		"Handler":          f.Handler,
-		"Role":             orStr(f.Role, "arn:aws:iam::000000000000:role/lambda-role"),
+		"Role":             orStr(f.Role, s.id.GlobalARN("iam", "role/lambda-role")),
 		"Description":      f.Description,
 		"Timeout":          f.Timeout,
 		"MemorySize":       f.MemorySize,

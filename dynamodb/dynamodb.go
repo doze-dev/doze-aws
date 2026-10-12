@@ -138,6 +138,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch prefix {
 	case "DynamoDB_20120810":
 		h = handlers[action]
+		if rh := requestHandlers[action]; rh != nil {
+			h = func(s *Server, _ []byte) (any, *awshttp.APIError) { return rh(s, r) }
+		}
 	case "DynamoDBStreams_20120810":
 		h = streamHandlers[action]
 	}

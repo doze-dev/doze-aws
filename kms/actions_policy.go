@@ -16,7 +16,7 @@ func (s *Server) getKeyPolicy(p map[string]any) (any, *awshttp.APIError) {
 	}
 	policy := k.Policy
 	if policy == "" {
-		policy = defaultKeyPolicy
+		policy = s.defaultKeyPolicy()
 	}
 	return map[string]any{"Policy": policy}, nil
 }
@@ -41,4 +41,12 @@ func (s *Server) listKeyPolicies(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"PolicyNames": []string{"default"}, "Truncated": false}, nil
 }
 
-const defaultKeyPolicy = `{"Version":"2012-10-17","Id":"key-default-1","Statement":[{"Sid":"Enable IAM policies","Effect":"Allow","Principal":{"AWS":"arn:aws:iam::000000000000:root"},"Action":"kms:*","Resource":"*"}]}`
+// defaultKeyPolicy is the policy of a key that was given none: the root of the
+// account that owns the key may do everything, which hands the decision to that
+// account's IAM policies. It is built for the instance's account. Written with
+// the default account, a key made under any other was closed to its own root
+// from the moment it existed.
+func (s *Server) defaultKeyPolicy() string {
+	return `{"Version":"2012-10-17","Id":"key-default-1","Statement":[{"Sid":"Enable IAM policies","Effect":"Allow","Principal":{"AWS":"` +
+		s.id.GlobalARN("iam", "root") + `"},"Action":"kms:*","Resource":"*"}]}`
+}

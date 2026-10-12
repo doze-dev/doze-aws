@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-sdk/engine"
 )
@@ -179,7 +180,12 @@ type hclStateMachine struct {
 // defaultStateMachineRole is what CreateStateMachine is given when a block
 // names no role: the API refuses a missing roleArn, and there is no IAM in
 // front of a local execution for the role to matter to.
-const defaultStateMachineRole = "arn:aws:iam::000000000000:role/stepfunctions"
+//
+// It is a role in the account the module's stack runs as, which is the default
+// one and cannot be configured (see Converge). Asked of awsident and not written
+// out, so that the day the module takes an account this is one of the places
+// the compiler leads to.
+var defaultStateMachineRole = awsident.Default().GlobalARN("iam", "role/stepfunctions")
 
 // DecodeConfig implements engine.ConfigDecoder: decode the nested blocks and
 // convert them into the provision shape doze-aws's Apply converges.

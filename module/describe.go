@@ -1,9 +1,16 @@
 package aws
 
-import "github.com/doze-dev/doze-sdk/engine"
+import (
+	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-sdk/engine"
+)
 
 // Describe implements engine.Describer: the catalog metadata for the aws
 // engine. Versionless — the whole doze-aws stack ships inside the plugin.
+//
+// The example's ARN and queue URL are spliced from awsident: they name the
+// identity the module's stack runs as, so that a reader who copies the example
+// copies something this instance will answer to.
 func (Driver) Describe() engine.Description {
 	return engine.Description{
 		Title:        "AWS",
@@ -51,14 +58,14 @@ func (Driver) Describe() engine.Description {
         "States": {
           "Resize": {
             "Type": "Task",
-            "Resource": "arn:aws:lambda:us-east-1:000000000000:function:resize",
+            "Resource": "` + awsident.Default().ARN("lambda", "function:resize") + `",
             "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2}],
             "Next": "Notify"
           },
           "Notify": {
             "Type": "Task",
             "Resource": "arn:aws:states:::sqs:sendMessage",
-            "Parameters": {"QueueUrl": "http://localhost:4566/000000000000/emails", "MessageBody.$": "$"},
+            "Parameters": {"QueueUrl": "http://localhost:4566/` + awsident.AccountID + `/emails", "MessageBody.$": "$"},
             "End": true
           }
         }

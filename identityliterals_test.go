@@ -40,6 +40,7 @@ var notIdentity = map[string]string{
 	"internal/peercall/peercall.go":  "the same shard id, as the peer name for it",
 	"internal/lambdaruntime/util.go": "the all-zero UUID returned when the system cannot make a random one",
 	"cmd/dzaudit/iam.go":             "the host of AWS's own service reference, a us-east-1 endpoint",
+	"s3/location.go":                 "the one Region GetBucketLocation answers as null, by the model's LocationConstraint text; compared with the instance's region, never minted from",
 }
 
 func TestNoIdentityIsWrittenIntoCode(t *testing.T) {
@@ -57,10 +58,10 @@ func TestNoIdentityIsWrittenIntoCode(t *testing.T) {
 			if skipDirs[d.Name()] && path != "." {
 				return fs.SkipDir
 			}
-			// A nested module (module/, the doze plugin) is built and checked on its own.
-			if _, serr := os.Stat(filepath.Join(path, "go.mod")); path != "." && serr == nil {
-				return fs.SkipDir
-			}
+			// A nested module (module/, the doze plugin) is walked like the
+			// rest. It is built on its own, but it is read here: it was skipped
+			// once, as another module's business, and held a role ARN in the
+			// default account for exactly that long.
 			return nil
 		}
 		// The console's templates are code that prints an identity: a literal

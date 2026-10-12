@@ -15,15 +15,20 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Conventional local-AWS identity. These match the values LocalStack uses, so
-// tools and copy-pasted snippets that assume them keep working.
+// tools and copy-pasted snippets that assume them keep working. They are
+// doze-aws's own defaults under this package's names and not a second copy of
+// them: the module's stack runs as awsident.Default(), and a second copy is a
+// value that goes on saying the old thing when the first one changes.
 const (
-	Region          = "us-east-1"
-	AccountID       = "000000000000"
-	AccessKeyID     = "test"
-	SecretAccessKey = "test"
+	Region          = awsident.Region
+	AccountID       = awsident.AccountID
+	AccessKeyID     = awsident.AccessKeyID
+	SecretAccessKey = awsident.SecretAccessKey
 
 	// HealthPath is the readiness endpoint Serve always mounts and WaitReady
 	// polls; it is namespaced so it can never collide with a real AWS route.

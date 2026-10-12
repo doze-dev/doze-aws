@@ -4,6 +4,7 @@ package dynamodb
 
 import (
 	"encoding/json"
+	"net/http"
 	"sort"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -132,7 +133,6 @@ var handlers = map[string]handler{
 	"UntagResource":         (*Server).untagResource,
 	"ListTagsOfResource":    (*Server).listTags,
 	"DescribeLimits":        (*Server).describeLimits,
-	"DescribeEndpoints":     (*Server).describeEndpoints,
 	// Tier C round-trips.
 	"DescribeContinuousBackups":   (*Server).describeContinuousBackups,
 	"UpdateContinuousBackups":     (*Server).describeContinuousBackups,
@@ -538,9 +538,21 @@ func (s *Server) describeLimits([]byte) (any, *awshttp.APIError) {
 	}, nil
 }
 
-func (s *Server) describeEndpoints([]byte) (any, *awshttp.APIError) {
+// requestHandlers are the actions whose answer depends on the request and not
+// only on its body. They are dispatched like the rest: validated first, logged
+// after.
+var requestHandlers = map[string]func(*Server, *http.Request) (any, *awshttp.APIError){
+	"DescribeEndpoints": (*Server).describeEndpoints,
+}
+
+// describeEndpoints "returns the regional endpoint information": the address
+// a client that asks is to send its next requests to. Here that is the address
+// this request arrived on, whatever name or port the caller reached the
+// instance by. It answered AWS's own hostname for us-east-1, which sent a
+// client that honoured it to the real service.
+func (s *Server) describeEndpoints(r *http.Request) (any, *awshttp.APIError) {
 	return map[string]any{
-		"Endpoints": []map[string]any{{"Address": "dynamodb.us-east-1.amazonaws.com", "CachePeriodInMinutes": 1440}},
+		"Endpoints": []map[string]any{{"Address": r.Host, "CachePeriodInMinutes": 1440}},
 	}, nil
 }
 

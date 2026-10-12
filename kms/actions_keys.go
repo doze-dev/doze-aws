@@ -33,7 +33,7 @@ type keyMetadata struct {
 
 func metadataFor(k *key) keyMetadata {
 	md := keyMetadata{
-		AWSAccountId:          "000000000000",
+		AWSAccountId:          k.id.Account(),
 		KeyId:                 k.ID,
 		Arn:                   k.ARN(),
 		CreationDate:          float64(k.Created),

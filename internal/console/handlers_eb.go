@@ -59,7 +59,7 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, resourceNotFound("Event bus "+bus+" does not exist."))
 		return
 	}
-	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
+	arcs, _ := c.be.ListArchives(r.Context(), c.be.busARN(bus))
 	reps, _ := c.be.ListReplays(r.Context())
 	// Tabs, like every other detail page. Everything used to render at once,
 	// which is why this page felt unlike the rest of the console: six panels
@@ -69,7 +69,7 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		tab = "rules"
 	}
 	c.render(w, r, "eb_bus", map[string]any{
-		"Bus": bus, "Rules": rules, "BusARN": busARN(bus), "List": buses,
+		"Bus": bus, "Rules": rules, "BusARN": c.be.busARN(bus), "List": buses,
 		"Archives": arcs, "Replays": reps, "Tab": tab, "Title": bus + " · EventBridge",
 	})
 }
@@ -77,14 +77,14 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 // ebArchivesPartial re-renders the archives panel after a mutation, with the
 // replays panel out of band — the two live in different columns now.
 func (c *Console) ebArchivesPartial(w http.ResponseWriter, r *http.Request, bus string) {
-	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
+	arcs, _ := c.be.ListArchives(r.Context(), c.be.busARN(bus))
 	reps, _ := c.be.ListReplays(r.Context())
-	c.partial(w, "eb_archives_swap", map[string]any{"Bus": bus, "BusARN": busARN(bus), "Archives": arcs, "Replays": reps})
+	c.partial(w, "eb_archives_swap", map[string]any{"Bus": bus, "BusARN": c.be.busARN(bus), "Archives": arcs, "Replays": reps})
 }
 
 func (c *Console) ebCreateArchive(w http.ResponseWriter, r *http.Request) {
 	bus := param(r, "bus")
-	if err := c.be.CreateArchive(r.Context(), r.FormValue("name"), busARN(bus), r.FormValue("pattern")); err != nil {
+	if err := c.be.CreateArchive(r.Context(), r.FormValue("name"), c.be.busARN(bus), r.FormValue("pattern")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -110,7 +110,7 @@ func (c *Console) ebReplay(w http.ResponseWriter, r *http.Request) {
 	name := arc + "-replay-" + shortID(arc+time.Now().String())
 	start := int64(946684800) // 2000-01-01, before any local event
 	end := time.Now().Add(time.Hour).Unix()
-	if err := c.be.StartReplay(r.Context(), name, archiveARN(arc), busARN(bus), start, end); err != nil {
+	if err := c.be.StartReplay(r.Context(), name, c.be.archiveARN(arc), c.be.busARN(bus), start, end); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -174,7 +174,7 @@ func (c *Console) ebMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	event, _ := json.Marshal(map[string]any{
-		"id": "console-test", "account": "000000000000", "region": "us-east-1",
+		"id": "console-test", "account": c.be.id.Account(), "region": c.be.id.RegionName(),
 		"time": time.Now().UTC().Format(time.RFC3339), "resources": []string{},
 		"source": r.FormValue("source"), "detail-type": r.FormValue("detail_type"),
 		"detail": json.RawMessage(detail),
@@ -279,10 +279,6 @@ func (c *Console) ebRemoveTarget(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Target removed")
 	c.ebTargetsPartial(w, r, bus, name)
-}
-
-func busARN(name string) string {
-	return "arn:aws:events:us-east-1:000000000000:event-bus/" + name
 }
 
 // shortID derives a small stable id from a string (for target ids).

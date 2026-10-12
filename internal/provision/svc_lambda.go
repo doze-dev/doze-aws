@@ -79,7 +79,7 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 			"FunctionName": name,
 			"Runtime":      f.Runtime,
 			"Handler":      f.Handler,
-			"Role":         "arn:aws:iam::" + "000000000000" + ":role/stackfile",
+			"Role":         c.id.GlobalARN("iam", "role/stackfile"),
 		}
 		if f.Timeout > 0 {
 			cfg["Timeout"] = f.Timeout

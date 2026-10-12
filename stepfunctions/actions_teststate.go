@@ -201,7 +201,7 @@ func testStateOutput(def *asl.Definition, stateName string, e *execution, level 
 	if level == "INFO" {
 		return out
 	}
-	ins := asl.Inspect(def, stateName, json.RawMessage(e.Input), result, e.Exec.StartTime)
+	ins := asl.Inspect(def, stateName, e.Exec, result)
 	data := map[string]any{}
 	put := func(k string, v json.RawMessage) {
 		if v != nil {

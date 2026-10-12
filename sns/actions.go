@@ -258,7 +258,7 @@ func (srv *Server) subscriptionList(topic string) (any, *apiError) {
 			arn = "PendingConfirmation"
 		}
 		res.Subscriptions.Member = append(res.Subscriptions.Member, subMember{
-			SubscriptionArn: arn, Owner: "000000000000", Protocol: s.Protocol,
+			SubscriptionArn: arn, Owner: srv.id.Account(), Protocol: s.Protocol,
 			Endpoint: s.Endpoint, TopicArn: s.TopicARN,
 		})
 	}

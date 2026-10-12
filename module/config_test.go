@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // testBody extracts the aws block's driver body from a full
@@ -68,8 +70,10 @@ aws "local" {
 	if m.Definition != `{"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}` {
 		t.Errorf("definition not carried verbatim: %q", m.Definition)
 	}
-	if m.RoleARN != defaultStateMachineRole {
-		t.Errorf("role should default when unset, got %q", m.RoleARN)
+	// Spelled out, and from the identity Converge applies under: a default that
+	// is compared only with itself would pass whatever account it named.
+	if want := awsident.Default().GlobalARN("iam", "role/stepfunctions"); m.RoleARN != want {
+		t.Errorf("role should default to %q when unset, got %q", want, m.RoleARN)
 	}
 	if m.Type != "STANDARD" {
 		t.Errorf("type should be upper-cased, got %q", m.Type)

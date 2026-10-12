@@ -220,7 +220,7 @@ func (s *Server) listMappings(w http.ResponseWriter, r *http.Request) *awshttp.A
 		if wantSrc != "" && maps[i].EventSourceArn != wantSrc {
 			continue
 		}
-		views = append(views, mappingView(&maps[i]))
+		views = append(views, s.mappingView(&maps[i]))
 	}
 	writeJSON(w, 200, map[string]any{"EventSourceMappings": views})
 	return nil
@@ -231,7 +231,7 @@ func (s *Server) getMapping(w http.ResponseWriter, uuid string) *awshttp.APIErro
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 200, mappingView(m))
+	writeJSON(w, 200, s.mappingView(m))
 	return nil
 }
 
@@ -239,7 +239,7 @@ func (s *Server) deleteMapping(w http.ResponseWriter, uuid string) *awshttp.APIE
 	s.stopPoller(uuid)
 	s.store.DeleteMapping(uuid)
 	m := &eventSourceMapping{UUID: uuid, State: "Deleting"}
-	writeJSON(w, 202, mappingView(m))
+	writeJSON(w, 202, s.mappingView(m))
 	return nil
 }
 
@@ -288,7 +288,7 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	if enabled {
 		s.startPoller(m)
 	}
-	writeJSON(w, 202, mappingView(m))
+	writeJSON(w, 202, s.mappingView(m))
 	return nil
 }
 
@@ -316,14 +316,14 @@ func (s *Server) updateMapping(w http.ResponseWriter, r *http.Request, uuid stri
 	if m.Enabled {
 		s.startPoller(m)
 	}
-	writeJSON(w, 202, mappingView(m))
+	writeJSON(w, 202, s.mappingView(m))
 	return nil
 }
 
-func mappingView(m *eventSourceMapping) map[string]any {
+func (s *Server) mappingView(m *eventSourceMapping) map[string]any {
 	return map[string]any{
 		"UUID":                  m.UUID,
-		"FunctionArn":           "arn:aws:lambda:us-east-1:000000000000:function:" + m.FunctionName,
+		"FunctionArn":           s.id.ARN("lambda", "function:"+m.FunctionName),
 		"EventSourceArn":        m.EventSourceArn,
 		"BatchSize":             m.BatchSize,
 		"State":                 m.State,
@@ -514,7 +514,7 @@ func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 				"body":           msg.Body,
 				"eventSource":    "aws:sqs",
 				"eventSourceARN": m.EventSourceArn,
-				"awsRegion":      "us-east-1",
+				"awsRegion":      s.id.RegionName(),
 			})
 		}
 		payload, _ := json.Marshal(map[string]any{"Records": records})

@@ -367,11 +367,15 @@ func (b *backend) ObjectVersions(ctx context.Context, bucket, key string) ([]Obj
 // PresignURL builds a share link the gateway accepts: doze-aws parses the
 // SigV4 presigned form without verifying the signature, but DOES enforce the
 // expiry — so the link genuinely stops working when it says it will.
-func PresignURL(host, bucket, key string, ttl time.Duration) string {
+//
+// The credential scope names this instance's region. It is not decoration: the
+// endpoint serves each region from its own stack and picks by the scope, so a
+// link scoped to another region asks a stack that does not hold the bucket.
+func (b *backend) PresignURL(host, bucket, key string, ttl time.Duration) string {
 	now := time.Now().UTC()
 	q := url.Values{}
 	q.Set("X-Amz-Algorithm", "AWS4-HMAC-SHA256")
-	q.Set("X-Amz-Credential", "test/"+now.Format("20060102")+"/us-east-1/s3/aws4_request")
+	q.Set("X-Amz-Credential", "test/"+now.Format("20060102")+"/"+b.id.RegionName()+"/s3/aws4_request")
 	q.Set("X-Amz-Date", now.Format("20060102T150405Z"))
 	q.Set("X-Amz-Expires", strconv.Itoa(int(ttl.Seconds())))
 	q.Set("X-Amz-SignedHeaders", "host")
