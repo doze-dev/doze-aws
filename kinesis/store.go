@@ -25,7 +25,10 @@ const (
 	maxRetentionHours = 8760 // 365 days
 	maxRecordSize     = 1 << 20
 	maxPutRecords     = 500
-	maxGetRecords     = 10000
+	// maxPutBytes is the most one PutRecords request carries: data and
+	// partition keys, all records together (10 MiB).
+	maxPutBytes   = 10 << 20
+	maxGetRecords = 10000
 	// maxGetBytes caps one GetRecords response the way AWS does (10 MiB).
 	maxGetBytes = 10 << 20
 
@@ -374,6 +377,16 @@ func (s *store) Put(stream string, entries []putEntry) ([]putResult, error) {
 	if len(entries) > maxPutRecords {
 		return nil, errInvalid("a PutRecords request supports at most %d records", maxPutRecords)
 	}
+	// PutRecords, in the model's words: "up to a limit of 10 MiB for the
+	// entire request, including partition keys". A single record cannot reach
+	// it (its own limit is lower), so this is a rule about a batch.
+	total := 0
+	for _, e := range entries {
+		total += len(e.Data) + len(e.PartitionKey)
+	}
+	if total > maxPutBytes {
+		return nil, errInvalid("the records of this request are %d bytes with their partition keys, over the %d byte limit for one request", total, maxPutBytes)
+	}
 	results := make([]putResult, len(entries))
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, stream)
@@ -388,8 +401,14 @@ func (s *store) Put(stream string, entries []putEntry) ([]putResult, error) {
 			if len(e.PartitionKey) > 256 {
 				return errInvalid("record %d: PartitionKey may be at most 256 characters", i)
 			}
-			if len(e.Data) > maxRecordSize {
-				return errInvalid("record %d: data of %d bytes exceeds the %d byte limit", i, len(e.Data), maxRecordSize)
+			// The record is the data and its partition key together. The
+			// model's words on Data: "When the data blob (the payload before
+			// base64-encoding) is added to the partition key size, the total
+			// size must not exceed the maximum record size". Only the data
+			// was measured, so a record was accepted up to 256 bytes over.
+			if size := len(e.Data) + len(e.PartitionKey); size > maxRecordSize {
+				return errInvalid("record %d: %d bytes of data and a %d byte partition key are %d bytes, over the stream's maximum record size of %d",
+					i, len(e.Data), len(e.PartitionKey), size, maxRecordSize)
 			}
 			sh, err := shardFor(st, e.PartitionKey, e.ExplicitHashKey)
 			if err != nil {
