@@ -58,7 +58,7 @@ func main() {
 		// which is the one CI actually runs weekly, and `routes`. A tool whose
 		// own usage under-lists it is a tool whose commands get rediscovered by
 		// grep.
-		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|shapes|ops|iam|summary|coverage] [flags] <service>")
+		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|shapes|ops|iam|docs|summary|coverage] [flags] <service>")
 		os.Exit(2)
 	}
 	// The subcommand comes first, so flags are parsed from what follows it —
@@ -93,6 +93,9 @@ func run(args []string, cache, opFilter string) error {
 	m, err := load(args[1], cache)
 	if err != nil {
 		return err
+	}
+	if cmd == "docs" {
+		return emitDocs(os.Stdout, m, opFilter)
 	}
 	found := m.audit(opFilter)
 	switch cmd {

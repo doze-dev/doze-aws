@@ -31,6 +31,7 @@ type shape struct {
 	Value   *member                    `json:"value"`  // map value
 	Input   *ref                       `json:"input"`
 	Output  *ref                       `json:"output"`
+	Errors  []ref                      `json:"errors"` // an operation's own
 	Traits  map[string]json.RawMessage `json:"traits"`
 
 	// A service reaches its operations two ways: directly, and through
