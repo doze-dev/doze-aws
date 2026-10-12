@@ -637,10 +637,13 @@ func (p params) asMap() map[string]any {
 				}
 			}
 		}
-		// The generic walk keeps one element of a list and leaves a flattened
-		// map as a list of pairs, which would check the first batch entry and
-		// none of the attributes. Render the members whole, in the shape the
-		// JSON protocol's body already has, so one table judges both wires.
+		// The generic walk leaves a flattened map as a list of pairs, because
+		// SQS spells its maps without the `.entry.` marker (Tag.N, Attribute.N),
+		// which would check none of the attributes. Render the members whole,
+		// in the shape the JSON protocol's body already has, so one table
+		// judges both wires. (The walk kept one element of each list when this
+		// was written; it keeps them all since foundation B13, so the list half
+		// below now only applies the wire names.)
 		p.queryShapes(m)
 		return m
 	}
