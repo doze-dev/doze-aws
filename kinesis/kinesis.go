@@ -197,7 +197,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if why, ok := stubActions[action]; ok {
 		s.logf("kinesis: %s -> unsupported", action)
 		s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
-			"doze-aws does not implement %s: %s", action, why))
+			"doze-aws does not implement %s: %s", action, why).Stub())
 		return
 	}
 	s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown Kinesis action %q", action))

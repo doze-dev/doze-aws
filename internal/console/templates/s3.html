@@ -72,7 +72,7 @@
       {{end}}
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="[drawer, window.dozeTrap && dozeTrap($el, drawer)]" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 <script>
   function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,curPrefix:"",sel:[],

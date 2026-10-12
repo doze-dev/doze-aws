@@ -206,7 +206,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		if why, staged := notHere[action]; staged {
 			s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
-				"%s is not supported by doze-aws: %s", action, why))
+				"%s is not supported by doze-aws: %s", action, why).Stub())
 			return
 		}
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown CloudWatch Logs action %q", action))

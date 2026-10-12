@@ -177,7 +177,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if reason, stub := stubActions[action]; stub {
 			s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
-				"%s is not supported by doze-aws: %s", action, reason))
+				"%s is not supported by doze-aws: %s", action, reason).Stub())
 			return
 		}
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown Step Functions action %q", action))

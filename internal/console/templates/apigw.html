@@ -63,7 +63,7 @@
 
         {{/* The three small structural edits, as dialogs (the ddb Update
              pattern): row buttons stash the target in section state. */}}
-        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add resource" x-effect="window.dozeTrap && dozeTrap($el, addRes)" x-show="addRes" x-cloak @click.self="addRes=null" @keydown.escape.window="addRes=null">
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add resource" x-effect="[addRes, window.dozeTrap && dozeTrap($el, addRes)]" x-show="addRes" x-cloak @click.self="addRes=null" @keydown.escape.window="addRes=null">
           <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addRes=null;$el.reset();}">
             <input type="hidden" name="parent" :value="addRes && addRes.id">
             <div class="dialog-h"><h3>Add resource</h3><p>One path part under <span class="mono" x-text="addRes && addRes.path"></span>.</p></div>
@@ -72,7 +72,7 @@
             <div class="dialog-f"><button type="button" class="btn btn-outline" @click="addRes=null">Cancel</button><button type="submit" class="btn">Add resource</button></div>
           </form></div>
         </div>
-        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add method" x-effect="window.dozeTrap && dozeTrap($el, addM)" x-show="addM" x-cloak @click.self="addM=null" @keydown.escape.window="addM=null">
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add method" x-effect="[addM, window.dozeTrap && dozeTrap($el, addM)]" x-show="addM" x-cloak @click.self="addM=null" @keydown.escape.window="addM=null">
           <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-method" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addM=null;$el.reset();}">
             <input type="hidden" name="resource" :value="addM && addM.id">
             <div class="dialog-h"><h3>Add method</h3><p>On <span class="mono" x-text="addM && addM.path"></span>. The verb exists first; its integration is wired from the method panel.</p></div>
@@ -87,7 +87,7 @@
             <div class="dialog-f"><button type="button" class="btn btn-outline" @click="addM=null">Cancel</button><button type="submit" class="btn">Add method</button></div>
           </form></div>
         </div>
-        <div class="overlay" role="dialog" aria-modal="true" aria-label="Rename resource" x-effect="window.dozeTrap && dozeTrap($el, ren)" x-show="ren" x-cloak @click.self="ren=null" @keydown.escape.window="ren=null">
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Rename resource" x-effect="[ren, window.dozeTrap && dozeTrap($el, ren)]" x-show="ren" x-cloak @click.self="ren=null" @keydown.escape.window="ren=null">
           <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){ren=null;$el.reset();}">
             <input type="hidden" name="resource" :value="ren && ren.id">
             <div class="dialog-h"><h3>Rename resource</h3><p>Changes the last path part of <span class="mono" x-text="ren && ren.path"></span>; children move with it.</p></div>

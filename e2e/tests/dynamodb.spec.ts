@@ -458,23 +458,14 @@ test.describe('create form command preview', () => {
   // every attribute an index keys on among the definitions: builder.js builds
   // both from the form's index rows (%ddb-attrs, %ddb-indexes).
   //
-  // The template is given here, bound to the real form, because the one the
-  // page carries (create.html's ddb_create) does not name the index rows yet.
-  // When it does, read `.cli-out pre` instead and drop DDB_PREVIEW.
-  const DDB_PREVIEW =
-    'dynamodb create-table --table-name $name' +
-    ' --attribute-definitions %ddb-attrs($hash_key,$hash_type,$range_key,$range_type,$gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)' +
-    ' --key-schema AttributeName=$hash_key,KeyType=HASH [AttributeName=$range_key,KeyType=RANGE]' +
-    ' [--global-secondary-indexes %ddb-indexes($gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)]' +
-    ' --billing-mode PAY_PER_REQUEST';
-
+  // Read from the page: the preview the form itself shows.
   async function preview(page: Page): Promise<string> {
-    return page.evaluate((tmpl) => {
-      const p = (window as any).cliPreview(tmpl);
-      p.$el = document.querySelector('form[hx-post$="/ddb/create"] .cli');
-      p.refresh();
-      return p.cmd as string;
-    }, DDB_PREVIEW);
+    const cli = page.locator('form[hx-post$="/ddb/create"] .cli');
+    const out = cli.locator('.cli-out');
+    if (await out.isVisible()) await cli.locator('.cli-btn').click(); // close, so opening rebuilds it
+    await cli.locator('.cli-btn').click();
+    await expect(out).toBeVisible();
+    return (await out.locator('pre').innerText()).replace(/\s+/g, ' ');
   }
 
   test('carries the index rows and every attribute they key on', async ({ page, uniqueName }) => {
@@ -526,4 +517,21 @@ test.describe('create form command preview', () => {
     expect(cmd).not.toContain('by-pk');
     expect(cmd).toContain('--global-secondary-indexes \'[{"IndexName":"by-score"');
   });
+});
+
+// A dialog keeps the keyboard inside it. The trap was wired by an Alpine effect
+// that never re-ran (it tested for the trap before reading the dialog's flag),
+// so Tab walked the page behind every dialog but SQS's.
+test('the Add item dialog holds focus', async ({ page, request, uniqueName }) => {
+  const table = await createTable(request, uniqueName('e2e-ddb-trap'));
+  await page.goto(`ddb/${table}`);
+  await page.locator('.acts').getByRole('button', { name: 'Add item' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add item' });
+  await expect(dialog).toBeVisible();
+  const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role=dialog]'));
+  await expect.poll(inside).toBe(true);
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('Tab');
+    expect(await inside(), `Tab ${i + 1} left the dialog`).toBe(true);
+  }
 });

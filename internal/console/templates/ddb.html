@@ -38,7 +38,7 @@
       {{template "ddb_explorer" .}}
       {{end}}
     </div>
-    <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false">
+    <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="[put, window.dozeTrap && dozeTrap($el, put)]" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false">
       {{/* $el.reset() puts the textarea back to the skeleton, but CodeMirror
            keeps its own buffer, so dozeEditor.reset re-reads defaultValue —
            otherwise reopening this dialog after a save shows the item you just
@@ -60,7 +60,7 @@
          item's attributes, never a wholesale replace. The :bindings get typed
          value rows exactly like the explorer's filter expressions (same
          template, same fv:/ft: wire shape, same server-side parsing). */}}
-    <div class="overlay" role="dialog" aria-modal="true" aria-label="Update item" x-effect="window.dozeTrap && dozeTrap($el, upd)" x-show="upd" x-cloak @click.self="upd=false" @keydown.escape.window="upd=false">
+    <div class="overlay" role="dialog" aria-modal="true" aria-label="Update item" x-effect="[upd, window.dozeTrap && dozeTrap($el, upd)]" x-show="upd" x-cloak @click.self="upd=false" @keydown.escape.window="upd=false">
       <div class="dialog wide anim"><form x-data="{f:''}" hx-post="{{.Prefix}}/ddb/{{pathesc .Table.Name}}/update-item" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){upd=false;$el.reset();f='';}">
         <input type="hidden" name="key" :value="updKey">
         <div class="dialog-h"><h3>Update item</h3><p>SET, REMOVE, ADD and DELETE clauses edit attributes in place; the rest of the item is untouched.</p></div>
@@ -75,7 +75,7 @@
       </form></div>
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" role="dialog" aria-modal="true" aria-label="item details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="item details" x-show="drawer" x-cloak x-effect="[drawer, window.dozeTrap && dozeTrap($el, drawer)]" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 {{template "shell_bottom" .}}{{end}}
 

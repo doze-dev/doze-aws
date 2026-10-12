@@ -252,7 +252,9 @@ func classify(a answer) string {
 	switch a.code {
 	case "InvalidAction", "UnknownOperation", "UnknownOperationException", "MethodNotAllowed":
 		return "unknown"
-	case "UnsupportedOperationException", "UnsupportedOperation", "NotImplemented":
+	case "UnsupportedOperation", "NotImplemented":
+		// UnsupportedOperationException is not here: it is a real AWS code,
+		// and every stub table that borrows it sets the stamp read above.
 		return "legacystub"
 	}
 	m := strings.ToLower(a.message)

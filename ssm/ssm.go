@@ -145,7 +145,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		if fleetOps[action] {
 			s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
-				"%s is not supported by doze-aws: it needs managed instances/fleet infrastructure that does not exist locally", action))
+				"%s is not supported by doze-aws: it needs managed instances/fleet infrastructure that does not exist locally", action).Stub())
 			return
 		}
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown SSM action %q", action))

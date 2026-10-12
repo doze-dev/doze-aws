@@ -341,6 +341,7 @@ type wireFacts struct {
 	Denied   string // "iam"
 	NotBuilt string // "declined" | "deferred"
 	Local    string // "1"
+	Stub     string // "1": a legacy stub table's answer
 }
 
 func factsOf(h http.Header) wireFacts {
@@ -348,11 +349,12 @@ func factsOf(h http.Header) wireFacts {
 		Denied:   h.Get(awshttp.DeniedHeader),
 		NotBuilt: h.Get(awshttp.NotBuiltHeader),
 		Local:    h.Get(awshttp.LocalLimitHeader),
+		Stub:     h.Get(awshttp.LegacyStubHeader),
 	}
 }
 
 func factsOfEntry(e TrafficEntry) wireFacts {
-	return wireFacts{Denied: e.Denied, NotBuilt: e.NotBuilt, Local: e.LocalLimit}
+	return wireFacts{Denied: e.Denied, NotBuilt: e.NotBuilt, Local: e.LocalLimit, Stub: e.LegacyStub}
 }
 
 // callState separates the ways a call fails to be served. They are different
@@ -370,13 +372,14 @@ func factsOfEntry(e TrafficEntry) wireFacts {
 //	refusedhere  a 4xx for a limit that is doze-aws's own: AWS would accept it.
 //	refused      a 4xx: the request breaks a rule of the service.
 //
-// A 501, or a refusal in the legacy UnsupportedOperationException shape doze
-// still answers for operations it has not moved to the agreed refusal, is
-// notbuilt. The legacy half goes when the model sweep's baseline has no
-// legacystub entries.
+// A 501, or the answer of an older stub table (stamped X-Doze-Legacy-Stub by
+// the service, whatever code it carries), is notbuilt. This read the code and
+// the message's spelling once, which called a real UnsupportedOperationException
+// a stub and CloudFormation's stubbed ValidationError a refusal of the input.
+// The stamp goes when the model sweep's baseline has no legacystub entries.
 func callState(status int, ref *Refusal, f wireFacts) string {
 	switch {
-	case f.NotBuilt != "" || status == http.StatusNotImplemented || legacyNotBuilt(ref):
+	case f.NotBuilt != "" || f.Stub != "" || status == http.StatusNotImplemented:
 		return "notbuilt"
 	case f.Denied != "":
 		return "denied"
@@ -388,14 +391,6 @@ func callState(status int, ref *Refusal, f wireFacts) string {
 		return "refused"
 	}
 	return "served"
-}
-
-// legacyNotBuilt recognises the refusal doze-aws's older stub tables give:
-// UnsupportedOperationException, with a message that says doze-aws. KMS and
-// others return the same code for real reasons, which is why the message is
-// read too.
-func legacyNotBuilt(ref *Refusal) bool {
-	return ref != nil && ref.Code == "UnsupportedOperationException" && strings.Contains(ref.Message, "doze-aws")
 }
 
 // stateView is the words for a failure state, written once. Label is the word

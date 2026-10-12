@@ -93,6 +93,13 @@ func StampHeaders(w http.ResponseWriter, e *APIError) {
 	}
 }
 
+// Stub marks e as the answer of a legacy stub table (see LegacyStub) and
+// returns it, so a stub writer says what it is where it builds the error.
+func (e *APIError) Stub() *APIError {
+	e.LegacyStub = true
+	return e
+}
+
 // NotBuilt is the one answer to an operation that exists on AWS and is not
 // built here: HTTP 501, the code NotImplemented in the protocol's own error
 // envelope, a message that names the operation and says why, and the

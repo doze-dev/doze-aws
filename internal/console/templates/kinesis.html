@@ -158,7 +158,7 @@
       {{template "kinesis_record_table" .}}
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" role="dialog" aria-modal="true" aria-label="record details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="record details" x-show="drawer" x-cloak x-effect="[drawer, window.dozeTrap && dozeTrap($el, drawer)]" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 {{template "shell_bottom" .}}{{end}}
 

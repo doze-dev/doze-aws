@@ -28,7 +28,7 @@ func (c *Console) ebCreateBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/eb/"+name, "Event bus “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/eb/"+seg(name), "Event bus “"+name+"” created")
 }
 
 func (c *Console) ebDeleteBus(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +130,7 @@ func (c *Console) ebCreateRule(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/eb/"+bus+"/rule/"+name, "Rule “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/eb/"+seg(bus)+"/rule/"+seg(name), "Rule “"+name+"” created")
 }
 
 func (c *Console) ebDeleteRule(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (c *Console) ebDeleteRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Rule deleted")
-	w.Header().Set("HX-Redirect", c.prefix+"/eb/"+bus)
+	w.Header().Set("HX-Redirect", c.prefix+"/eb/"+seg(bus))
 }
 
 func (c *Console) ebTestEvent(w http.ResponseWriter, r *http.Request) {
@@ -220,7 +220,7 @@ func (c *Console) ebToggleRule(w http.ResponseWriter, r *http.Request) {
 	} else {
 		toast(w, "Rule disabled — events pass it by")
 	}
-	c.redirect(w, r, c.prefix+"/eb/"+bus+"/rule/"+name, "")
+	c.redirect(w, r, c.prefix+"/eb/"+seg(bus)+"/rule/"+seg(name), "")
 }
 
 func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {

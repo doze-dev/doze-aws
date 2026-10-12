@@ -25,13 +25,6 @@ import (
 //
 // The key is the template file and the preview's first command.
 var cliOmits = map[string]map[string]string{
-	"create.html:dynamodb create-table": {
-		"gsi_name":       "repeating rows: the CLI takes one --global-secondary-indexes document, which a flat template cannot build",
-		"gsi_hash":       "repeating rows (see gsi_name)",
-		"gsi_hash_type":  "repeating rows (see gsi_name)",
-		"gsi_range":      "repeating rows (see gsi_name)",
-		"gsi_range_type": "repeating rows (see gsi_name)",
-	},
 	// A selector that chooses which of two previews is shown is not an argument.
 	"create.html:apigateway create-rest-api": {
 		"protocol": "selects the REST or the HTTP preview",

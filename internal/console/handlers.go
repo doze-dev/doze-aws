@@ -561,7 +561,7 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sqs/"+name, flash)
+	c.redirect(w, r, c.prefix+"/sqs/"+seg(name), flash)
 }
 
 func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {

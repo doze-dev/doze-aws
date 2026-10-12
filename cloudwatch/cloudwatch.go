@@ -197,7 +197,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if why, refused := notHere[req.action]; refused {
 			s.logf("cloudwatch: %s -> unsupported", req.action)
 			req.writeError(w, awshttp.Errf(400, "UnsupportedOperationException",
-				"doze-aws does not implement %s: %s", req.action, why))
+				"doze-aws does not implement %s: %s", req.action, why).Stub())
 			return
 		}
 		req.writeError(w, awshttp.Errf(400, "InvalidAction",

@@ -5,7 +5,7 @@
 {{define "sqs_lp"}}
 {{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{.Name}}"
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{pathesc .Name}}"
      data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb{{if and .IsDLQ .Available}} q-dlq-n{{end}}" id="lr-sqs-{{slug .Name}}">{{.Available}}</span>
   </a>
@@ -52,7 +52,7 @@
           (dict "Show" .Config.FIFO "Text" "FIFO" "Class" "type" "Title" "First-in-first-out: strict ordering per message group")
           (dict "Show" .Config.FIFO "Text" (printf "content-based dedup %s" (or (and .Config.ContentDedup "on") "off")) "Class" "type" "Title" "ContentBasedDeduplication")
           (dict "Show" .IsDLQ "Text" "DLQ" "Class" "dlq" "Title" "This queue is a dead-letter target — failed messages from other queues land here (see Fed by)"))
-        "Delete" (dict "Label" "Delete queue" "URL" (printf "%s/sqs/%s/delete-queue" .Prefix .Queue) "Cancel" "Keep it" "Confirm" (printf "Delete queue “%s”? The queue and the %d message%s waiting in it%s are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." .Queue .Available (or (and (ne .Available 1) "s") "") (printf "%s" (or (and .InFlight (printf ", and the %d in flight," .InFlight)) ""))))
+        "Delete" (dict "Label" "Delete queue" "URL" (printf "%s/sqs/%s/delete-queue" .Prefix (pathesc .Queue)) "Cancel" "Keep it" "Confirm" (printf "Delete queue “%s”? The queue and the %d message%s waiting in it%s are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." .Queue .Available (or (and (ne .Available 1) "s") "") (printf "%s" (or (and .InFlight (printf ", and the %d in flight," .InFlight)) ""))))
         "Chips" (list (dict "Label" "arn" "Value" .ARN) (dict "Label" "url" "Value" .URL))
         "Facts" (list
           (dict "K" "Type" "V" (or (and .Config.FIFO "FIFO") "Standard"))
@@ -60,12 +60,12 @@
           (dict "K" "In flight" "V" .InFlight "Num" true "ID" (printf "sum-sqs-%s-inflight" (slug .Queue)))
           (dict "K" "Visibility timeout" "V" (secs .Config.Visibility))
           (dict "K" "Retention" "V" (secs .Config.Retention))
-          (dict "K" "Dead-letter" "V" .Config.DLQ "Link" (and .Config.DLQ (printf "%s/sqs/%s" .Prefix .Config.DLQ)) "Sub" (and .Config.DLQ .Config.MaxReceive (printf "after %v" .Config.MaxReceive)))))}}
+          (dict "K" "Dead-letter" "V" .Config.DLQ "Link" (and .Config.DLQ (printf "%s/sqs/%s" .Prefix (pathesc .Config.DLQ))) "Sub" (and .Config.DLQ .Config.MaxReceive (printf "after %v" .Config.MaxReceive)))))}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix .Queue))
-        (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix .Queue))
-        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sqs/%s?tab=tags" .Prefix .Queue)))}}
+        (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix (pathesc .Queue)))
+        (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix (pathesc .Queue)))
+        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix (pathesc .Queue)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sqs/%s?tab=tags" .Prefix (pathesc .Queue))))}}
     </div>
     <div class="q-conn">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
     {{/* has-dock only on Messages: it makes .det-b a full-height flex column so
@@ -98,7 +98,7 @@
                    deduplication id for this form (sqsCli). */}}
               <form novalidate data-sqs-send data-err-slot="#sqs-send-err" data-url="{{.URL}}" data-fifo="{{.Config.FIFO}}" data-content-dedup="{{.Config.ContentDedup}}"
                     x-data="{n:1, rows:[], cliOpen:false, refused:''}"
-                    hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML"
+                    hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/send" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML"
                     @doze:refused="refused=$event.detail.state" @doze:cleared="refused=''">
                 <div class="q-head"><h2 class="q-h2">Send a message</h2><button type="button" class="btn btn-ghost btn-sm" aria-label="Close" @click="open=false">esc</button></div>
                 {{/* Where a refusal or a denial is written (boards Sqs-09, Sqs-20). */}}
@@ -158,7 +158,7 @@
   <div class="overlay q-center" role="dialog" aria-modal="true" aria-label="Redrive messages" x-data="{open:false, n:0}" x-show="open" x-cloak
        @redrive-open.window="n=Number((document.getElementById('message-panel-wrap')||{dataset:{}}).dataset.total||0); open=true" @click.self="open=false" @keydown.escape.window="open=false"
        x-effect="[open, window.dozeTrap && dozeTrap($el, open)]">
-    <div class="dialog anim q-dialog"><form hx-post="{{.Prefix}}/sqs/{{.Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" @htmx:after:request="open=false">
+    <div class="dialog anim q-dialog"><form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" @htmx:after:request="open=false">
       <h2 class="q-h2">Move all <span x-text="n">{{add (add .Available .InFlight) .Delayed}}</span> <span x-text="n==1 ? 'message' : 'messages'">messages</span> back?</h2>
       <p class="q-dialog-p">They leave this queue and land in the queue you pick, along with any that are held or delayed; none stays here. {{if eq (len .Sources) 1}}One queue is{{else}}{{len .Sources}} queues are{{end}} set to dead-letter into this one.</p>
       <div class="field"><label for="redrive-dest">Move them to</label>
@@ -170,14 +170,14 @@
 {{template "shell_bottom" .}}{{end}}
 
 {{define "message_panel"}}
-<div id="message-panel-wrap" class="q-stack" data-live="{{.Prefix}}/sqs/{{.Queue}}/messages" data-live-ms="3000" data-hash="{{.Hash}}" data-total="{{add (add .Available .InFlight) .Delayed}}">
+<div id="message-panel-wrap" class="q-stack" data-live="{{.Prefix}}/sqs/{{pathesc .Queue}}/messages" data-live-ms="3000" data-hash="{{.Hash}}" data-total="{{add (add .Available .InFlight) .Delayed}}">
   <div class="q-bar">
     <div class="q-bar-l"><span class="q-pill ok peek"><span class="q-dot"></span>live peek</span><span class="q-note">Read without consuming.{{if not .Sources}} Looking never receives or hides a message.{{end}}{{if .Delayed}} {{.Delayed}} delayed, not yet visible.{{end}}</span></div>
     <div class="q-bar-r">
       {{if and .Sources (or .Available .InFlight .Delayed)}}
       <button class="btn btn-sm" type="button" data-focus-key="sqs-redrive" @click="$dispatch('redrive-open')" title="Move what is in this dead-letter queue back — the dead-letter round trip">Redrive{{if eq (len .Sources) 1}}{{range .Sources}} → {{.}}{{end}}{{end}}</button>
       {{end}}
-      <button class="btn btn-outline danger btn-sm" data-focus-key="sqs-purge" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Purge all messages from {{.Queue}}? Every waiting and in-flight message is dropped. The queue and its settings stay." data-confirm-cancel="Keep them">Purge</button>
+      <button class="btn btn-outline danger btn-sm" data-focus-key="sqs-purge" hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/purge" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Purge all messages from {{.Queue}}? Every waiting and in-flight message is dropped. The queue and its settings stay." data-confirm-cancel="Keep them">Purge</button>
     </div>
   </div>
   {{/* Each move task is listed (board Sqs-15): running, complete, or failed
@@ -199,7 +199,7 @@
         <span>{{if .Sum.Kind}}<span class="q-pill evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}</span>
         <span class="msum mono">{{.Sum.Line}}</span>
         <span class="q-note q-ra" title="{{zoned .SentAt}}">{{ago .SentAt}}</span>
-        <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it">{{icon "trash"}}</button>
+        <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/delete-message" hx-vals='{"handle":"{{jsonstr .ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it">{{icon "trash"}}</button>
       </div>
       <div class="msg-detail" x-show="open" x-cloak>
         <div class="q-head"><span class="q-note mono msg-id">{{.MessageID}}{{if .Sum.Note}} · {{.Sum.Note}}{{end}}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="{{.Sum.Raw}}" @click.stop>Copy body</button></div>
@@ -221,12 +221,12 @@
        message's own receive count is not kept across the move (it starts again
        at 0 here), so no row claims one. */}}
   {{if .FedBy}}<div class="q-callout"><span class="q-note">
-    {{if eq (len .FedBy) 1}}{{with index .FedBy 0}}A message lands here when it is not deleted after {{.MaxReceive}} receive{{if ne .MaxReceive 1}}s{{end}} on <a class="mono" href="{{$.Prefix}}/sqs/{{.Name}}">{{.Name}}</a>. Open one to read it. Redrive moves all of them back to that queue.{{end}}
-    {{else}}A message lands here when it is not deleted on a queue that dead-letters into this one: {{range $i, $s := .FedBy}}{{if $i}}, {{end}}<a class="mono" href="{{$.Prefix}}/sqs/{{$s.Name}}">{{$s.Name}}</a> (after {{$s.MaxReceive}}){{end}}. Open one to read it. Redrive moves all of them to the queue you pick.{{end}}
+    {{if eq (len .FedBy) 1}}{{with index .FedBy 0}}A message lands here when it is not deleted after {{.MaxReceive}} receive{{if ne .MaxReceive 1}}s{{end}} on <a class="mono" href="{{$.Prefix}}/sqs/{{pathesc .Name}}">{{.Name}}</a>. Open one to read it. Redrive moves all of them back to that queue.{{end}}
+    {{else}}A message lands here when it is not deleted on a queue that dead-letters into this one: {{range $i, $s := .FedBy}}{{if $i}}, {{end}}<a class="mono" href="{{$.Prefix}}/sqs/{{pathesc $s.Name}}">{{$s.Name}}</a> (after {{$s.MaxReceive}}){{end}}. Open one to read it. Redrive moves all of them to the queue you pick.{{end}}
     The receive count starts again at 0 here.</span></div>{{end}}
   {{else}}
   <div class="empty q-card q-emptycard"><p>No visible messages. Send one below — it lands here.</p></div>
-  {{if .LastDone}}<div class="q-row"><a class="btn btn-outline" href="{{.Prefix}}/sqs/{{.LastDone}}">Open {{.LastDone}}</a><span class="q-note">to see them again</span></div>{{end}}
+  {{if .LastDone}}<div class="q-row"><a class="btn btn-outline" href="{{.Prefix}}/sqs/{{pathesc .LastDone}}">Open {{.LastDone}}</a><span class="q-note">to see them again</span></div>{{end}}
   {{end}}
 </div>
 {{/* The out-of-band tail. Everything above repaints #message-panel-wrap; these
@@ -264,7 +264,7 @@
       <div class="q-r"><span class="q-note">Visibility timeout</span><span class="mono">{{.Config.VisShort}}</span><span class="q-note">A received message stays hidden this long.</span></div>
       <div class="q-r"><span class="q-note">Message retention</span><span class="mono">{{.Config.RetShort}}</span><span class="q-note">An unread message is dropped after this.</span></div>
       <div class="q-r"><span class="q-note">Delivery delay</span><span class="mono">{{.Config.DelayShort}}</span><span class="q-note">{{if and .Config.Delay (ne .Config.Delay "0")}}A new message waits this long before it can be received.{{else}}New messages are available at once.{{end}}</span></div>
-      {{if .Config.DLQ}}<div class="q-r"><span class="q-note">Dead-letter queue</span><span class="mono q-el q-el-start"><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" title="{{.Config.DLQ}}"><bdi>{{.Config.DLQ}}</bdi></a></span><span class="q-note">Gets a message that was received {{.Config.MaxReceive}} time{{if ne .Config.MaxReceive "1"}}s{{end}}, on its next receive.</span></div>{{end}}
+      {{if .Config.DLQ}}<div class="q-r"><span class="q-note">Dead-letter queue</span><span class="mono q-el q-el-start"><a href="{{.Prefix}}/sqs/{{pathesc .Config.DLQ}}" title="{{.Config.DLQ}}"><bdi>{{.Config.DLQ}}</bdi></a></span><span class="q-note">Gets a message that was received {{.Config.MaxReceive}} time{{if ne .Config.MaxReceive "1"}}s{{end}}, on its next receive.</span></div>{{end}}
       <div class="q-r"><span class="q-note">Receive wait</span><span class="mono">{{.Config.WaitShort}}</span><span class="q-note">{{if and .Config.Wait (ne .Config.Wait "0")}}Long polling: a receive with nothing to return waits up to this long.{{else}}Short polling: a receive returns at once, empty or not.{{end}}</span></div>
       <div class="q-r"><span class="q-note">Largest message</span><span class="mono">{{.Config.MaxSizeGrouped}}</span><span class="q-note">Bytes, body and attributes together. A send over it is refused.</span></div>
       {{if or (index .Attrs "KmsMasterKeyId") (eq (index .Attrs "SqsManagedSseEnabled") "true")}}<div class="q-r"><span class="q-note">Encryption</span><span class="mono q-el">{{if index .Attrs "KmsMasterKeyId"}}{{index .Attrs "KmsMasterKeyId"}}{{else}}SQS-managed{{end}}</span><span class="q-note">Accepted and stored. Messages are not encrypted here.</span></div>{{end}}
@@ -278,7 +278,7 @@
   <div class="q-stack" x-show="edit" x-cloak>
     {{/* Where a refusal is written (board Sqs-21): above the settings. */}}
     <div id="sqs-config-err" class="q-errslot"></div>
-    <form class="cfg-form q-card q-pad q-stack" novalidate data-err-slot="#sqs-config-err" hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
+    <form class="cfg-form q-card q-pad q-stack" novalidate data-err-slot="#sqs-config-err" hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
       <h2 class="q-h2">Settings</h2>
       <div class="q-fields q-3">
         {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" .Config.Visibility "Teach" "Hidden after a receive. Not deleted in time, it comes back.")}}
@@ -399,11 +399,11 @@
     <div class="q-table q-perms">
       <div class="q-r q-rh"><span>Label</span><span>Principal</span><span>Action</span><span></span></div>
       {{range .Perms}}<div class="q-r"><span class="mono">{{.Label}}</span><span class="mono">{{.Account}}</span><span class="mono">{{.Action}}</span>
-        <span class="q-ra"><form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? {{.Account}} loses {{.Action}} on this queue." data-confirm-cancel="Keep it" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{.Label}}"}'>
+        <span class="q-ra"><form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? {{.Account}} loses {{.Action}} on this queue." data-confirm-cancel="Keep it" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{jsonstr .Label}}"}'>
           <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></span></div>{{end}}
     </div>
     {{end}}
-    <form class="q-card q-pad q-stack q-grant" novalidate hx-post="{{.Prefix}}/sqs/{{.Queue}}/permission"
+    <form class="q-card q-pad q-stack q-grant" novalidate hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/permission"
           hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
       <span class="q-note">Grant an account an action on this queue</span>
       <div class="q-grantrow">
@@ -464,7 +464,7 @@
      the timer running out under the live poll. */}}
 {{define "sqs_consume"}}
 <div id="sqs-consume" class="q-stack">
-  <form class="q-card q-pad rcv-form" novalidate data-err-slot="#sqs-receive-err" hx-post="{{.Prefix}}/sqs/{{.Queue}}/receive" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+  <form class="q-card q-pad rcv-form" novalidate data-err-slot="#sqs-receive-err" hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/receive" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
     <h2 class="q-h2">Receive messages</h2>
     <div class="rcv-grid">
       <label class="field rcv-f rcv-max"><span class="rcv-full">Max messages</span><span class="rcv-short q-note">max</span>
@@ -495,18 +495,18 @@
      wrapper and survives the poll's morph; a handle that is no longer on
      screen is dropped from it. */}}
 {{define "sqs_consumed"}}
-<div id="sqs-consumed" class="q-stack" x-data="{sel:[]}" data-live="{{.Prefix}}/sqs/{{.Queue}}/messages?held=1" data-live-ms="2000" data-hash="{{.Hash}}"
+<div id="sqs-consumed" class="q-stack" x-data="{sel:[]}" data-live="{{.Prefix}}/sqs/{{pathesc .Queue}}/messages?held=1" data-live-ms="2000" data-hash="{{.Hash}}"
      @htmx:after:swap.window="$nextTick(() => { const have=[...$el.querySelectorAll('.rcv-row input[type=checkbox]')].map(i => i.value); sel=sel.filter(h => have.includes(h)); })">
   {{if .Received}}
   <div class="bulkbar q-well" x-show="sel.length" x-cloak>
     <b><span x-text="sel.length"></span> selected</b>
     <div class="q-bar-r">
-      <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/visibility-batch" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/visibility-batch" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="ids" :value="JSON.stringify(sel)">
         <input type="hidden" name="seconds" value="0">
         <button class="btn btn-outline btn-sm" type="submit">Release selected</button>
       </form>
-      <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-batch" hx-confirm="Delete the selected messages? They are gone for good." data-confirm-cancel="Keep them" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/delete-batch" hx-confirm="Delete the selected messages? They are gone for good." data-confirm-cancel="Keep them" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="ids" :value="JSON.stringify(sel)">
         <button class="btn btn-outline danger btn-sm" type="submit">Delete selected</button>
       </form>
@@ -522,12 +522,12 @@
       <span class="mono rcv-count rc-{{.ReceiveState $.MaxReceive}}">{{.Receives}}×{{if $.MaxReceive}} of {{$.MaxReceive}}{{end}}</span>
       <span class="rcv-left"><span class="q-lane"><i class="rt-bar"></i></span><span class="mono rt-cd"></span></span>
       <span class="rcv-acts q-ra">
-        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/visibility" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/visibility" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <input type="hidden" name="seconds" value="0">
           <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
         </form>
-        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="from" value="consume">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">Delete</button>
@@ -536,7 +536,7 @@
     </div>
     {{end}}
   </div>
-  <div class="q-callout"><span class="q-note">A held message that is not deleted comes back when its time runs out, and its next receive counts one higher.{{if and .DLQ .MaxReceive}} One already received {{.MaxReceive}} time{{if ne .MaxReceive 1}}s{{end}} is moved to <a class="mono" href="{{.Prefix}}/sqs/{{.DLQ}}">{{.DLQ}}</a> by its next receive instead.{{end}} Release makes it visible again now.</span></div>
+  <div class="q-callout"><span class="q-note">A held message that is not deleted comes back when its time runs out, and its next receive counts one higher.{{if and .DLQ .MaxReceive}} One already received {{.MaxReceive}} time{{if ne .MaxReceive 1}}s{{end}} is moved to <a class="mono" href="{{.Prefix}}/sqs/{{pathesc .DLQ}}">{{.DLQ}}</a> by its next receive instead.{{end}} Release makes it visible again now.</span></div>
   {{else}}
   <div class="empty q-card q-emptycard"><p>Nothing received yet. Press Receive above — anything it returns is hidden from other consumers while you look at it.</p></div>
   {{end}}

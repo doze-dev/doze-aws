@@ -405,7 +405,7 @@ var (
 // Templates another change is rewriting at the time of writing; the names they
 // put in a path are a queue's ([A-Za-z0-9_-], ".fifo") and, in the rule form,
 // an event bus's. Remove an entry here and the test says what is left to do.
-var urlGuardSkips = map[string]bool{"sqs.html": true, "create.html": true}
+var urlGuardSkips = map[string]bool{}
 
 func TestEveryNameATemplatePutsInAURLIsEscaped(t *testing.T) {
 	files, _ := filepath.Glob("templates/*.html")

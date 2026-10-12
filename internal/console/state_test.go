@@ -33,8 +33,10 @@ func TestCallStateClassifiesFromFacts(t *testing.T) {
 		{"declined, stamped", 501, &Refusal{Code: "NotImplemented"}, wireFacts{NotBuilt: "declined"}, "notbuilt"},
 		{"deferred, stamped", 501, nil, wireFacts{NotBuilt: "deferred"}, "notbuilt"},
 		{"not built outranks a 5xx reading", 501, nil, wireFacts{NotBuilt: "deferred"}, "notbuilt"},
-		{"the older in-band spelling still reads as not built",
-			400, &Refusal{Code: "UnsupportedOperationException", Message: "this is not built in doze-aws"}, wireFacts{}, "notbuilt"},
+		{"an older stub table's answer, by its stamp",
+			400, &Refusal{Code: "ValidationError", Message: "doze-aws does not implement ListStackSets"}, wireFacts{Stub: "1"}, "notbuilt"},
+		{"UnsupportedOperationException with no stamp is the service's own refusal",
+			400, &Refusal{Code: "UnsupportedOperationException", Message: "rotation applies to symmetric keys only"}, wireFacts{}, "refused"},
 
 		{"a limit of doze-aws's own", 400, &Refusal{Code: "LimitExceededException"}, wireFacts{Local: "1"}, "refusedhere"},
 		{"a local-limit stamp on a 2xx is not a failure", 200, nil, wireFacts{Local: "1"}, "served"},

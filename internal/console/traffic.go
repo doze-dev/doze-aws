@@ -89,6 +89,7 @@ type TrafficEntry struct {
 	Denied     string // "iam" when a policy decided a 403
 	NotBuilt   string // "declined" | "deferred" for an operation doze-aws does not build
 	LocalLimit string // "1" when the refusal is a limit of doze-aws, not of AWS
+	LegacyStub string // "1" when an older stub table answered: not built, under another code
 	Method     string
 	Path       string // path + query, for replay
 	Host       string
@@ -185,6 +186,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ErrType: sw.Header().Get("x-amzn-ErrorType"),
 		Denied:  sw.Header().Get(awshttp.DeniedHeader), NotBuilt: sw.Header().Get(awshttp.NotBuiltHeader),
 		LocalLimit: sw.Header().Get(awshttp.LocalLimitHeader),
+		LegacyStub: sw.Header().Get(awshttp.LegacyStubHeader),
 		Method:     r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 		// Read back off the response rather than plumbed in: the gateway mints
