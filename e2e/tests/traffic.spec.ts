@@ -123,6 +123,55 @@ test.describe('raw gateway calls are recorded', () => {
   });
 });
 
+test.describe('one colour per state', () => {
+  // The inspector's status chip was red for any status of 400 or more, so a
+  // refusal (purple) had a red chip above its own purple panel. The chip, the
+  // row and the panel are one state and one colour, and the row says the state
+  // in a word.
+  test('a refused call is refused on its row, its chip and its panel', async ({
+    page,
+    request,
+    uniqueName,
+    waitForLive,
+  }) => {
+    const queueName = uniqueName('e2e-traffic-state');
+    expect((await rawAwsJson(request, 'AmazonSQS.CreateQueue', { QueueName: queueName })).ok()).toBeTruthy();
+    // A send with no body: SQS refuses it for its input.
+    const refused = await rawAwsJson(request, 'AmazonSQS.SendMessage', {
+      QueueUrl: `${GATEWAY_ROOT}000000000000/${queueName}`,
+    });
+    expect(refused.status()).toBe(400);
+
+    await page.goto('traffic');
+    await waitForLive('#traffic-feed', (text) => text.includes('SendMessage') && text.includes(queueName));
+    await waitWireQuiet(page);
+
+    const row = page.locator('#traffic-feed .tr-row.refused', { hasText: queueName }).first();
+    await expect(row.locator('.st')).toHaveClass(/\brefused\b/);
+    await expect(row.locator('.tr-state')).toHaveText('Refused');
+
+    await row.locator('.act').click();
+    const meta = page.locator('#t-drawer-inner .td-meta');
+    const chip = meta.locator('.st').first();
+    await expect(chip).toHaveText('400');
+    await expect(chip).toHaveClass(/\brefused\b/);
+    await expect(meta.locator('.err')).toHaveCount(0);
+    await expect(meta.locator('.st').nth(1)).toHaveText('Refused');
+
+    // The same colour, read off the page: chip, row chip and panel heading.
+    const colour = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).color);
+    const chipColour = await colour('#t-drawer-inner .td-meta .st');
+    expect(chipColour).toBe(await colour('#t-drawer-inner .td-refused .td-k'));
+    expect(chipColour).toBe(await row.locator('.st').evaluate((el) => getComputedStyle(el).color));
+
+    // And it is not the colour of a failure, nor of a call that was served.
+    const servedRow = page.locator('#traffic-feed .tr-row', { hasText: 'CreateQueue' }).filter({ hasText: queueName }).first();
+    await expect(servedRow.locator('.st')).toHaveClass(/\bserved\b/);
+    await expect(servedRow.locator('.tr-state')).toHaveCount(0);
+    expect(chipColour).not.toBe(await servedRow.locator('.st').evaluate((el) => getComputedStyle(el).color));
+  });
+});
+
 test.describe('filters', () => {
   test('only-errors and service filters narrow the visible rows', async ({
     page,

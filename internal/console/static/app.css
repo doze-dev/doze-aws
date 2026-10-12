@@ -2531,3 +2531,15 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .q-create .life-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .q-create .life-steps li { display: flex; gap: 8px; margin: 0; }
 .q-create .life-foot { margin: 0; }
+/* stage-0 audit fixes */
+/* The inspector's status chip takes the colour of the call's state (.st.refused,
+   .st.denied, ...), not red for any status of 400 or more. */
+.td-meta .st { font-weight: 700; }
+/* The state said in a word on a wire row, before the service's own code. */
+.tr-why .tr-state { margin-right: 6px; }
+.tr-why .tr-code { font-weight: 500; }
+/* Beside the open inspector a row is half as wide. The state word stays and the
+   service's code, which the inspector shows in full, gives its room back to
+   the resource the row names. */
+.tr-wrap.open .tr-why .tr-state { margin-right: 0; }
+.tr-wrap.open .tr-why .tr-code { display: none; }

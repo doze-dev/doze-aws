@@ -223,9 +223,13 @@ type trafficRow struct {
 	// denied or error. IsErr survives beside it because the "errors only"
 	// filter is a single boolean and does not care which kind.
 	State string
-	Body  string
-	Curl  string
-	Seq   int64
+	// StateWord is the state said in a word (Refused, Denied, Not built,
+	// Failed), and empty for a served call. The row's colour carries the same
+	// thing and cannot be the only thing that does.
+	StateWord string
+	Body      string
+	Curl      string
+	Seq       int64
 	// Refused is the parsed reason a 4xx/5xx was refused, or nil. Carried on
 	// the row rather than looked up in the drawer because the reason belongs
 	// where you are already scanning for the failure.
@@ -313,12 +317,17 @@ func fmtMillis(ms float64) string {
 
 func rowOf(e TrafficEntry, depth int) trafficRow {
 	ref := e.Failure()
+	state := callState(e.Status, ref, factsOfEntry(e))
+	word := ""
+	if state != "served" {
+		word = stateCopyFor(state, e.NotBuilt).Label
+	}
 	return trafficRow{
 		Time:    clockMillis(e.At),
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Status: e.Status, Millis: fmtMillis(e.Millis),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
-		Refused: ref, State: callState(e.Status, ref, factsOfEntry(e)),
+		Refused: ref, State: state, StateWord: word,
 		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,
 		// Every row names a resource and none of them was a link, on the
 		// console's busiest surface. Pure string work, so it costs nothing at

@@ -63,7 +63,7 @@
            hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML"
            @click.stop>{{.Resource}}</a>{{else}}{{.Resource}}{{end}}</span>
       <span class="st {{.State}}">{{.Status}}</span>
-      <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
+      <span class="tr-why">{{with .StateWord}}<span class="tr-state">{{.}}</span>{{end}}{{with .Refused}}<span class="tr-code" title="{{.Message}}">{{.Code}}</span>{{end}}</span>
       <span class="dur">{{.Millis}}ms</span>
       <button class="copy-btn tr-curl" data-copy="{{.Curl}}" title="Copy as curl — replay this call (secrets stay masked)" @click.stop>{{icon "copy"}}</button>
     </div>
@@ -82,7 +82,9 @@
   <span class="td-title"><b style="--svc-ink:var(--svc-{{.E.Service}}-ink)">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
   <button class="copy-btn" data-copy="{{.E.Curl}}" title="Copy as curl">{{icon "copy"}} curl</button>
 </div>
-<div class="td-meta"><span class="{{if ge .E.Status 400}}err{{else}}ok{{end}}">{{.E.Status}}</span> · {{.Millis}}ms · <time title="{{zoned .Time}}">{{.Time}}</time></div>
+{{/* The chip is the state's colour, as the row it was opened from and the panel
+     below it are: a refusal is not a failure and does not get a failure's red. */}}
+<div class="td-meta"><span class="st {{.State}}">{{.E.Status}}</span>{{if ne .State "served"}} <span class="st {{.State}}">{{.Copy.Label}}</span>{{end}} · {{.Millis}}ms · <time title="{{zoned .Time}}">{{.Time}}</time></div>
 {{with .E.Failure}}
 <div class="td-sec td-{{$.State}}">
   <div class="td-k">{{$.Copy.Label}}{{if .Code}} · {{.Code}}{{end}}</div>
