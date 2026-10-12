@@ -58,17 +58,6 @@ func linksOn(body string) []pageLink {
 	return out
 }
 
-// linksTo returns the page's links that contain needle.
-func linksTo(body, needle string) []string {
-	var out []string
-	for _, l := range linksOn(body) {
-		if strings.Contains(l.raw, needle) {
-			out = append(out, l.raw)
-		}
-	}
-	return out
-}
-
 // asABrowserSendsIt is the request target a browser makes of an attribute's
 // value: the fragment is cut off and never sent, a space is percent-encoded,
 // and everything else goes as written. A link that only works because the
