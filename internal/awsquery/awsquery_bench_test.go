@@ -4,9 +4,9 @@ package awsquery
 // handler sees it: the Query protocol spells a nested structure as
 // `MetricData.member.1.Dimensions.member.2.Name`, and this rebuilds the tree.
 //
-// It exists because modelcheck.FromQuery kept only the first element of every
+// It exists because modelcheck.FromQuery once kept only one element of every
 // list, which silently dropped data. Correctness came first; this says what
-// the correct version costs.
+// the correct version costs. (FromQuery keeps every element now too.)
 
 import (
 	"net/url"

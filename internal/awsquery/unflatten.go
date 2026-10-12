@@ -4,17 +4,21 @@ package awsquery
 //
 // # Why this is not modelcheck.FromQuery
 //
-// FromQuery does the same walk for a different purpose, and it deliberately
-// keeps only ONE element of every list — "a constraint applies to every
-// element, so checking the first is checking the rule". That is sound for
-// validation and lossy for anything else: a PutMetricData carrying two
-// dimensions arrives at a handler with one, and the surviving element is a
-// mix of both, because each `member.N` was written over the same slot.
+// FromQuery does the same walk for validation. When this was written it kept
+// only ONE element of every list — "a constraint applies to every element, so
+// checking the first is checking the rule" — and a PutMetricData carrying two
+// dimensions reached a handler with one, mixed out of both, because each
+// `member.N` was written over the same slot. A handler needs every element, so
+// this was built as the faithful version.
 //
-// A handler needs every element. So this is the faithful version, and the two
-// live apart rather than one growing a flag: a validator that walks a
-// thousand-element list to re-check a rule it already checked is a different
-// trade from a decoder that must not lose data.
+// That reasoning was wrong for validation too (a request is invalid when any
+// element is, and which element was kept was the order a map iterated in), and
+// FromQuery now keeps every element in index order as this does. What still
+// differs is small and deliberate: this one also reads `Key`/`Value` pairs as a
+// map entry, and it treats a position directly after a position as a member
+// named for the marker where FromQuery builds a list in a list. The service
+// constraint tables were generated against FromQuery's shape, so the two have
+// not been folded into one here.
 //
 // # The shape
 //

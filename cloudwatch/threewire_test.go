@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/doze-dev/doze-aws/cloudwatch"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 )
 
@@ -157,11 +158,6 @@ func TestOneConstraintTableRefusesOnAllThreeWires(t *testing.T) {
 	// A dimension missing its Value: MetricData[].Dimensions[].Value is
 	// @required, and the path only resolves if Dimensions stayed a LIST —
 	// which is the whole point of the FromQuery marker fix.
-	//
-	// One dimension, not two. FromQuery deliberately folds every element of a
-	// list into the first ("checking the first is checking the rule"), so a
-	// second, complete dimension would supply the Value removed from the
-	// first and the case would pass for the wrong reason.
 	t.Run("awsQuery rejects a dimension with no Value", func(t *testing.T) {
 		bad := "Action=PutMetricData&Version=2010-08-01&Namespace=Shop" +
 			"&MetricData.member.1.MetricName=Checkouts" +
@@ -173,6 +169,29 @@ func TestOneConstraintTableRefusesOnAllThreeWires(t *testing.T) {
 		}
 		if !strings.Contains(strings.ToLower(string(body)), "dimensions") {
 			t.Errorf("the refusal does not name the member: %s", body)
+		}
+	})
+
+	// The case this file used to say it could not write. FromQuery folded
+	// every element of a list into one, so a second, complete dimension
+	// supplied the Value missing from the first and the request was accepted.
+	// It keeps every element now: a complete first dimension does not excuse
+	// the second, on any run.
+	t.Run("awsQuery rejects a second dimension with no Value", func(t *testing.T) {
+		bad := "Action=PutMetricData&Version=2010-08-01&Namespace=Shop" +
+			"&MetricData.member.1.MetricName=Checkouts" +
+			"&MetricData.member.1.Value=1.5" +
+			"&MetricData.member.1.Dimensions.member.1.Name=FunctionName" +
+			"&MetricData.member.1.Dimensions.member.1.Value=checkout" +
+			"&MetricData.member.1.Dimensions.member.2.Name=Stage"
+		for run := 0; run < dozetest.WholeRuns; run++ {
+			code, _, body := do(t, queryRequest(t, ts.URL, bad))
+			if code == 200 {
+				t.Fatalf("run %d: accepted a second dimension with no Value: %s", run+1, body)
+			}
+			if !strings.Contains(string(body), "dimensions.2.value") {
+				t.Fatalf("run %d: the refusal does not name the second dimension: %s", run+1, body)
+			}
 		}
 	})
 

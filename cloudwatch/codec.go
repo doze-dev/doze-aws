@@ -140,11 +140,12 @@ func parseQuery(r *http.Request) (*request, *awshttp.APIError) {
 	if action == "" {
 		return nil, awshttp.Errf(400, "MissingAction", "no Action specified")
 	}
-	// awsquery.Unflatten, not modelcheck.FromQuery: FromQuery keeps only the
-	// first element of every list, which is sound for validation and lossy
-	// for a handler. A PutMetricData with two dimensions reached one with a
-	// single dimension mixed out of both until this was split apart, and the
-	// v1 SDK contract test is what caught it.
+	// awsquery.Unflatten, not modelcheck.FromQuery. FromQuery used to keep
+	// one element of every list: a PutMetricData with two dimensions reached
+	// a handler with a single dimension mixed out of both until this was
+	// split apart, and the v1 SDK contract test is what caught it. FromQuery
+	// keeps every element now; the handlers stay on the decoder written for
+	// them.
 	return &request{action: action, wire: wireQuery,
 		params: params(awsquery.Unflatten(vals))}, nil
 }
