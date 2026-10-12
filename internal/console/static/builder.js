@@ -151,8 +151,61 @@
                        one call. It is shown only when every $field outside a
                        [ ... ] group has a value: the second call is made when its
                        field is set, so the preview stops showing it when it is not
+       %doc($a,$b,…) - what the named builder (cliDocs below) makes of the form's
+                       REPEATING rows: each $field is every control of that
+                       name, in order, so the builder zips them the way the
+                       handler zips the parallel arrays the form posts. It
+                       yields shell words; none (no rows) counts as empty, so
+                       a [ ... ] around it is dropped
      Groups are lifted out to markers before any values go in, so a value
      containing '$' or ']' cannot re-trigger parsing. */
+
+  /* cliDocs are the arguments a flat template cannot spell: one document, or
+     one list, built from rows the user adds and removes. Each mirrors the
+     console's own call for the same form, so the previewed command makes what
+     submitting makes. */
+  var cliDocs = {
+    /* DynamoDB's --attribute-definitions: every attribute a key schema names,
+       the table's and each index's, once, in name order (client_ddb.go's
+       CreateTable). Columns: hash key, its type, sort key, its type, then the
+       index rows' name, hash, hash type, range, range type. */
+    "ddb-attrs": function (c) {
+      var defs = {};
+      if (c[0][0]) defs[c[0][0]] = c[1][0] || "S";
+      if (c[2][0]) defs[c[2][0]] = c[3][0] || "S";
+      ddbIndexRows(c.slice(4)).forEach(function (g) {
+        defs[g.hash] = g.hashType;
+        if (g.range) defs[g.range] = g.rangeType;
+      });
+      return Object.keys(defs).sort().map(function (n) { return "AttributeName=" + n + ",AttributeType=" + defs[n]; });
+    },
+    /* DynamoDB's --global-secondary-indexes, as the one JSON document the CLI
+       takes. Columns: the index rows' name, hash, hash type, range, range type. */
+    "ddb-indexes": function (c) {
+      var rows = ddbIndexRows(c).map(function (g) {
+        var ks = [{ AttributeName: g.hash, KeyType: "HASH" }];
+        if (g.range) ks.push({ AttributeName: g.range, KeyType: "RANGE" });
+        return { IndexName: g.name, KeySchema: ks, Projection: { ProjectionType: "ALL" } };
+      });
+      return rows.length ? [JSON.stringify(rows)] : [];
+    },
+  };
+  /* The index rows the create form sends: a row with no name or no partition
+     key is skipped, as ddbCreateTable and CreateTable skip it. */
+  function ddbIndexRows(c) {
+    var out = [];
+    (c[0] || []).forEach(function (name, i) {
+      name = (name || "").trim();
+      var hash = (c[1] && c[1][i]) || "";
+      if (!name || !hash) return;
+      out.push({
+        name: name, hash: hash, hashType: (c[2] && c[2][i]) || "S",
+        range: ((c[3] && c[3][i]) || "").trim(), rangeType: (c[4] && c[4][i]) || "S",
+      });
+    });
+    return out;
+  }
+
   window.cliPreview = function (tmpl) {
     return {
       open: false, cmd: "",
@@ -186,8 +239,28 @@
          as a marker until the command's own whitespace has been tidied: a
          value's spaces and newlines are the user's (a message body, a secret)
          and collapsing them would show a command that sends something else. */
+      /* every enabled control of that name, in document order: a repeating
+         row's column. */
+      fieldVals: function (form, name) {
+        if (!form) return [];
+        return Array.prototype.filter.call(form.querySelectorAll('[name="' + name + '"]'), function (el) {
+          return !el.disabled;
+        }).map(function (el) {
+          if (el.type === "checkbox") return el.checked ? (el.value || "true") : "";
+          return el.__cm ? el.__cm.getValue() : el.value;
+        });
+      },
       subst: function (str, form, state) {
         var self = this;
+        str = str.replace(/@@D(\d+)@@/g, function (m, i) {
+          var d = state.docs[+i], build = cliDocs[d.name];
+          var words = build ? build(d.fields.map(function (f) { return self.fieldVals(form, f); })) : [];
+          if (!words.length) { state.empty = true; return ""; }
+          return words.map(function (w) {
+            state.vals.push(self.q(w));
+            return "\u0001" + (state.vals.length - 1) + "\u0001";
+          }).join(" ");
+        });
         return str.replace(/\$([A-Za-z_][\w-]*)(@[\w-]+)?(>[^\s\]]+)?/g, function (m, name, attr, lit) {
           var v = self.fieldVal(form, name, attr ? attr.slice(1) : "");
           /* $field>text asks "is it on": a flag bound from the page's state
@@ -203,17 +276,24 @@
       render: function (src, form) {
         /* Only as the host of a URL: a queue called MY_ENDPOINT_Q is a name. */
         var s = src.replace(/http:\/\/ENDPOINT\b/g, "http://" + location.host);
+        /* Documents first, so the $fields in their argument list are the
+           builder's columns and not values to substitute. */
+        var docs = [];
+        s = s.replace(/%([a-z][\w-]*)\(([^)]*)\)/g, function (m, name, args) {
+          docs.push({ name: name, fields: args.split(",").map(function (a) { return a.trim().replace(/^\$/, ""); }) });
+          return "@@D" + (docs.length - 1) + "@@";
+        });
         var groups = [];
         s = s.replace(/\[([^\]]*)\]/g, function (m, body) {
           groups.push(body);
           return "@@G" + (groups.length - 1) + "@@";
         });
         var vals = [];
-        var outer = { empty: false, vals: vals };
+        var outer = { empty: false, vals: vals, docs: docs };
         s = this.subst(s, form, outer);
         var self = this;
         s = s.replace(/@@G(\d+)@@/g, function (m, i) {
-          var st = { empty: false, vals: vals };
+          var st = { empty: false, vals: vals, docs: docs };
           var sub = self.subst(groups[+i], form, st);
           return st.empty ? "" : sub;
         });

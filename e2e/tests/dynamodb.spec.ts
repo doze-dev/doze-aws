@@ -451,3 +451,79 @@ test.describe('delete table', () => {
     expect(res.ok()).toBe(false);
   });
 });
+
+test.describe('create form command preview', () => {
+  // The preview's promise is that the command it shows does what submitting
+  // would. For a table with an index that needs the index in the command, and
+  // every attribute an index keys on among the definitions: builder.js builds
+  // both from the form's index rows (%ddb-attrs, %ddb-indexes).
+  //
+  // The template is given here, bound to the real form, because the one the
+  // page carries (create.html's ddb_create) does not name the index rows yet.
+  // When it does, read `.cli-out pre` instead and drop DDB_PREVIEW.
+  const DDB_PREVIEW =
+    'dynamodb create-table --table-name $name' +
+    ' --attribute-definitions %ddb-attrs($hash_key,$hash_type,$range_key,$range_type,$gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)' +
+    ' --key-schema AttributeName=$hash_key,KeyType=HASH [AttributeName=$range_key,KeyType=RANGE]' +
+    ' [--global-secondary-indexes %ddb-indexes($gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)]' +
+    ' --billing-mode PAY_PER_REQUEST';
+
+  async function preview(page: Page): Promise<string> {
+    return page.evaluate((tmpl) => {
+      const p = (window as any).cliPreview(tmpl);
+      p.$el = document.querySelector('form[hx-post$="/ddb/create"] .cli');
+      p.refresh();
+      return p.cmd as string;
+    }, DDB_PREVIEW);
+  }
+
+  test('carries the index rows and every attribute they key on', async ({ page, uniqueName }) => {
+    const table = uniqueName('e2e-ddb-preview');
+    await page.goto('ddb/create');
+    await page.locator('input[name=name]').fill(table);
+    await page.locator('input[name=hash_key]').fill('pk');
+
+    // No index, no sort key: neither is in the command.
+    let cmd = await preview(page);
+    expect(cmd).toContain(`dynamodb create-table --table-name ${table} --attribute-definitions AttributeName=pk,AttributeType=S --key-schema`);
+    expect(cmd).not.toContain('--global-secondary-indexes');
+
+    // One index on a number, with a sort key; a second on the table's own key.
+    await page.getByRole('button', { name: 'Add index' }).click();
+    const first = page.locator('.gsi-row').nth(0);
+    await first.locator('input[name=gsi_name]').fill('by-score');
+    await first.locator('input[name=gsi_hash]').fill('score');
+    await first.locator('select[name=gsi_hash_type]').selectOption('N');
+    await first.locator('.mini-check input').check();
+    await first.locator('input[name=gsi_range]').fill('at');
+    await page.getByRole('button', { name: 'Add index' }).click();
+    const second = page.locator('.gsi-row').nth(1);
+    await second.locator('input[name=gsi_name]').fill('by-pk');
+    await second.locator('input[name=gsi_hash]').fill('pk');
+
+    cmd = await preview(page);
+    // Each attribute once, in name order, as the form's own call sends them.
+    expect(cmd).toContain(
+      '--attribute-definitions AttributeName=at,AttributeType=S AttributeName=pk,AttributeType=S AttributeName=score,AttributeType=N --key-schema',
+    );
+    const doc = cmd.match(/--global-secondary-indexes '([^']*)'/);
+    expect(doc, cmd).not.toBeNull();
+    expect(JSON.parse(doc![1])).toEqual([
+      {
+        IndexName: 'by-score',
+        KeySchema: [
+          { AttributeName: 'score', KeyType: 'HASH' },
+          { AttributeName: 'at', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+      { IndexName: 'by-pk', KeySchema: [{ AttributeName: 'pk', KeyType: 'HASH' }], Projection: { ProjectionType: 'ALL' } },
+    ]);
+
+    // A row with no name is not sent by the form, and is not in the command.
+    await second.locator('input[name=gsi_name]').fill('');
+    cmd = await preview(page);
+    expect(cmd).not.toContain('by-pk');
+    expect(cmd).toContain('--global-secondary-indexes \'[{"IndexName":"by-score"');
+  });
+});
