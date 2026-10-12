@@ -161,7 +161,7 @@
     <span class="conn-lbl">Drains to</span>
     {{range .Conn.Downstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
   {{else}}
-    <span class="conn-hint">{{if eq .Svc "sqs"}}no Lambda trigger reads this queue — wire one to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else}}drains nowhere yet{{end}}</span>
+    <span class="conn-hint">{{if eq .Svc "sqs"}}no Lambda trigger reads this queue — wire one to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else if eq .Svc "kinesis"}}no Lambda trigger reads this stream — a consumer polling with the SDK is not shown here{{else}}no trigger, target or subscription is configured from this{{end}}</span>
   {{end}}
 </div>
 {{end}}
@@ -212,7 +212,7 @@
         {{range .Attention}}<a class="dk-att" href="{{$.Prefix}}/{{pathesc .Slug}}">{{icon "alert"}} {{.Text}}</a>{{end}}
       {{end}}
       {{if .Unwired}}
-        <span class="dk-unwired" title="Nothing sends to them and they send to nothing: {{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} not connected to anything</span>
+        <span class="dk-unwired" title="No subscription, target, trigger or notification configured here connects them; an SDK client that uses them is not shown: {{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} with no wiring configured</span>
       {{end}}
       {{if and (not .Attention) (not .Unwired)}}
         <span class="dk-quiet">Nothing needs attention</span>
