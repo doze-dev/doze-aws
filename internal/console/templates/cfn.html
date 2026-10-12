@@ -60,8 +60,8 @@
       </div>
       <div class="chips">
         <span class="chip {{if .Stack.Failed}}bad{{end}}">{{.Stack.Status}}</span>
-        <span class="chip">created {{.Stack.Created}}</span>
-        {{if .Stack.Updated}}<span class="chip">updated {{.Stack.Updated}}</span>{{end}}
+        <span class="chip" title="{{zoned .Stack.Created}}">created {{.Stack.Created}}</span>
+        {{if .Stack.Updated}}<span class="chip" title="{{zoned .Stack.Updated}}">updated {{.Stack.Updated}}</span>{{end}}
         {{range .Stack.Capabilities}}<span class="chip">{{.}}</span>{{end}}
         {{if .Stack.TerminationProtection}}<span class="chip">termination protected</span>{{end}}
       </div>

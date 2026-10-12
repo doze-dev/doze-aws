@@ -218,7 +218,7 @@
         <span class="dk-quiet">Nothing needs attention</span>
       {{end}}
       <span class="dk-rate">{{if .Recorder}}{{.Rate}}{{else}}capture off{{end}}</span>
-      <span class="dk-when" aria-live="polite">updated {{.Updated}}</span>
+      <span class="dk-when" aria-live="polite" title="{{zoned .Updated}}">updated {{.Updated}}</span>
       <button type="button" class="icon-btn dk-refresh" title="Refresh now" aria-label="Refresh the stack overview"
               hx-get="{{.Prefix}}/deck" hx-target="#deck" hx-swap="outerHTML">{{icon "refresh"}}</button>
     </div>

@@ -224,7 +224,7 @@
       <div class="chips">
         {{template "copychip" dict "Label" "arn" "Value" .P.ARN}}
         <span class="chip">{{.P.Kind}}</span>
-        <span class="chip">created {{.P.Created}}</span>
+        <span class="chip" title="{{zoned .P.Created}}">created {{.P.Created}}</span>
       </div>
     </div>
     <div class="det-b">
@@ -585,7 +585,7 @@
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/delete" hx-confirm="Delete group “{{.G.Name}}”? Members keep their own permissions; they lose the group's.">{{icon "trash"}} Delete</button>
         </div>
       </div>
-      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .G.ARN}}<span class="chip">created {{.G.Created}}</span></div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .G.ARN}}<span class="chip" title="{{zoned .G.Created}}">created {{.G.Created}}</span></div>
     </div>
     <div class="det-b">
       <div class="sec-title">Members <span class="dim">— every policy on this group applies to each of them</span></div>
@@ -639,7 +639,7 @@
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/profile/{{.IP.Name}}/delete" hx-confirm="Delete instance profile “{{.IP.Name}}”? Remove its role first if one is attached.">{{icon "trash"}} Delete</button>
         </div>
       </div>
-      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .IP.ARN}}<span class="chip">created {{.IP.Created}}</span></div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .IP.ARN}}<span class="chip" title="{{zoned .IP.Created}}">created {{.IP.Created}}</span></div>
     </div>
     <div class="det-b">
       <div class="sec-title">Role <span class="dim">— what an instance with this profile becomes</span></div>

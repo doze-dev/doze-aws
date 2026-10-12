@@ -50,7 +50,7 @@
     <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .S.ARN}}<span class="chip">AWSCURRENT</span></div>
     {{if .S.Deleted}}
     <div class="pub-receipt warn" style="margin-top:12px">
-      <div class="pr-h">⚠ Scheduled for deletion{{if .S.DeletedAt}} since {{.S.DeletedAt}}{{end}} — the value is locked until the recovery window ends.</div>
+      <div class="pr-h">⚠ Scheduled for deletion{{if .S.DeletedAt}} since <time title="{{zoned .S.DeletedAt}}">{{.S.DeletedAt}}</time>{{end}} — the value is locked until the recovery window ends.</div>
       <div class="pr-row dim">Restore brings it back exactly as it was; do nothing and it purges when the window closes.</div>
     </div>
     {{end}}
@@ -74,7 +74,7 @@
     <div class="sec-title">Rotation</div>
     <div class="panel"><div class="form-b" x-data="{on: {{if .S.RotationOn}}true{{else}}false{{end}} }">
       {{if .S.RotationOn}}
-      <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated {{.S.LastRotated}}{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
+      <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated <time title="{{zoned .S.LastRotated}}">{{.S.LastRotated}}</time>{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
         <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" data-confirm-verb="Turn off" data-confirm-destructive="true" hx-confirm="Turn off automatic rotation?">Disable rotation</button>

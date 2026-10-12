@@ -79,7 +79,7 @@
      the frozen definition, which is the reason to click one. */}}
 {{define "sfn_version_detail"}}
 <div class="panel">
-  <div class="panel-h"><h2>{{icon "git-branch"}} Version {{.Version}}</h2><span class="dim">revision {{.Machine.Revision}} · {{if .Machine.Description}}{{.Machine.Description}} · {{end}}published {{ago .Machine.Created}}</span></div>
+  <div class="panel-h"><h2>{{icon "git-branch"}} Version {{.Version}}</h2><span class="dim">revision {{.Machine.Revision}} · {{if .Machine.Description}}{{.Machine.Description}} · {{end}}published <time title="{{zoned .Machine.Created}}">{{ago .Machine.Created}}</time></span></div>
   <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Machine.ARN}}</div>
   <pre class="code-block">{{.Machine.Definition}}</pre>
 </div>
@@ -191,7 +191,7 @@
     <tr>
       <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
       <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
-      <td class="dim" title="{{.Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
+      <td class="dim" title="{{zoned .Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
       <td class="right">{{template "sfn_status" .Status}}</td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No children yet — the run has not launched an item.</p></div>{{end}}

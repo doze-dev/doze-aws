@@ -228,7 +228,7 @@
     <form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/create-stage">
       <div class="fgrid">
         <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="rollback" required pattern="[a-zA-Z0-9_\-]+" spellcheck="false"></div>
-        <div class="field"><label>Deployment</label><select class="input mono" name="deployment">{{range .Deployments}}<option value="{{.ID}}">{{.ID}} · {{.Created}}</option>{{end}}</select></div>
+        <div class="field"><label>Deployment</label><select class="input mono" name="deployment">{{range .Deployments}}<option value="{{.ID}}" title="{{zoned .Created}}">{{.ID}} · {{.Created}}</option>{{end}}</select></div>
       </div>
       <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Create stage</button></div>
     </form>

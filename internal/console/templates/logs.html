@@ -83,7 +83,7 @@
       <div class="panel">
         <div class="panel-h"><h2>{{icon "layers"}} Streams <span class="badge">{{len .Streams}}</span></h2><span class="dim">one per function process, newest activity first</span></div>
         {{if .Streams}}<table class="tbl"><thead><tr><th>Stream</th><th>Created</th><th>Last event</th><th></th></tr></thead><tbody>{{range .Streams}}
-          <tr><td class="mono trunc" title="{{.Name}}">{{.Name}}</td><td class="dim"><time title="{{zoned .Created}}">{{.Created}}</time></td><td class="dim">{{if .LastEvent}}{{.LastEvent}}{{else}}—{{end}}</td><td class="right"><button class="btn btn-outline btn-sm danger" title="Delete stream {{.Name}}" aria-label="Delete stream {{.Name}}" hx-post="{{$.Prefix}}/logs/delete-stream" hx-vals='{"name":"{{$.G.Name}}","stream":"{{.Name}}"}' hx-confirm="Delete this stream and its lines?">{{icon "trash"}}</button></td></tr>
+          <tr><td class="mono trunc" title="{{.Name}}">{{.Name}}</td><td class="dim"><time title="{{zoned .Created}}">{{.Created}}</time></td><td class="dim" title="{{zoned .LastEvent}}">{{if .LastEvent}}{{.LastEvent}}{{else}}—{{end}}</td><td class="right"><button class="btn btn-outline btn-sm danger" title="Delete stream {{.Name}}" aria-label="Delete stream {{.Name}}" hx-post="{{$.Prefix}}/logs/delete-stream" hx-vals='{"name":"{{$.G.Name}}","stream":"{{.Name}}"}' hx-confirm="Delete this stream and its lines?">{{icon "trash"}}</button></td></tr>
         {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No streams yet.</p></div>{{end}}
       </div>
       {{else if eq .Tab "subscriptions"}}

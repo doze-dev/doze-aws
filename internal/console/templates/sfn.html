@@ -35,7 +35,7 @@
         <div class="fact"><div class="fx-k">States</div><div class="fx-v num">{{.Machine.States}}</div></div>
         <div class="fact"><div class="fx-k">Running</div><div class="fx-v num" id="sum-sfn-{{slug .Name}}-running">{{if .Running}}<span class="warn">{{.Running}}</span>{{else}}0{{end}}</div></div>
         <div class="fact"><div class="fx-k">Executions</div><div class="fx-v num">{{len .Execs}}</div></div>
-        <div class="fact"><div class="fx-k">Updated</div><div class="fx-v">{{ago .Machine.Updated}}</div></div>
+        <div class="fact"><div class="fx-k">Updated</div><div class="fx-v" title="{{zoned .Machine.Updated}}">{{ago .Machine.Updated}}</div></div>
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "executions" "Label" "Executions" "Icon" "list" "CtID" (printf "tabct-sfn-%s-execs" (slug .Name)) "Ct" (len .Execs) "URL" (printf "%s/sfn/%s" .Prefix .Name))
@@ -166,7 +166,7 @@
       <tr>
         <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{$.Name}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
         <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
-        <td class="dim" title="{{.Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
+        <td class="dim" title="{{zoned .Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
         <td class="right">{{template "sfn_status" .Status}}</td>
       </tr>
     {{end}}</tbody></table>{{else}}<div class="empty flat"><p>{{if .Filter}}No {{.Filter}} executions.{{else}}No executions yet — nothing has run.{{end}}</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{.Name}}?tab=start">{{icon "send"}} Start one</a></div>{{end}}
@@ -204,10 +204,10 @@
       <div class="factstrip">
         <div class="fact"><div class="fx-k">Status</div><div class="fx-v" id="sum-sfn-exec-status">{{template "sfn_status" .Exec.Status}}</div></div>
         <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{zoned .Exec.Started}}">{{ago .Exec.Started}}</div></div>
-        <div class="fact"><div class="fx-k">Stopped</div><div class="fx-v" title="{{.Exec.Stopped}}">{{if .Exec.Stopped}}{{ago .Exec.Stopped}}{{else}}—{{end}}</div></div>
+        <div class="fact"><div class="fx-k">Stopped</div><div class="fx-v" title="{{zoned .Exec.Stopped}}">{{if .Exec.Stopped}}{{ago .Exec.Stopped}}{{else}}—{{end}}</div></div>
         {{if .Exec.Error}}<div class="fact"><div class="fx-k">Error</div><div class="fx-v mono"><span class="bad" title="{{.Exec.Cause}}">{{.Exec.Error}}</span></div></div>{{end}}
         {{with .Exec.StartedVia}}<div class="fact"><div class="fx-k">Started via</div><div class="fx-v mono">{{.}}</div></div>{{end}}
-        {{if .Exec.RedriveCount}}<div class="fact"><div class="fx-k">Redriven</div><div class="fx-v num" id="sum-sfn-exec-redrives" title="last {{.Exec.RedriveDate}}">{{.Exec.RedriveCount}}× · {{ago .Exec.RedriveDate}}</div></div>
+        {{if .Exec.RedriveCount}}<div class="fact"><div class="fx-k">Redriven</div><div class="fx-v num" id="sum-sfn-exec-redrives">{{.Exec.RedriveCount}}× · last <time title="{{zoned .Exec.RedriveDate}}">{{ago .Exec.RedriveDate}}</time></div></div>
         {{else if and (ne .Exec.Status "RUNNING") (ne .Exec.Status "SUCCEEDED") (not .Exec.Redrivable)}}<div class="fact"><div class="fx-k">Redrive</div><div class="fx-v dim" title="{{.Exec.RedriveReason}}">not possible</div></div>{{end}}
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list

@@ -36,6 +36,75 @@ func TestDisplayedTimesGoThroughOneFormatter(t *testing.T) {
 	}
 }
 
+// Every time a template shows says its zone on hover: the element that holds it
+// carries title="{{zoned X}}" for the same X. A relative time ("3 h ago") most
+// of all, since it shows no instant at all.
+//
+// Two rules, read off the templates:
+//
+//  1. every {{ago X}} sits in an element whose opening tag has
+//     title="{{zoned X}}";
+//  2. a field whose name says it is a time (timeField below), written as text
+//     rather than inside an attribute, sits in such an element too.
+//
+// Rule 2 knows a time by its field's name, which is all a template gives; a
+// time under a name not listed is not seen. The list is every such name the
+// view models carry today.
+var (
+	agoCall   = regexp.MustCompile(`\{\{ago ([^}]+)\}\}`)
+	timeField = regexp.MustCompile(`\{\{((?:\$|\.)[A-Za-z.$]*\.?(?:Created|Updated|Modified|Changed|Started|Stopped|When|Time|Clock|LastEvent|DeletedAt|LastModified|LastRotated|Arrived|SentAt|RedriveDate))\}\}`)
+)
+
+// enclosingTag returns the opening tag of the element the text at idx sits in:
+// the nearest "<name ...>" before it that is not a closing tag. inAttr reports
+// that idx is inside a tag, so the value is an attribute's and not shown text.
+func enclosingTag(src string, idx int) (tag string, inAttr bool) {
+	before := src[:idx]
+	open := strings.LastIndex(before, "<")
+	for open >= 0 && strings.HasPrefix(before[open:], "</") {
+		open = strings.LastIndex(before[:open], "<")
+	}
+	if open < 0 {
+		return "", false
+	}
+	end := strings.Index(before[open:], ">")
+	if end < 0 {
+		return before[open:], true
+	}
+	return before[open : open+end+1], false
+}
+
+func TestEveryDisplayedTimeHasAZoneHover(t *testing.T) {
+	files, _ := filepath.Glob("templates/*.html")
+	if len(files) == 0 {
+		t.Fatal("no templates found")
+	}
+	for _, f := range files {
+		raw, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := string(raw)
+		lineOf := func(idx int) int { return strings.Count(src[:idx], "\n") + 1 }
+		check := func(idx int, expr, shown string) {
+			tag, inAttr := enclosingTag(src, idx)
+			if inAttr {
+				return
+			}
+			if !strings.Contains(tag, `title="{{zoned `+expr+`}}"`) {
+				t.Errorf("%s:%d shows %s with no zone on hover; its element needs title=\"{{zoned %s}}\" (it is in %s)",
+					f, lineOf(idx), shown, expr, tag)
+			}
+		}
+		for _, m := range agoCall.FindAllStringSubmatchIndex(src, -1) {
+			check(m[0], src[m[2]:m[3]], src[m[0]:m[1]])
+		}
+		for _, m := range timeField.FindAllStringSubmatchIndex(src, -1) {
+			check(m[0], src[m[2]:m[3]], src[m[0]:m[1]])
+		}
+	}
+}
+
 func TestFormattersAreLocal(t *testing.T) {
 	loc := time.FixedZone("test", 5*3600+1800) // an offset no UTC reading can match
 	prev := time.Local

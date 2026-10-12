@@ -101,7 +101,7 @@
              hx-get="{{$.Prefix}}/eb/{{$.Bus}}/replay/{{.Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
              title="Show its window and state reason — why a COMPLETED replay delivered nothing">{{.Name}}</button></td>
         <td><span class="badge {{if eq .State "COMPLETED"}}state-on{{else}}zero{{end}}">{{.State}}</span></td>
-        <td class="right dim" style="font-size:11px">{{ago .Started}}</td></tr>
+        <td class="right dim" style="font-size:11px" title="{{zoned .Started}}">{{ago .Started}}</td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No replays yet.</p></div>{{end}}
   </div>
 {{end}}

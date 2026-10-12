@@ -164,7 +164,7 @@
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "cw" "ID" .A.Name}}
       {{else}}
       <div class="panel">
-        <div class="panel-h"><h2>{{icon "alert"}} State</h2><span class="dim">{{if .A.Updated}}since {{.A.Updated}}{{end}}</span></div>
+        <div class="panel-h"><h2>{{icon "alert"}} State</h2><span class="dim">{{if .A.Updated}}since <time title="{{zoned .A.Updated}}">{{.A.Updated}}</time>{{end}}</span></div>
         <div class="factstrip">
           <div class="fact"><div class="fx-k">State</div><div class="fx-v">{{template "cw_state" .A.State}}</div></div>
           <div class="fact"><div class="fx-k">Watching</div><div class="fx-v mono"><a href="{{.Prefix}}/cw/metric?key={{.A.MetricKey}}">{{.A.Namespace}}/{{.A.MetricName}}</a></div></div>

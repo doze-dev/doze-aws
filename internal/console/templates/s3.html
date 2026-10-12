@@ -414,7 +414,7 @@
 <div class="ver-rows">{{range .Versions}}
   <div class="ver-row {{if .IsLatest}}cur{{end}}">
     <span class="ver-id mono" title="{{.VersionID}}">{{if .DeleteMarker}}⊘ delete marker{{else}}{{.VersionID}}{{end}}</span>
-    <span class="ver-meta dim">{{.LastModified}}{{if not .DeleteMarker}} · {{humanSize .Size}}{{end}}{{if .IsLatest}} · current{{end}}</span>
+    <span class="ver-meta dim" title="{{zoned .LastModified}}">{{.LastModified}}{{if not .DeleteMarker}} · {{humanSize .Size}}{{end}}{{if .IsLatest}} · current{{end}}</span>
     <span class="ver-acts">
       {{if not .DeleteMarker}}<a class="icon-btn sm" title="Download this version" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{$.EncodedKey}}&versionId={{.VersionID}}" target="_blank">{{icon "download"}}</a>{{end}}
       {{if and (not .IsLatest) (not .DeleteMarker)}}<button class="icon-btn sm" title="Make this version current again" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/restore-version" hx-vals='{"key":"{{$.Key}}","versionId":"{{.VersionID}}"}' hx-target="closest .drawer-sec" hx-select="" hx-swap="innerHTML">{{icon "rotate"}}</button>{{end}}
