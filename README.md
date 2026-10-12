@@ -89,7 +89,7 @@ clients still speak.
 | Service | Operations | Refusals the AWS model states | Behaviour held against real AWS |
 |---|---|---|---|
 | STS | ✅ | 7 of 8 dispatched operations · 108/108 constraint cases | 2 boto3 scenarios · recordings pending |
-| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | 21 of 22 dispatched operations · 48/48 constraint cases, plus hand-derived attribute and queue-name checks | 36 boto3 scenarios · recordings pending |
+| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | all 22 dispatched operations · 51/51 constraint cases, plus hand-derived attribute and queue-name checks | 36 boto3 scenarios · recordings pending |
 | SNS | ✅ fanout to SQS/Lambda/webhooks, filter policies, confirmation handshake, delivery status logs to CloudWatch Logs | all 19 dispatched operations · 53/53 constraint cases | 7 boto3 scenarios · recordings pending |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | all 36 dispatched operations · 263/263 constraint cases | 5 boto3 scenarios · recordings pending |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | all 13 dispatched operations · 100/100 constraint cases | 4 boto3 scenarios · recordings pending |

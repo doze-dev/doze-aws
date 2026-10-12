@@ -54,3 +54,13 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | The number of permissions at which `AddPermission` is `OverLimit` (the model names the error, not the number) | model | test_sqs::test_add_permission_statement_limit |
 | `GetQueueAttributes` with no `AttributeNames` returns an empty result | model | test_sqs::test_get_queue_attributes_without_names |
 | A move task is asynchronous: started, it is `RUNNING` with a handle; one runs per queue at a time; `CancelMessageMoveTask` on a running one answers the count moved and the status becomes `CANCELLED`, and cancelling again is refused | model | test_sqs::test_move_task_cancel |
+| `SetQueueAttributes` cannot change `FifoQueue`: "You can't change it for an existing queue" (the code doze-aws refuses with, `InvalidAttributeName`, is memory) | model | test_sqs::test_queue_type_cannot_change |
+| An ARN naming another account or service is not a queue here: a move task answers `ResourceNotFoundException`, a `RedrivePolicy` is refused | model | test_sqs::test_an_arn_elsewhere |
+| Content-based deduplication generates the SHA-256 of the body as the `MessageDeduplicationId` | model | test_sqs::test_content_based_deduplication_id |
+| `SequenceNumber` "applies only to FIFO" queues: a standard queue's send with a group id has none | model | test_sqs::test_sequence_number_is_fifo_only |
+| A boolean attribute's "valid values are true and false": `TRUE`, `True`, `1` (doze-aws refuses them) | model | test_sqs::test_boolean_attribute_spelling |
+| "The only supported message system attribute is AWSTraceHeader. Its type must be String" (doze-aws refuses another name or type; whether AWS checks the header's format is memory) | model | test_sqs::test_message_system_attributes |
+| "You must set MaxResults to receive a value for NextToken" | model | test_sqs::test_list_queues_token_needs_max_results |
+| `ReceiptHandleIsInvalid` and `ResourceNotFoundException` are 404 on the JSON protocol too (the shapes' `httpError`) | model | test_sqs::test_error_statuses |
+| A read-only attribute (`QueueArn`, `CreatedTimestamp`) in `SetQueueAttributes`: refused or ignored (doze-aws ignores it; the model is silent) | memory | test_sqs::test_attribute_ranges |
+| `KmsMasterKeyId` together with `SqsManagedSseEnabled=true`: "only one server-side encryption option is supported per queue" (doze-aws stores both; what AWS answers is not established) | model | test_sqs::test_fifo_attribute_rules |

@@ -2539,14 +2539,14 @@ validation passes.
 
 | Operation | Tier | Notes |
 |---|---|---|
-| CreateQueue | F | standard + FIFO (.fifo naming rule enforced), attributes, tags; idempotent re-create merges attributes |
+| CreateQueue | F | standard + FIFO (.fifo naming rule enforced), attributes, tags; a re-create with the same attributes answers the queue that is there, and one with a different value is refused `QueueNameExists` naming the attribute |
 | DeleteQueue | F | drops messages and dedup state; immediate, where AWS takes up to 60 seconds and refuses re-creating the name inside them (a listed difference below) |
-| ListQueues | F | prefix filter; `MaxResults` 1–1,000 and `NextToken` |
+| ListQueues | F | prefix filter; `MaxResults` 1–1,000 and `NextToken`. Without `MaxResults` a call returns up to 1,000 and no token, as the model says |
 | GetQueueUrl | F | |
 | GetQueueAttributes | F | incl. ApproximateNumberOfMessages(NotVisible), QueueArn, RedrivePolicy; with no `AttributeNames` the result is empty, as the model says (`All` for everything) |
 | SetQueueAttributes | F | visibility, delay, retention, max size (1 KiB to 1 MiB), receive wait, redrive policy, `RedriveAllowPolicy` (checked when a queue names this one as its DLQ), `Policy` (validated), `DeduplicationScope`, `FifoThroughputLimit` (validated, nothing throttled), FIFO dedup; a boolean other than true/false and an unknown attribute are refused |
 | TagQueue / UntagQueue / ListQueueTags | F | |
-| SendMessage / SendMessageBatch | F | delay, message attributes (String/Number/Binary), FIFO group + dedup id, content-based dedup; a message and a batch are 1 MiB counting attributes; `MessageGroupId` is accepted on a standard queue (fair queues: held to its format and returned, no fairness is modelled); `AWSTraceHeader` on every entry, with `MD5OfMessageSystemAttributes`; a bad character is `InvalidMessageContents` |
+| SendMessage / SendMessageBatch | F | delay, message attributes (String/Number/Binary), FIFO group + dedup id, content-based dedup (the generated id is the SHA-256 of the body, as the model says); `SequenceNumber` on a FIFO queue only; a message and a batch are 1 MiB counting attributes; `MessageGroupId` is accepted on a standard queue (fair queues: held to its format and returned, no fairness is modelled); `AWSTraceHeader` on every entry, with `MD5OfMessageSystemAttributes`; a bad character is `InvalidMessageContents` |
 | ReceiveMessage | F | long polling (notifier-driven, no spin), visibility timeout + per-receive override, FIFO group locking, system + message attribute selection (`All`, `.*`, `prefix.*`), `ReceiveRequestAttemptId` on a FIFO queue (a retry inside five minutes returns the same messages and handles until one is deleted or changed; kept in memory) |
 | DeleteMessage / DeleteMessageBatch | F | |
 | ChangeMessageVisibility | F | refused for a message not in flight (`MessageNotInflight`), and past the twelve hours from the receive; a malformed handle is `ReceiptHandleIsInvalid` |
@@ -2585,9 +2585,11 @@ too.
   when none was), so a test that asserts the moved messages straight after
   `StartMessageMoveTask` fails here as it is racy there. AWS says only that it
   "optimizes the rate based on the queue message backlog", so those two numbers
-  are this emulator's choice. A running task is not written to the store: a
-  restart mid-move loses it, what had moved stays moved, and starting it again
-  is safe. A finished task is recorded and survives a restart.
+  are this emulator's choice. A running task is the process's and is not
+  resumed: an orderly stop records it `CANCELLED` with the count it had moved,
+  a kill loses the record, and either way what had moved stays moved, the rest
+  is still in the dead-letter queue and a new task can be started. A finished
+  task is recorded and survives a restart.
 - **A receipt handle is the receive's**, as on AWS: a delete with the handle of
   an earlier receive succeeds and leaves the message, so the slow-worker bug
   (the timeout lapses, a second worker receives, the first deletes) shows up
@@ -2609,9 +2611,15 @@ too.
 
 ### Verified against
 
-- **aws-sdk-go-v2** (`sdk_test.go`) and **v1** (`sdkv1_test.go`): both wire
-  protocols — AWS JSON 1.0 and the legacy Query/XML — against the same store,
-  with the MD5 body and attribute digests SDK client-side validation checks.
+- **aws-sdk-go-v2** (`sdk_test.go`) and **v1** (`sdkv1_test.go`), with the MD5
+  body and attribute digests SDK client-side validation checks. Both SDKs speak
+  AWS JSON 1.0 for SQS now, so neither exercises the Query wire: that is held
+  by raw requests (`query_wire_test.go`, `wires_test.go`).
+- **Code and status on both wires** (`wires_test.go`, `audit_test.go`): each
+  refusal below asserted with its exact code and HTTP status as a raw JSON post
+  and as a raw Query post, including the model's 404 for
+  `ReceiptHandleIsInvalid` and `ResourceNotFoundException` and 403 for
+  `OverLimit` and `PurgeQueueInProgress`.
 - **Batch semantics** (`batch_txn_test.go`): a bad entry does not sink the
   batch and is reported per entry, a missing queue fails the whole call.
 - **Attributes** (`attrs_roundtrip_test.go`): every settable attribute round
@@ -2620,8 +2628,9 @@ too.
   sweeps, and a long poll wakes promptly rather than on its timeout.
 - **A leak, kept fixed** (`notify_leak_test.go`): a successful receive followed
   by a queue delete used to strand a wakeup channel in the long-poll notifier.
-- **Model-derived rejection parity** (`rejection_parity_test.go`), which asserts
-  the error **code** an SDK sees rather than only that something failed.
+- **Model-derived rejection parity** (`rejection_parity_test.go`,
+  `model_parity_test.go`), which asserts the error **code** an SDK sees rather
+  than only that something failed.
 - **What the model's own documentation says** (`model_docs_test.go`,
   `system_attrs_test.go`): the 1 MiB limits, fair queues, the error codes, the
   move-task entries, AddPermission, the twelve hours and a queue in another
@@ -2632,9 +2641,13 @@ too.
   speaks JSON for SQS now, so for a while nothing exercised this wire; TagQueue,
   UntagQueue, SetQueueAttributes and the batch operations were refused on every
   valid Query request until it did.
-- **Across a restart** (`persistence_sqs_test.go`): a message in flight keeps its
-  timer and its receipt handle, a deduplication window stays open, a move task
-  is on record, and the policy, tags and redrive policy come back.
+- **Across a restart** (`persistence_sqs_test.go`, `audit_test.go`): a message
+  in flight keeps its timer and its receipt handle, a deduplication window stays
+  open, a move task is on record, a move stopped mid-way leaves the rest where it
+  was, and the policy, tags and redrive policy come back.
+- **Under another account and Region** (`peer_identity_sqs_test.go`): an SNS
+  subscription, an EventBridge rule and an S3 notification each deliver to a
+  queue, and a queue URL or ARN that names another account is not the queue here.
 - **Under enforce** (`enforce_sqs_test.go`): a `Deny` in the queue policy refuses
   the root for the action it names and no other, stamped as IAM's refusal.
 
@@ -2647,7 +2660,8 @@ passes on deploy.
 
 | Input | Status |
 |---|---|
-| `RedrivePolicy` — target exists | ✅ refused if the queue does not exist |
+| `RedrivePolicy` — target exists | ✅ refused if the queue does not exist, or if the ARN names another account, Region or service |
+| `RedrivePolicy` — no `maxReceiveCount` | ✅ accepted as 10, the model's default |
 | `RedrivePolicy` — FIFO↔FIFO, standard↔standard | ✅ refused if the types differ |
 | `RedrivePolicy` — `maxReceiveCount` 1–1000 | ✅ range enforced, quoted or bare |
 | `RedrivePolicy` — self-reference | ✅ a queue cannot be its own DLQ |
@@ -2668,17 +2682,24 @@ passes on deploy.
 | `Policy`: valid JSON, a Statement with Effect, Principal, Action and Resource | ✅ refused otherwise |
 | `RedriveAllowPolicy`: `allowAll`, `denyAll`, `byQueue` with at most 10 source ARNs | ✅ |
 | `DeduplicationScope` queue/messageGroup, `FifoThroughputLimit` perQueue/perMessageGroupId (the latter needs `messageGroup`), both FIFO only | ✅ |
-| `KmsDataKeyReusePeriodSeconds` 60–86400; booleans true/false | ✅ |
+| `KmsDataKeyReusePeriodSeconds` 60–86400; booleans `true` or `false` as written (`TRUE`, `True` and `1` are refused) | ✅ |
+| `FifoQueue` in `SetQueueAttributes` | ✅ refused: a queue's type is set at creation and cannot change |
+| `ContentBasedDeduplication` on a standard queue | ✅ refused, as `DeduplicationScope` is (the model: FIFO only; what AWS answers is not established) |
+| A message system attribute other than `AWSTraceHeader`, or one whose type is not `String` | ✅ refused, per entry in a batch |
+| An ARN in `StartMessageMoveTask`, `ListMessageMoveTasks` naming another account, Region or service | ✅ `ResourceNotFoundException` |
+| A batch with no entries | ✅ `EmptyBatchRequest` on both wires |
 | Tags: key 1–128 characters, value 0–256, no `aws:` prefix | ✅ (more than 50 is "not recommended" in the model, so accepted) |
-| A queue URL's account, and `QueueOwnerAWSAccountId`, must be this account | ✅ `QueueDoesNotExist` otherwise |
+| A queue URL is `/<account>/<name>`; the account, and `QueueOwnerAWSAccountId`, must be this account | ✅ `QueueDoesNotExist` otherwise, and for a URL with more path than that |
 | `ReceiveMessageWaitTimeSeconds` 0–20 | ✅ |
 | Non-numeric attribute values | ✅ refused (previously silently ignored) |
 | Queue name — charset | ✅ alphanumeric, `-`, `_` only (a period is legal only as the `.fifo` suffix) |
 | Queue name — length ≤80 | ✅ the `.fifo` suffix counts toward the limit |
-| Everything else | see **Model-derived validation** below — 48/48 enforced, no known gaps |
+| Everything else | see **Model-derived validation** below — 51/51 enforced, no known gaps |
 
-Enforced cases are covered by `sqs/rejection_parity_test.go`, which asserts the
-error **code** an SDK sees, not just that something failed.
+Each row is held by a test that asserts the error **code** an SDK sees, not
+just that something failed: `rejection_parity_test.go` for the first rows, and
+`wires_test.go`, `audit_test.go`, `model_docs_test.go`, `request_ranges_test.go`,
+`tags_test.go`, `policy_test.go` and `permission_test.go` for the rest.
 
 Note SQS's own AWS service model carries no `@range`, `@length` or `@pattern`
 traits at all — its constraints live only in prose — so this table is hand-derived
@@ -2692,7 +2713,7 @@ nothing about queue names, visibility timeouts or redrive policies — those rul
 exist only in prose. This is the generated audit that covers what the model
 *does* state.
 
-**48/48 model-derived constraints enforced across 21 of the 22 dispatched
+**51/51 model-derived constraints enforced across all 22 dispatched
 operations, with `knownGaps` empty.** Before this table, 22 were enforced and
 26 were not.
 
@@ -2701,9 +2722,10 @@ protocol-neutral shape (`params.asMap`) before the walk, and the error code
 follows the caller's protocol — `ValidationError` for Query, `ValidationException`
 for JSON.
 
-`CancelMessageMoveTask`'s single case is skipped with the reason recorded in the
-test: local message moves complete synchronously, so there is never an active
-task to cancel and the baseline is refused however it is built.
+Nothing is skipped. `CancelMessageMoveTask` was, while a move finished inside
+the call; a task is `RUNNING` now and the audit starts one to cancel. The cases
+are regenerated from the model (51, up from 49: the map-key rule on
+`Attributes` for CreateQueue and SetQueueAttributes).
 
 ##### What this audit caught
 

@@ -181,6 +181,29 @@ func exemplars() map[string]any {
 // order, which is not the order that would make them work.
 func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[string]any, n int) {
 	t.Helper()
+	if op == "CancelMessageMoveTask" {
+		// A cancel needs a task that is running, so each case starts its own:
+		// a dead-letter queue with something in it, and a move out of it. The
+		// task waits before it moves anything, which is long enough to cancel.
+		if mutating == "TaskHandle" {
+			return
+		}
+		dlq, src := fmt.Sprintf("cancel-dlq-%d", n), fmt.Sprintf("cancel-src-%d", n)
+		arn := "arn:aws:sqs:us-east-1:000000000000:"
+		call(t, ts, "CreateQueue", map[string]any{"QueueName": dlq})
+		call(t, ts, "CreateQueue", map[string]any{"QueueName": src, "Attributes": map[string]any{
+			"RedrivePolicy": `{"deadLetterTargetArn":"` + arn + dlq + `","maxReceiveCount":3}`}})
+		call(t, ts, "SendMessage", map[string]any{"QueueUrl": "http://peer.invalid/000000000000/" + dlq, "MessageBody": "parked"})
+		code, resp := call(t, ts, "StartMessageMoveTask", map[string]any{"SourceArn": arn + dlq, "DestinationArn": arn + src})
+		var started struct {
+			TaskHandle string `json:"TaskHandle"`
+		}
+		if err := json.Unmarshal([]byte(resp), &started); err != nil || code != http.StatusOK || started.TaskHandle == "" {
+			t.Fatalf("could not start a move to cancel (%d): %s", code, resp)
+		}
+		body["TaskHandle"] = started.TaskHandle
+		return
+	}
 	if mutating == "QueueName" || mutating == "QueueUrl" {
 		return // never overwrite the member the case is about
 	}
@@ -198,8 +221,8 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 // reshaping what every other case reads. Skipped WITH A REASON, because a case
 // nobody ran is not a case that passed.
 var needState = map[string]string{
-	"CancelMessageMoveTask": "there is never an active task to cancel — local message " +
-		"moves complete synchronously, so the baseline is refused however it is built",
+	// Empty. CancelMessageMoveTask was here while a move finished inside the
+	// call; a task is RUNNING now, and prepare starts one for it.
 }
 
 // knownGaps are constraints AWS enforces and doze-aws does not, as of the last

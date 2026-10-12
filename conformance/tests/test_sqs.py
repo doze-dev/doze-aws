@@ -604,8 +604,8 @@ def test_setting_an_attribute_back_to_its_default(client, names, cleanup, snapsh
 
 def test_an_old_receipt_handle(client, names, cleanup, snapshot, eventually):
     """"If you use an old ReceiptHandle, the request will succeed, but the
-    message might not be deleted." Here a handle is the message's, not the
-    receive's, so it deletes: recorded, this says whether that is a difference."""
+    message might not be deleted." Here a handle is the receive's: a delete with
+    an earlier receive's handle succeeds and leaves the message (SQS-27)."""
     import time
     sqs = client("sqs")
     url = make_queue(sqs, names, cleanup, Attributes={"VisibilityTimeout": "1"})
@@ -681,3 +681,98 @@ def test_move_task_cancel(client, names, cleanup, snapshot, eventually):
     final = eventually(settled, timeout=60)
     snapshot.match("final", {"status": final["Status"], "has-handle": "TaskHandle" in final})
     snapshot.error("cancel-again", lambda: sqs.cancel_message_move_task(TaskHandle=task["TaskHandle"]))
+
+
+def test_queue_type_cannot_change(client, names, cleanup, snapshot):
+    """The model, FifoQueue: "You can provide this attribute only during queue
+    creation. You can't change it for an existing queue." """
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.outcome("fifo-on-a-standard-queue", lambda: sqs.set_queue_attributes(
+        QueueUrl=url, Attributes={"FifoQueue": "true"}))
+    snapshot.outcome("still-takes-a-plain-send", lambda: sqs.send_message(QueueUrl=url, MessageBody="x"),
+                     opaque=("MessageId",))
+
+
+def test_an_arn_elsewhere(client, names, cleanup, snapshot):
+    """A dead-letter queue is one "in this Amazon Web Services account in the
+    same Region"; a move task's source that is not there is
+    ResourceNotFoundException."""
+    sqs = client("sqs")
+    dlq = make_queue(sqs, names, cleanup, "queue-dlq")
+    arn = queue_arn(sqs, dlq)
+    parts = arn.split(":")
+    other_account = ":".join(parts[:4] + ["999999999999"] + parts[5:])
+    other_service = ":".join(parts[:2] + ["sns"] + parts[3:])
+    for label, a in (("another-account", other_account), ("another-service", other_service)):
+        snapshot.outcome("move-task-" + label, lambda a=a: sqs.start_message_move_task(SourceArn=a))
+        snapshot.outcome("redrive-policy-" + label, lambda a=a: sqs.create_queue(
+            QueueName=names("queue"), Attributes={"RedrivePolicy": json.dumps({"deadLetterTargetArn": a, "maxReceiveCount": "3"})}))
+
+
+def test_content_based_deduplication_id(client, names, cleanup, snapshot, eventually):
+    """The model: "Amazon SQS uses a SHA-256 hash to generate the
+    MessageDeduplicationId using the body of the message"."""
+    import hashlib
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup, suffix=".fifo",
+                     Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"})
+    sqs.send_message(QueueUrl=url, MessageBody="same body", MessageGroupId="g")
+    got = receive(sqs, eventually, url, MessageSystemAttributeNames=["MessageDeduplicationId"])
+    snapshot.match("generated-id-is-sha256", {
+        "matches": got[0]["Attributes"].get("MessageDeduplicationId") == hashlib.sha256(b"same body").hexdigest()})
+
+
+def test_sequence_number_is_fifo_only(client, names, cleanup, snapshot, eventually):
+    """The model, SequenceNumber: "This parameter applies only to FIFO
+    (first-in-first-out) queues." A group id on a standard queue is a fair
+    queue's, not an ordered one's."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    out = sqs.send_message(QueueUrl=url, MessageBody="x", MessageGroupId="tenant-a")
+    got = receive(sqs, eventually, url, MessageSystemAttributeNames=["All"])
+    snapshot.match("standard", {"send-has-one": "SequenceNumber" in out,
+                                "receive-has-one": "SequenceNumber" in got[0]["Attributes"]})
+
+
+def test_boolean_attribute_spelling(client, names, cleanup, snapshot):
+    """The model: "Valid values are true and false"."""
+    sqs = client("sqs")
+    for v in ("TRUE", "True", "1"):
+        snapshot.outcome("content-based-deduplication-" + v, lambda v=v: sqs.create_queue(
+            QueueName=names("queue") + ".fifo", Attributes={"FifoQueue": "true", "ContentBasedDeduplication": v}))
+
+
+def test_message_system_attributes(client, names, cleanup, snapshot):
+    """The model: "the only supported message system attribute is
+    AWSTraceHeader. Its type must be String"."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.outcome("another-name", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageSystemAttributes={
+        "Other": {"DataType": "String", "StringValue": "x"}}))
+    snapshot.outcome("a-number", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageSystemAttributes={
+        "AWSTraceHeader": {"DataType": "Number", "StringValue": "1"}}))
+
+
+def test_list_queues_token_needs_max_results(client, names, cleanup, snapshot):
+    """The model: "You must set MaxResults to receive a value for NextToken in
+    the response." (Whether a token appears without it needs more than 1,000
+    queues; this records the paged half.)"""
+    sqs = client("sqs")
+    prefix = names("queue")
+    for i in range(3):
+        cleanup(sqs.delete_queue, QueueUrl=sqs.create_queue(QueueName="%s-%d" % (prefix, i))["QueueUrl"])
+    out = sqs.list_queues(QueueNamePrefix=prefix, MaxResults=1)
+    snapshot.match("paged", {"count": len(out.get("QueueUrls", [])), "has-token": "NextToken" in out})
+    out = sqs.list_queues(QueueNamePrefix=prefix)
+    snapshot.match("unpaged", {"count": len(out.get("QueueUrls", [])), "has-token": "NextToken" in out})
+
+
+def test_error_statuses(client, names, cleanup, snapshot):
+    """The model's error shapes: ReceiptHandleIsInvalid and
+    ResourceNotFoundException are httpError 404; the JSON protocol carries the
+    shape's status."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.outcome("a-malformed-receipt-handle", lambda: sqs.delete_message(QueueUrl=url, ReceiptHandle="not-a-handle"))
+    snapshot.outcome("a-task-that-is-not-there", lambda: sqs.cancel_message_move_task(TaskHandle="no-such-task"))

@@ -235,6 +235,33 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     finished task lists no handle. A test that asserted the moved messages
     straight after the start passed here and was racy on AWS. The console's
     redrive shows "Redriving, N moved so far" and then the result.
+  - **Found by auditing the stage after it was called done:**
+    - `SetQueueAttributes` can no longer change a queue's type. `FifoQueue=true`
+      on a standard queue was applied, and the queue then refused every send
+      without a group id.
+    - An ARN names a queue here only if it is this instance's (SQS, its Region,
+      its account). A move task or a `RedrivePolicy` naming
+      `arn:aws:sqs:us-east-1:999999999999:orders`, or an SNS ARN ending in
+      `orders`, acted on the queue called `orders`.
+    - The id content-based deduplication generates is the SHA-256 of the body
+      (it was an MD5).
+    - `SequenceNumber` is returned for a FIFO queue only; a standard queue's
+      send with a `MessageGroupId` returned one.
+    - A boolean attribute is `true` or `false` as written; `TRUE` was accepted.
+      `ContentBasedDeduplication` on a standard queue is refused.
+    - A message system attribute other than `AWSTraceHeader`, or with a type
+      other than `String`, is refused (it was dropped silently).
+    - `ListQueues` returns a `NextToken` only when `MaxResults` is set.
+    - An empty batch on the Query wire is `EmptyBatchRequest`.
+    - On the JSON wire `ReceiptHandleIsInvalid` and `ResourceNotFoundException`
+      answer 404 and `PurgeQueueInProgress` 403, the model's statuses (they were
+      400). SDKs read the code, so this changes only what a raw client sees.
+    - A `RedrivePolicy` with no `maxReceiveCount` takes the model's default of
+      10 (it was refused).
+    - A queue URL with more path than `/account/name` names no queue.
+  - **Also in this stage and not listed before:** `ListQueues` and
+    `ListDeadLetterSourceQueues` page (`MaxResults`, `NextToken`); tag keys are
+    held to 128 characters, values to 256, and the `aws:` prefix is refused.
   - **Not simulated, and listed in the ledger:** nothing a test can observe
     depends on the rest (the in-flight limit, fair-queue fairness).
 - The ledger no longer says IAM defaults to `off`. It is `soft`.
