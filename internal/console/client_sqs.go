@@ -171,6 +171,12 @@ func clampInt(v, lo, hi int) int {
 // person composing a burst of test messages should not have to know it.
 func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []string, o SendOpts) ([]BatchFailure, error) {
 	delay, groupID, mattrs := o.Delay, o.GroupID, msgAttrsWire(o.Attrs)
+	// One base for the whole burst and "-<n>" per entry, so the ids can be
+	// said before the call is made: the composer's preview prints them.
+	dedupBase := o.DedupID
+	if dedupBase == "" {
+		dedupBase = "console-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	}
 	var failed []BatchFailure
 	for start := 0; start < len(bodies); start += 10 {
 		end := min(start+10, len(bodies))
@@ -186,7 +192,7 @@ func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []st
 				// having content-based dedup, and two identical test bodies in
 				// one batch would then collapse into one message. Giving each
 				// entry its own id keeps "I sent five" meaning five.
-				e["MessageDeduplicationId"] = strconv.FormatInt(time.Now().UnixNano(), 36) + strconv.Itoa(start+i)
+				e["MessageDeduplicationId"] = dedupBase + "-" + strconv.Itoa(start+i)
 			}
 			if mattrs != nil {
 				e["MessageAttributes"] = mattrs

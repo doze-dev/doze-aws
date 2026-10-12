@@ -38,6 +38,7 @@ func (h *heldSet) add(queue string, msgs []SQSMessage, vis int) {
 	}
 	until := time.Now().Add(time.Duration(vis) * time.Second)
 	for _, m := range msgs {
+		m.Hide = vis
 		h.by[queue] = append(h.by[queue], heldMsg{msg: m, until: until})
 	}
 }
@@ -66,6 +67,7 @@ func (h *heldSet) rehide(queue string, handles map[string]bool, secs int) {
 	for i := range h.by[queue] {
 		if handles[h.by[queue][i].msg.ReceiptHandle] {
 			h.by[queue][i].until = until
+			h.by[queue][i].msg.Hide = secs
 		}
 	}
 }

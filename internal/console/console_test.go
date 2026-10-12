@@ -143,7 +143,7 @@ func TestConsoleSQSFlow(t *testing.T) {
 		if !strings.Contains(m.Body.String(), "UNIQUE-PAYLOAD-42") {
 			t.Fatalf("peek %d lost the message (consumed?):\n%s", i, m.Body)
 		}
-		if !strings.Contains(m.Body.String(), `class="badge">1<`) {
+		if !strings.Contains(m.Body.String(), `data-total="1"`) {
 			t.Fatalf("peek %d depth not 1:\n%s", i, m.Body)
 		}
 	}
@@ -381,10 +381,10 @@ func TestConsoleEditing(t *testing.T) {
 	// SQS attributes: edit visibility, the config partial reflects it.
 	create(t, h, "/_console/sqs/create", url.Values{"name": {"editq"}})
 	upd := req(t, h, "POST", "/_console/sqs/editq/attributes", url.Values{"visibility": {"120"}})
-	// Below an hour humanSecs leaves the raw seconds alone: a visibility timeout
-	// is a number you TYPED in seconds and want to read back in seconds. "1 min
-	// 17s" for 77 is worse than "77s", and that is where the threshold moved.
-	if upd.Code != 200 || !strings.Contains(upd.Body.String(), "120s") {
+	// Anything that is not whole hours or days stays in the seconds that were
+	// typed (sqsShort): a visibility timeout is a number you TYPED in seconds
+	// and want to read back in seconds. "2 min" for 120 is worse than "120 s".
+	if upd.Code != 200 || !strings.Contains(upd.Body.String(), ">120 s<") {
 		t.Fatalf("set attributes: %d\n%s", upd.Code, upd.Body)
 	}
 
@@ -683,7 +683,7 @@ func TestFailureLoopRecovery(t *testing.T) {
 	}
 	req(t, h, "POST", "/_console/sqs/work/attributes", url.Values{"dlq": {"none"}})
 	cfg = req(t, h, "GET", "/_console/sqs/work?tab=config", nil).Body.String()
-	if strings.Contains(cfg, "Dead-letter queue</td>") {
+	if strings.Contains(cfg, "Dead-letter queue</span>") {
 		t.Fatalf("redrive removal did not land:\n%s", cfg)
 	}
 

@@ -129,9 +129,12 @@ func (c *Console) consumeData(r *http.Request, name string, msgs []SQSMessage, o
 		vis = atoi(attrs["VisibilityTimeout"])
 	}
 	c.held.add(name, msgs, vis)
+	held := c.held.live(name)
+	cfg := sqsConfigOf(attrs)
 	return map[string]any{
 		"Prefix": c.prefix, "Queue": name,
-		"Received": c.held.live(name), "Note": note,
+		"Received": held, "Note": note,
+		"Hash": sqsHeldHash(held, attrs), "DLQ": cfg.DLQ, "List": c.sqsList(r),
 		"Max": o.Max, "Wait": o.Wait, "Visibility": o.Visibility,
 		// EffVis is what the countdown counts down from: the override when one
 		// was given, the queue's own setting otherwise. Showing the queue's
@@ -285,7 +288,7 @@ func sqsPermissionsOf(policy string) []sqsPermission {
 			continue
 		}
 		out = append(out, sqsPermission{
-			Label: st.Sid, Account: flattenPolicyValue(st.Principal), Action: flattenPolicyValue(st.Action),
+			Label: st.Sid, Account: permAccount(flattenPolicyValue(st.Principal)), Action: permAction(flattenPolicyValue(st.Action)),
 		})
 	}
 	return out

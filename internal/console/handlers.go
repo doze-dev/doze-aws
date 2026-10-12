@@ -488,14 +488,11 @@ func (c *Console) sqsList(r *http.Request) []Queue {
 	return queues
 }
 
+// sqsQueues is the service's home: the list, and nothing opened. The design's
+// rail links SQS here (board Sqs-02), so a queue is opened by choosing it and
+// not by being first in the alphabet.
 func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
-	list := c.sqsList(r)
-	if len(list) > 0 {
-		setParam(r, "queue", list[0].Name)
-		c.sqsQueue(w, r)
-		return
-	}
-	c.render(w, r, "sqs_home", map[string]any{"List": list, "Title": "SQS"})
+	c.render(w, r, "sqs_home", map[string]any{"List": c.sqsList(r), "Title": "SQS"})
 }
 
 func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
@@ -511,15 +508,32 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 	flash := "Queue “" + name + "” created"
 	// "Create one alongside": the DLQ must match the main queue's type — a
 	// FIFO queue can only redrive to a FIFO dead-letter queue.
+	//
+	// The dead-letter queue has to exist before the queue that names it, so it
+	// is made first, and a refusal of the second call would leave it behind: a
+	// queue nobody asked for by itself, from a form that said "Refused". madeDLQ
+	// is what this request made (and not one that was already there, which is
+	// somebody's), and it is taken back if the main queue is refused.
+	madeDLQ := ""
 	if r.FormValue("dlq_mode") == "new" {
 		base := strings.TrimSuffix(name, ".fifo")
 		dlq = base + "-dlq"
 		if fifo {
 			dlq += ".fifo"
 		}
+		existed := false
+		for _, q := range c.sqsList(r) {
+			if q.Name == dlq {
+				existed = true
+				break
+			}
+		}
 		if err := c.be.CreateQueueFull(r.Context(), SQSCreateOpts{Name: dlq, FIFO: fifo}); err != nil {
 			c.fail(w, err)
 			return
+		}
+		if !existed {
+			madeDLQ = dlq
 		}
 		flash = "Queues “" + name + "” and “" + dlq + "” created and wired"
 	}
@@ -541,6 +555,9 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 		ThroughputLimit:    strings.TrimSpace(r.FormValue("throughput_limit")),
 		Tags:               tagsFromRows(r),
 	}); err != nil {
+		if madeDLQ != "" {
+			_ = c.be.DeleteQueue(r.Context(), madeDLQ)
+		}
 		c.fail(w, err)
 		return
 	}
@@ -548,11 +565,13 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteQueue(r.Context(), param(r, "queue")); err != nil {
+	name := param(r, "queue")
+	if err := c.be.DeleteQueue(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sqs", "Queue deleted")
+	// Back to the list, with a toast naming the queue (board Sqs-16).
+	c.redirect(w, r, c.prefix+"/sqs", "Queue “"+name+"” deleted")
 }
 
 func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
@@ -572,6 +591,12 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	}
 	data := c.sqsPanelData(r, name, attrs, msgs)
 	data["Attrs"] = attrs
+	// A dead-letter queue is one some queue's redrive policy names. The wiring
+	// graph says so too, a few seconds late (it is cached), and a queue that
+	// offers Redrive and is not badged DLQ is the page disagreeing with itself.
+	if srcs, _ := data["Sources"].([]string); len(srcs) > 0 {
+		isDLQ = true
+	}
 	data["IsDLQ"] = isDLQ
 	data["ARN"] = c.be.QueueARN(name)
 	// The copyable queue URL, built from the host this page was asked through —
@@ -588,10 +613,11 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	data["Readers"] = c.sqsReaders(r.Context(), conn, attrs["VisibilityTimeout"])
 	data["Conn"] = conn
 	data["Tab"] = tabOf(r, "messages")
-	data["List"] = c.sqsList(r)
+	data["Max"], data["Wait"], data["Visibility"] = 10, 0, -1 // the receive form's own defaults
 	data["Sel"] = name
 	data["Title"] = name + " · SQS"
 	data["AllQueues"] = data["List"]
+	data["HeldHash"] = sqsHeldHash(data["Held"].([]SQSMessage), attrs)
 	c.render(w, r, "sqs_queue", data)
 }
 
@@ -603,6 +629,8 @@ type sqsReader struct {
 	Timeout int  // the function's, in seconds
 	Advised int  // six times Timeout: AWS's guidance for a visibility timeout
 	Short   bool // the queue hides a message for less than the function may run
+	// The same three in the units the page speaks ("30 s", "4 days").
+	TimeoutShort, AdvisedShort, VisShort string
 }
 
 // sqsReaders is "In this stack": the functions this queue feeds, from the
@@ -623,7 +651,8 @@ func (c *Console) sqsReaders(ctx context.Context, conn Neighborhood, visibility 
 		if err != nil {
 			continue
 		}
-		out = append(out, sqsReader{Name: n.Name, URL: n.URL, Timeout: fn.Timeout, Advised: 6 * fn.Timeout, Short: fn.Timeout > vis})
+		out = append(out, sqsReader{Name: n.Name, URL: n.URL, Timeout: fn.Timeout, Advised: 6 * fn.Timeout, Short: fn.Timeout > vis,
+			TimeoutShort: sqsShort(strconv.Itoa(fn.Timeout)), AdvisedShort: sqsShort(strconv.Itoa(6 * fn.Timeout)), VisShort: sqsShort(visibility)})
 	}
 	return out
 }
@@ -641,6 +670,10 @@ type sqsConfig struct {
 	ContentDedup bool   // FIFO: ContentBasedDeduplication
 	DLQ          string // dead-letter queue name, from the redrive policy
 	MaxReceive   string
+	// The settings in the units the page speaks: "60 s", "4 days" (sqsShort).
+	VisShort, RetShort, DelayShort, WaitShort string
+	Wait                                      string // ReceiveMessageWaitTimeSeconds
+	MaxSizeGrouped                            string // 1 048 576
 }
 
 func sqsConfigOf(attrs map[string]string) sqsConfig {
@@ -653,6 +686,14 @@ func sqsConfigOf(attrs map[string]string) sqsConfig {
 		ContentDedup: attrs["ContentBasedDeduplication"] == "true",
 		Created:      epochSecString(attrs["CreatedTimestamp"]),
 		Modified:     epochSecString(attrs["LastModifiedTimestamp"]),
+		VisShort:     sqsShort(attrs["VisibilityTimeout"]),
+		RetShort:     sqsShort(attrs["MessageRetentionPeriod"]),
+		DelayShort:   sqsShort(attrs["DelaySeconds"]),
+		WaitShort:    sqsShort(attrs["ReceiveMessageWaitTimeSeconds"]),
+		Wait:         attrs["ReceiveMessageWaitTimeSeconds"],
+	}
+	if n, err := strconv.ParseInt(attrs["MaximumMessageSize"], 10, 64); err == nil {
+		cfg.MaxSizeGrouped = strings.ReplaceAll(humanCount(n), ",", "\u00a0")
 	}
 	if rp := attrs["RedrivePolicy"]; rp != "" {
 		var pol struct {
@@ -707,8 +748,14 @@ func epochSecString(s string) string {
 // sqsMsgHash fingerprints the visible message state for 204-skip polling.
 // Redrive-task progress is part of the fingerprint so a running move task
 // live-updates its strip.
-func sqsMsgHash(attrs map[string]string, msgs []SQSMessage, tasks []MoveTask) string {
-	parts := []string{attrs["ApproximateNumberOfMessages"], attrs["ApproximateNumberOfMessagesNotVisible"]}
+func sqsMsgHash(attrs map[string]string, msgs []SQSMessage, tasks []MoveTask, list []Queue) string {
+	parts := []string{attrs["ApproximateNumberOfMessages"], attrs["ApproximateNumberOfMessagesNotVisible"], attrs["ApproximateNumberOfMessagesDelayed"]}
+	// The other queues' counts ride this panel's tail, so a change in any of
+	// them is a change here: a redrive fills the destination's row while this
+	// page is the one open.
+	for _, q := range list {
+		parts = append(parts, q.Name, strconv.Itoa(q.Available))
+	}
 	for _, m := range msgs {
 		parts = append(parts, m.MessageID)
 	}
@@ -729,8 +776,12 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 	if len(sources) > 0 {
 		tasks = c.be.MoveTasks(r.Context(), name)
 	}
+	list := c.sqsList(r)
 	return map[string]any{
-		"Queue": name, "Messages": msgs,
+		"Queue": name, "Messages": msgs, "List": list,
+		"FIFO":      attrs["FifoQueue"] == "true",
+		"FedBy":     c.sqsFedBy(r.Context(), sources),
+		"LastDone":  lastDoneDest(tasks),
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
 		// Delayed is the third state, and leaving it out made the other two
@@ -742,7 +793,7 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 		// you are actually watching for.
 		"MaxReceive": atoi(redrivePolicyMaxReceive(attrs["RedrivePolicy"])),
 		"Sources":    sources, "Tasks": tasks,
-		"Hash": sqsMsgHash(attrs, msgs, tasks),
+		"Hash": sqsMsgHash(attrs, msgs, tasks, list),
 		// What AddPermission wrote, read back from the Policy attribute.
 		"Perms": sqsPermissionsOf(attrs["Policy"]),
 		// Messages the Consume tab received and is still holding.
@@ -751,7 +802,14 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 }
 
 // sqsMessages is the polled live partial: 204 when unchanged, morph otherwise.
+//
+// ?held=1 is the Consume tab's own poll, on the same route: what a receive is
+// holding, which changes by itself when a visibility timeout runs out.
 func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("held") == "1" {
+		c.sqsConsumed(w, r)
+		return
+	}
 	name := param(r, "queue")
 	attrs, msgs, err := c.be.QueueDetail(r.Context(), name)
 	if err != nil {
@@ -775,7 +833,7 @@ func (c *Console) sqsDeleteMessage(w http.ResponseWriter, r *http.Request) {
 	toast(w, "Message deleted")
 	if r.FormValue("from") == "consume" {
 		c.held.drop(name, map[string]bool{r.FormValue("handle"): true})
-		c.partial(w, "sqs_consumed", c.consumeData(r, name, nil, ReceiveOpts{Max: 10, Visibility: -1}, "Message deleted"))
+		c.partial(w, "sqs_consumed", c.consumeData(r, name, nil, ReceiveOpts{Max: 10, Visibility: -1}, ""))
 		return
 	}
 	c.sqsMessages(w, r)
@@ -806,8 +864,28 @@ func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 		Delay:   strings.TrimSpace(r.FormValue("delay")),
 		Attrs:   parseMsgAttrs(r.FormValue("attrs")),
 	}
-	if strings.HasSuffix(name, ".fifo") && opts.GroupID == "" {
-		opts.GroupID = "default"
+	if strings.HasSuffix(name, ".fifo") {
+		if opts.GroupID == "" {
+			opts.GroupID = "default"
+		}
+		// The deduplication id. One typed is sent as typed. Left blank on a
+		// queue with content-based deduplication, none is sent and the body's
+		// hash is the id, as on AWS. Left blank otherwise, the form sends the id
+		// its own preview shows (dedup_auto), so the previewed command and the
+		// call are the same call; a plain POST with neither gets one made here.
+		auto := strings.TrimSpace(r.FormValue("dedup_auto"))
+		if opts.DedupID == "" {
+			if r.FormValue("content_dedup") == "true" {
+				opts.NoDedup = true
+			} else {
+				opts.DedupID = auto
+			}
+		}
+		// A burst always gets an id per entry (the base and "-<n>"), or identical
+		// bodies would collapse into one under content-based deduplication.
+		if opts.NoDedup && atoiDefault(r.FormValue("repeat"), 1) > 1 {
+			opts.NoDedup, opts.DedupID = false, auto
+		}
 	}
 	// More than one copy is a burst, and a burst goes as one SendMessageBatch
 	// — pressing Send N times has a different timing profile than a real

@@ -22,111 +22,127 @@
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
+{{/* Create queue (boards Sqs-03, Sqs-04, Sqs-05).
+
+     Two columns. On a standard queue the right one is the life of one message,
+     drawn from the numbers on the left; on a FIFO queue it is Advanced, open,
+     and how a group behaves (shell.js sqsCreateLayout moves Advanced and
+     the buttons). A refusal is written above the form, in the service's own
+     words: the form is novalidate, so a name or a number the service would
+     refuse reaches the service and is not stopped by the browser first. */}}
 {{define "sqs_create"}}{{template "shell_top" .}}
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  <section class="detail"><div class="form-page form-page-wide">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create queue</div>
-    <p class="det-sub" style="margin-bottom:18px">Every setting can also be changed later.</p>
-    <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin" x-data="{fifo:false, dlq:'new', name:''}">
-      <div class="create-cols">
-      <div class="create-main">
-            <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Queue name</label><input class="input" name="name" x-model="name" placeholder="orders" required :pattern="fifo ? '[a-zA-Z0-9_\\-]{1,75}(\\.fifo)?' : '[a-zA-Z0-9_\\-]{1,80}'" title="Letters, digits, hyphens and underscores, up to 80. A period is allowed only as the .fifo suffix of a FIFO queue, which counts toward the 80." autocomplete="off" autofocus>
-          <span class="hint">Letters, digits, hyphen and underscore, up to 80<span x-show="fifo" x-cloak>; the .fifo suffix is added and counts toward the 80</span>.</span></div>
-        <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">FIFO queue</div><div class="opt-d">Strict ordering per message group; name gets a .fifo suffix</div></div><label class="switch"><input aria-label="FIFO queue" type="checkbox" name="fifo" x-model="fifo"><span class="track"></span><span class="thumb"></span></label></div>
-        <div class="opt-row" x-show="fifo" x-cloak><div><div class="opt-l">Content-based deduplication</div><div class="opt-d">Drop messages with identical bodies within 5 minutes — no dedup ID needed</div></div><label class="switch"><input aria-label="Content-based deduplication" type="checkbox" name="content_dedup"><span class="track"></span><span class="thumb"></span></label></div>
-      </div></div>
-      <div class="panel form-sec"><div class="panel-h"><h2>Delivery</h2></div><div class="form-b"><div class="fgrid fgrid-3">
-        {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" "" "Teach" "Hidden after a receive. Not deleted in time, it comes back.")}}
-        {{template "setting_field" (dict "Svc" "sqs" "Name" "DelaySeconds" "Field" "delay" "Label" "Delay" "Value" "" "Teach" "New messages wait this long before anyone can receive them. A send may override it on a standard queue, not on a FIFO queue.")}}
-        {{template "setting_field" (dict "Svc" "sqs" "Name" "MessageRetentionPeriod" "Field" "retention" "Label" "Retention" "Value" "" "Teach" "An unread message is dropped after this long.")}}
-      </div></div></div>
-      <div class="panel form-sec"><div class="panel-h"><h2>Dead-letter queue</h2></div><div class="form-b">
-        <p class="mini-note mini-note-flush">A message that keeps coming back is probably the one your consumer cannot handle. A dead-letter queue sets it aside so the rest keep moving, and so you can read it.</p>
-        <div class="dlq-modes">
-          <label class="dlq-mode" :class="dlq==='new' && 'on'"><input type="radio" name="dlq_mode" value="new" x-model="dlq"><span><b>Create one alongside</b><br><span class="opt-d">makes <span class="mono" x-text="(name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')"></span> and wires the redrive</span></span></label>
-          <label class="dlq-mode" :class="dlq==='existing' && 'on'"><input type="radio" name="dlq_mode" value="existing" x-model="dlq"><span><b>Use an existing queue</b><br><span class="opt-d">pick a queue below</span></span></label>
-          <label class="dlq-mode" :class="dlq==='none' && 'on'"><input type="radio" name="dlq_mode" value="none" x-model="dlq"><span><b>None</b><br><span class="opt-d">failed messages retry forever</span></span></label>
+  <section class="detail"><div class="form-page q-create">
+    <form novalidate data-err-slot="#sqs-create-err" hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin"
+          x-data="{fifo:false, dlq:'new', name:'', refused:null}" :class="fifo && 'is-fifo'"
+          @keydown.escape="$refs.cancel.click()" @doze:refused="refused=$event.detail" @doze:cleared="refused=null">
+      <div class="q-create-cols">
+      <div class="q-col" data-col="left">
+        <div>
+          <div class="det-title q-h1" role="heading" aria-level="1">Create queue</div>
+          <p class="q-note" x-text="fifo ? ('FIFO, ' + (dlq==='new' ? 'with a dead-letter queue alongside.' : dlq==='existing' ? 'with a dead-letter queue you pick.' : 'with no dead-letter queue.')) : 'Every setting can also be changed later.'">Every setting can also be changed later.</p>
         </div>
-        <div class="fgrid" style="margin-top:12px" x-show="dlq!=='none'" x-cloak>
-          <div class="field" x-show="dlq==='existing'"><label>Send failed messages to</label><select class="input" name="dlq" :disabled="dlq!=='existing'"><option value="">— pick a queue —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select><span class="hint">a FIFO queue needs a FIFO dead-letter queue</span></div>
-          {{template "setting_field" (dict "Svc" "sqs" "Name" "maxReceiveCount" "Field" "max_receive" "Label" "After this many receives" "Value" "" "Placeholder" "3" "Teach" "A message received this many times and not deleted moves to the dead-letter queue on its next receive. Left blank, the console uses 3.")}}
+        <div id="sqs-create-err" class="q-errslot"></div>
+        <div class="q-card q-pad q-stack">
+          <h2 class="q-h2">General</h2>
+          <div class="field"><label>Queue name</label>
+            <input class="input mono" name="name" x-model="name" data-param="queue name|QueueName|A queue already exists|FIFO queue names" placeholder="orders" autocomplete="off" autofocus>
+            <span class="hint">Letters, digits, hyphens and underscores, up to 80. A FIFO queue's name ends in .fifo<span x-show="fifo && name && !/\.fifo$/.test(name)" x-cloak>; this form adds it when it is left off</span>.</span></div>
+          <div class="q-opt"><div><b>FIFO queue</b><span class="q-note" x-text="fifo ? 'Messages are delivered in the order sent, within a message group.' : 'Strict ordering per message group; the name gets a .fifo suffix.'">Strict ordering per message group; the name gets a .fifo suffix.</span></div>
+            <label class="q-seg"><input type="checkbox" class="sr-only" aria-label="FIFO queue" name="fifo" x-model="fifo"><span :class="!fifo && 'on'">off</span><span :class="fifo && 'on'">on</span></label></div>
+          <div class="q-opt" x-show="fifo" x-cloak x-data="{cd:false}"><div><b>Content-based deduplication</b><span class="q-note">A message whose body matches one sent in the last 5 minutes is dropped, so you do not need to give each one a dedup ID.</span></div>
+            <label class="q-seg"><input type="checkbox" class="sr-only" aria-label="Content-based deduplication" name="content_dedup" x-model="cd"><span :class="!cd && 'on'">off</span><span :class="cd && 'on'">on</span></label></div>
         </div>
-      </div></div>
-            {{/* Advanced: everything CreateQueue accepts that this form could not
-           reach. A queue made here could not be given the settings a queue made
-           by your own code routinely has — long polling above all, which is the
-           difference between a consumer that spins and one that waits.
-
-           Collapsed, because these are the settings you come looking for rather
-           than the ones you meet on the way past. */}}
-      <details class="panel form-sec adv-sec">
-        <summary class="panel-h"><h2>Advanced</h2><span class="dim">long polling, size, encryption, policy, tags</span></summary>
-        <div class="form-b">
-          <div class="fgrid">
-            <div class="field" x-data="{v:0}"><label>Receive wait <span class="dim">s · long polling</span></label>
-              <input class="input" name="receive_wait" type="number" min="0" max="20" placeholder="0" x-model="v">
-              <span class="hint" x-text="v>0 ? (&apos;consumers wait up to &apos;+v+&apos;s for a message instead of returning empty&apos;) : &apos;0 = short polling: a receive returns immediately, empty or not&apos;"></span></div>
-            {{template "setting_field" (dict "Svc" "sqs" "Name" "MaximumMessageSize" "Field" "max_bytes" "Label" "Max message size" "Value" "" "Teach" "The largest a message may be, body and attributes together. A send over it is refused.")}}
+        <div class="q-card q-pad q-stack">
+          <h2 class="q-h2">Delivery</h2>
+          <div class="q-fields q-3">
+            {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" "" "Teach" "Hidden after a receive. Not deleted in time, it comes back.")}}
+            {{template "setting_field" (dict "Svc" "sqs" "Name" "DelaySeconds" "Field" "delay" "Label" "Delay" "Value" "" "Teach" "New messages wait this long before anyone can receive them." "TeachWhen" "fifo" "TeachThen" "Queue-wide on a FIFO queue.")}}
+            {{template "setting_field" (dict "Svc" "sqs" "Name" "MessageRetentionPeriod" "Field" "retention" "Label" "Retention" "Value" "" "Teach" "An unread message is dropped after this long.")}}
           </div>
-          <div class="fgrid" x-show="fifo" x-cloak>
-            <div class="field"><label>Deduplication scope</label>
-              <select class="input" name="dedup_scope"><option value="">queue (default)</option><option value="messageGroup">messageGroup</option></select></div>
-            <div class="field"><label>Throughput limit</label>
-              <select class="input" name="throughput_limit"><option value="">perQueue (default)</option><option value="perMessageGroupId">perMessageGroupId</option></select>
-              <span class="hint">perMessageGroupId requires the messageGroup dedup scope. Stored and returned; nothing is throttled locally.</span></div>
-          </div>
-          <div class="opt-row"><div><div class="opt-l">SQS-managed encryption</div><div class="opt-d">SqsManagedSseEnabled — accepted and stored locally, not enforced</div></div><label class="switch"><input aria-label="SQS-managed encryption" type="checkbox" name="sse"><span class="track"></span><span class="thumb"></span></label></div>
-          <div class="field"><label>KMS key ID <span class="dim">optional</span></label>
-            <input class="input mono" name="kms_key" placeholder="alias/aws/sqs" autocomplete="off">
-            <span class="hint">Stored and returned. Nothing is encrypted locally.</span></div>
-          <div class="field"><label>Access policy <span class="dim">JSON, optional</span></label>
-            {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
-            <span class="hint">Checked when it is saved, and evaluated on every request to this queue when IAM mode is soft or enforce. Under off it is stored and not evaluated.</span></div>
-          <div class="field"><label>Tags</label>
-            {{template "tag_rows" .}}</div>
         </div>
-      </details>
+        <div class="q-card q-pad q-stack">
+          <h2 class="q-h2">Dead-letter queue</h2>
+          <span class="q-note">A message that keeps coming back is probably the one your consumer cannot handle. A dead-letter queue sets it aside so the rest keep moving, and so you can read it.</span>
+          <div class="dlq-modes">
+            <label class="dlq-mode" :class="dlq==='new' && 'on'"><input type="radio" class="sr-only" name="dlq_mode" value="new" x-model="dlq"><b>Create one alongside</b><span class="q-note">makes <span class="mono" x-text="(name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')"></span></span></label>
+            <label class="dlq-mode" :class="dlq==='existing' && 'on'"><input type="radio" class="sr-only" name="dlq_mode" value="existing" x-model="dlq"><b>Use an existing queue</b><span class="q-note">pick a queue below</span></label>
+            <label class="dlq-mode" :class="dlq==='none' && 'on'"><input type="radio" class="sr-only" name="dlq_mode" value="none" x-model="dlq"><b>None</b><span class="q-note">failed messages retry forever</span></label>
+          </div>
+          <span class="q-note" x-show="fifo && dlq!=='none'" x-cloak x-text="dlq==='new' ? 'A FIFO queue\'s dead-letter queue has to be FIFO too, so the one made alongside gets the .fifo suffix.' : 'A FIFO queue\'s dead-letter queue has to be FIFO too.'"></span>
+          <div class="field q-w300" x-show="dlq==='existing'" x-cloak><label>Send failed messages to</label><select class="input mono" name="dlq" data-param="RedrivePolicy|dead-letter" :disabled="dlq!=='existing'"><option value="">— pick a queue —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+          <div class="q-w300" x-show="dlq!=='none'" x-cloak>
+            {{template "setting_field" (dict "Svc" "sqs" "Name" "maxReceiveCount" "Field" "max_receive" "Label" "After this many receives" "Value" "" "Placeholder" "3" "Teach" "A message is delivered this many times; the next receive moves it. Left blank, this form sends 3.")}}
+          </div>
+        </div>
+        {{/* Advanced: everything else CreateQueue accepts. Closed, because these
+             are the settings you come looking for; open and on the right for a
+             FIFO queue, whose own settings live here. */}}
+        <details class="q-card adv-sec">
+          <summary class="q-pad"><span class="q-sumtext"><span class="q-h2">Advanced</span><span class="q-note">long polling, size, encryption, policy, tags</span></span></summary>
+          <div class="q-pad q-stack q-advbody">
+            <div class="q-fields q-2">
+              {{template "setting_field" (dict "Svc" "sqs" "Name" "ReceiveMessageWaitTimeSeconds" "Field" "receive_wait" "Label" "Receive wait" "LabelNote" "long polling" "Value" "" "Teach" "0 = short polling: a receive returns immediately, empty or not. Up to 20 makes a consumer wait for a message instead of asking again.")}}
+              {{template "setting_field" (dict "Svc" "sqs" "Name" "MaximumMessageSize" "Field" "max_bytes" "Label" "Max message size" "Value" "" "Teach" "The largest a message may be, body and attributes together. A send over it is refused.")}}
+            </div>
+            <div class="q-fields q-2" x-show="fifo" x-cloak>
+              <div class="field"><label>Deduplication scope</label>
+                <select class="input" name="dedup_scope" data-param="DeduplicationScope"><option value="">queue (default)</option><option value="messageGroup">messageGroup</option></select>
+                <span class="hint">With messageGroup, duplicates are found within a group, not across the whole queue.</span>
+                <span class="setting-meta">default queue · <span class="enf-ok">enforced</span></span></div>
+              <div class="field"><label>Throughput limit</label>
+                <select class="input" name="throughput_limit" data-param="FifoThroughputLimit"><option value="">perQueue (default)</option><option value="perMessageGroupId">perMessageGroupId</option></select>
+                <span class="hint">perMessageGroupId needs the messageGroup scope. Nothing is throttled locally.</span>
+                <span class="setting-meta">default perQueue · <span class="enf-stored">stored, not enforced</span></span></div>
+            </div>
+            <div class="q-opt" x-data="{sse:false}"><div><b>SQS-managed encryption</b><span class="q-note">Accepted and stored locally, not enforced.</span></div>
+              <label class="q-seg"><input type="checkbox" class="sr-only" aria-label="SQS-managed encryption" name="sse" x-model="sse"><span :class="!sse && 'on'">off</span><span :class="sse && 'on'">on</span></label></div>
+            <div class="field"><label>KMS key ID <span class="dim">· optional</span></label>
+              <input class="input mono" name="kms_key" data-param="KmsMasterKeyId" placeholder="alias/aws/sqs" autocomplete="off">
+              <span class="hint">Accepted and stored. Messages are not encrypted here.</span></div>
+            <div class="field"><label>Access policy <span class="dim">· JSON, optional</span></label>
+              {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
+              <span class="hint">Checked when it is saved, and evaluated on every request to this queue when IAM mode is soft or enforce. Under off it is stored and not evaluated.</span></div>
+            <div class="field"><label>Tags</label>
+              {{template "tag_rows" .}}</div>
+          </div>
+        </details>
+        <span class="q-note" x-show="refused" x-cloak>What you typed is kept. <span x-text="refused && refused.fields && refused.fields.includes('name') ? 'Fix the name and press Create queue again.' : 'Fix it and press Create queue again.'"></span></span>
+        <div class="q-actions"><a class="btn btn-outline" x-ref="cancel" href="{{.Prefix}}/sqs">Cancel</a><button type="submit" class="btn">Create queue</button><span id="submit-spin" class="dim htmx-indicator">Working…</span></div>
       </div>
-      {{/* The right-hand column: what the numbers on the left add up to. The life
-           of one message is a pure function of the form, read from it as it is
-           typed; nothing is fetched. */}}
-      <aside class="create-side" aria-label="What these settings do">
-        <div class="panel life" role="group" aria-label="The life of one message"
+      {{/* The right-hand column: what the settings on the left add up to. */}}
+      <aside class="q-col q-create-side" data-col="right" aria-label="What these settings do">
+        <div class="q-card q-pad q-stack life" role="group" aria-label="The life of one message" x-show="!fifo"
              data-def-vis="{{(setting "sqs" "VisibilityTimeout").Default}}" data-def-delay="{{(setting "sqs" "DelaySeconds").Default}}" data-def-ret="{{(setting "sqs" "MessageRetentionPeriod").Default}}"
-             x-data="{vis:30, dly:0, ret:345600, max:3, mode:'new', pick:'',
-               read(){ const f=$el.closest('form').elements, n=(k,d)=>{const e=f[k]; return !e||e.value===''?d:Number(e.value)};
+             x-data="{vis:30, dly:0, ret:345600, max:3, mode:'new', pick:'', s(v){const n=parseInt(v,10); if(isNaN(n)) return ''; const u=(q,w)=>q+' '+w+(q===1?'':'s'); return n>0&&n%86400===0?u(n/86400,'day'):n>0&&n%3600===0?u(n/3600,'hour'):n+' s'},
+               read(){ const f=$el.closest('form').elements, n=(k,d)=>{const e=f[k]; return !e||e.value===''||isNaN(Number(e.value))?d:Number(e.value)};
                  this.vis=n('visibility',Number($el.dataset.defVis)); this.dly=n('delay',Number($el.dataset.defDelay)); this.ret=n('retention',Number($el.dataset.defRet));
                  this.max=n('max_receive',3); const m=f['dlq_mode']; this.mode=m?m.value:'none'; this.pick=f['dlq']?f['dlq'].value:''; },
                get target(){ return this.mode==='new' ? ((name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')) : (this.pick||'the queue you pick') },
                get bar(){ return Math.min(100, Math.max(4, Math.round(Math.log10(this.vis+1)/Math.log10(43201)*100))) }}"
              x-init="read()" @input.window="read()" @change.window="read()">
-          <div class="panel-h"><h2>The life of one message</h2></div>
-          <div class="form-b">
-            <p class="life-sub">Drawn from the numbers on the left. It redraws as you type.</p>
-            <ol class="life-list">
-              <li><span class="life-dot ok"></span><div><b>Sent</b><span x-text="dly>0 ? 'Invisible for '+dozeSpan(dly)+', then waiting.' : 'Waiting immediately. No delay is set.'"></span></div></li>
-              <li><span class="life-dot ok"></span><div><b>A consumer receives it</b><span>It is hidden for <b x-text="dozeSpan(vis)"></b>, so nobody else gets it meanwhile.</span><i class="life-bar"><i x-effect="$el.style.setProperty('--w', bar+'%')"></i></i></div></li>
-              <li><span class="life-dot warn"></span><div><b>Not deleted in time</b><span>It becomes visible again, and its receive count goes to 2.</span></div></li>
-              <li x-show="mode!=='none'"><span class="life-dot bad"></span><div><b>Received <span x-text="max"></span> time<span x-show="max!=1">s</span></b><span>It moves to <span class="mono" x-text="target"></span> instead of coming back.</span></div></li>
-              <li x-show="mode==='none'"><span class="life-dot bad"></span><div><b>Never moved</b><span>There is no dead-letter queue, so it keeps coming back until it is deleted or expires.</span></div></li>
-              <li><span class="life-dot mute"></span><div><b>Never read at all</b><span>It is dropped after <b x-text="dozeSpan(ret)"></b>.</span></div></li>
-            </ol>
-          </div>
+          <h2 class="q-h2">The life of one message</h2>
+          <span class="q-note">Drawn from the numbers on the left. It redraws as you type.</span>
+          <ol class="life-list">
+            <li><span class="q-dot ok"></span><div><b>Sent</b><span class="q-note" x-text="dly>0 ? 'Invisible for '+s(dly)+', then waiting.' : 'Waiting immediately. No delay is set.'"></span></div></li>
+            <li><span class="q-dot ok"></span><div><b>A consumer receives it</b><span class="q-note" x-show="vis>0">It is hidden for <span class="mono" x-text="s(vis)"></span>, so nobody else gets it meanwhile.</span><span class="q-note" x-show="vis<=0" x-cloak>It is not hidden at all: with a visibility timeout of 0 another consumer can receive it at once.</span><span class="q-lane"><i x-effect="$el.style.width = bar+'%'"></i></span></div></li>
+            <li><span class="q-dot warn"></span><div><b>Not deleted in time</b><span class="q-note">It becomes visible again, and its receive count goes to <span class="mono">2</span>.</span></div></li>
+            <li x-show="mode!=='none'"><span class="q-dot bad"></span><div><b>Received <span class="mono" x-text="max"></span> <span x-text="max==1 ? 'time' : 'times'">times</span></b><span class="q-note">Its next receive moves it to <span class="mono" x-text="target"></span> instead of delivering it again.</span></div></li>
+            <li x-show="mode==='none'" x-cloak><span class="q-dot bad"></span><div><b>Never moved</b><span class="q-note">There is no dead-letter queue, so it keeps coming back until it is deleted or expires.</span></div></li>
+            <li><span class="q-dot off"></span><div><b>Never read at all</b><span class="q-note">It is dropped after <span class="mono" x-text="s(ret)"></span>.</span></div></li>
+          </ol>
         </div>
-        <p class="life-foot">A received message that is deleted never reaches step 3. That is the whole point of deleting.</p>
-        <div class="panel" x-show="fifo" x-cloak><div class="panel-h"><h2>How a group behaves</h2></div><div class="form-b">
+        <span class="q-note life-foot" x-show="!fifo">A received message that is deleted never reaches step 3. That is the whole point of deleting.</span>
+        <div class="q-card q-pad q-stack q-group" x-show="fifo" x-cloak>
+          <h2 class="q-h2">How a group behaves</h2>
           <ul class="life-steps">
-            <li>Messages with the same group ID are delivered one after another, in the order sent.</li>
-            <li>While a consumer holds one, the next in that group waits. Other groups carry on.</li>
-            <li>So one stuck message holds back only its own group. A dead-letter queue lets it out of the way.</li>
-            <li>A message sent again with the same deduplication ID within 5 minutes is accepted and stored once.</li>
-            <li>The queue's delay applies; a single message cannot have its own. Its dead-letter queue must be a FIFO queue too.</li>
+            <li><span class="q-dot ok"></span><span class="q-note">Messages with the same group ID are delivered one after another, in the order sent.</span></li>
+            <li><span class="q-dot ok"></span><span class="q-note">While a consumer holds one, the next in that group waits. Other groups carry on.</span></li>
+            <li><span class="q-dot warn"></span><span class="q-note">So one stuck message holds back only its own group. A dead-letter queue lets it out of the way.</span></li>
           </ul>
-        </div></div>
+        </div>
       </aside>
       </div>
-      {{template "form_actions" dict "Cancel" (printf "%s/sqs" .Prefix) "Submit" "Create queue"}}
     </form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}

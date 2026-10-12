@@ -79,14 +79,26 @@
      Label, Value, Teach (a sentence). */}}
 {{define "setting_field"}}
 {{$s := setting .Svc .Name}}
-<div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v}">
-  <label>{{.Label}}{{if $s.Unit}} <span class="dim">{{$s.Unit}}</span>{{end}}</label>
-  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} {{if .Placeholder}}placeholder="{{.Placeholder}}"{{else if $s.Default}}placeholder="{{$s.Default}}"{{end}} value="{{.Value}}" x-model="v">
-  {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeEcho(v)"></span>{{end}}
-  <span class="hint">{{.Teach}}</span>
-  {{/* Line four of the teaching pattern: the range, the default, and whether
-       this emulator enforces it or only stores it. Written from the settings
-       record, so the form cannot say what the service does not. */}}
-  {{if or $s.Min $s.Max $s.Default $s.Enforcement}}<span class="setting-meta">{{if and $s.Min $s.Max}}{{grouped $s.Min}} – {{grouped $s.Max}}{{end}}{{if $s.Default}}{{if and $s.Min $s.Max}} · {{end}}default {{$s.Default}}{{end}}{{if $s.Enforcement}} · <span class="{{if eq $s.Enforcement "enforced"}}enf-ok{{else}}enf-stored{{end}}">{{$s.Enforcement}}</span>{{end}}</span>{{end}}
+{{/* The five lines of the teaching pattern (design: Teaching), in order:
+       1 the name and the unit, as the design abbreviates it ("Visibility · s");
+       2 the value in words, live as it is typed (a duration, or a size);
+       3 one sentence of what it does (Teach), and a second (TeachThen) shown
+         while the page state TeachWhen names holds, for a setting that means
+         something more on one kind of resource;
+       4 the range, the default and whether this emulator enforces it, all from
+         the settings record, so the form cannot say what the service does not;
+       5 what it means beside a neighbour, which the caller writes after this
+         field, because only the page knows the neighbour.
+     Param names what a refusal about this field says (the API's name for it),
+     so the field is outlined when the service refuses its value. The bounds
+     are on the input (the stepper stops at them), and a form that wants a
+     value outside them refused by the service, in the service's own words,
+     says novalidate: without it the browser says so first, in its own. */}}
+<div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v{{if eq $s.Unit "bytes"}}, b(v){const n=parseInt(v,10); if(isNaN(n)||String(v).trim()==='') return ''; return n>0&&n%1048576===0?(n/1048576)+' MiB':n>0&&n%1024===0?(n/1024)+' KiB':String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0')+' bytes'}{{end}}}">
+  <label>{{.Label}}{{if $s.Unit}} <span class="dim">· {{if eq $s.Unit "seconds"}}s{{else}}{{$s.Unit}}{{end}}{{with .LabelNote}} · {{.}}{{end}}</span>{{end}}</label>
+  <input class="input mono" name="{{.Field}}" type="number" inputmode="numeric" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} data-param="{{$s.Name}}{{with .Param}}|{{.}}{{end}}" {{if .Placeholder}}placeholder="{{.Placeholder}}"{{else if $s.Default}}placeholder="{{$s.Default}}"{{end}} value="{{.Value}}" x-model="v">
+  {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeEcho(v)"></span>{{else if eq $s.Unit "bytes"}}<span class="dur-echo" x-text="b(v)"></span>{{end}}
+  <span class="hint">{{.Teach}}{{with .TeachThen}} <span x-show="{{$.TeachWhen}}" x-cloak>{{.}}</span>{{end}}</span>
+  {{if or $s.Min $s.Max $s.Default $s.Enforcement}}<span class="setting-meta">{{if and $s.Min $s.Max}}{{grouped $s.Min}} – {{grouped $s.Max}}{{end}}{{if $s.Default}}{{if and $s.Min $s.Max}} · {{end}}default {{settingDefault $s.Unit $s.Default}}{{end}}{{if $s.Enforcement}} · <span class="{{if eq $s.Enforcement "enforced"}}enf-ok{{else}}enf-stored{{end}}">{{$s.Enforcement}}</span>{{end}}</span>{{end}}
 </div>
 {{end}}

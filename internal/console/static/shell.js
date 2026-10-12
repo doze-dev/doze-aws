@@ -199,6 +199,18 @@
   // The ladder, most specific first. A surface opts in with data-err-slot;
   // otherwise a form takes it at the end, and failing that the nearest
   // meaningful block gets it.
+  // onScreen: the element is laid out AND not inside a closed <details>. The
+  // second half is not offsetParent's to answer: Chrome lays a closed
+  // disclosure's content out under content-visibility, so its offsetParent is
+  // set, and a refusal written into the SQS create form's collapsed Advanced
+  // section was a refusal nobody saw.
+  function onScreen(el) {
+    if (!el || el.offsetParent === null) return false;
+    for (var d = el.parentElement && el.parentElement.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) {
+      if (!d.open) return false;
+    }
+    return true;
+  }
   function errSlot(elt) {
     if (!elt || !elt.closest) return null;
     var opt = elt.closest("[data-err-slot]");
@@ -219,7 +231,7 @@
       // one hidden) must not swallow the error into a display:none block.
       var downs = form.querySelectorAll("[data-err-slot]");
       for (var di = 0; di < downs.length; di++) {
-        if (downs[di].offsetParent === null) continue;
+        if (!onScreen(downs[di])) continue;
         var dsel = downs[di].getAttribute("data-err-slot");
         var dt = dsel ? document.querySelector(dsel) : downs[di];
         if (dt) return { host: dt, how: "append" };
@@ -257,6 +269,34 @@
   function unasked(elt) {
     return !!(elt && elt.getAttribute) && /\b(load|intersect|revealed)\b/.test(elt.getAttribute("hx-trigger") || "");
   }
+  // A control that carries data-param="VisibilityTimeout|visibility timeout"
+  // is the one a refusal naming either is about, and is marked invalid until
+  // it is edited or the form is sent again (the design outlines the field).
+  // The form is told too (doze:refused), so it can say what the board says
+  // beside a refusal: that what was typed is kept.
+  function clearRefused(elt) {
+    var form = elt && elt.closest && (elt.closest("form") || elt);
+    if (!form || !form.querySelectorAll) return;
+    form.querySelectorAll("[data-param][aria-invalid]").forEach(function (c) { c.removeAttribute("aria-invalid"); });
+    form.dispatchEvent(new CustomEvent("doze:cleared", { bubbles: true }));
+  }
+  function markRefused(elt, node) {
+    var form = elt && elt.closest && (elt.closest("form") || elt);
+    if (!form || !form.querySelectorAll) return;
+    var text = node.textContent || "", names = [];
+    form.querySelectorAll("[data-param]").forEach(function (c) {
+      var hit = c.getAttribute("data-param").split("|").some(function (k) { return k && text.indexOf(k) >= 0; });
+      if (!hit) return;
+      c.setAttribute("aria-invalid", "true");
+      names.push(c.getAttribute("name") || "");
+    });
+    var state = (/\berr-(\w+)/.exec(node.className || "") || [])[1] || "error";
+    form.dispatchEvent(new CustomEvent("doze:refused", { bubbles: true, detail: { state: state, fields: names } }));
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t && t.hasAttribute && t.hasAttribute("data-param")) t.removeAttribute("aria-invalid");
+  });
   function placeError(elt, html) {
     if (background(elt)) return true; // handled: by saying nothing
     var slot = errSlot(elt);
@@ -270,6 +310,7 @@
     if (slot.how === "prepend" || slot.how === "top") slot.host.insertBefore(node, slot.host.firstChild);
     else if (slot.how === "after") slot.host.parentNode.insertBefore(node, slot.host.nextSibling);
     else slot.host.appendChild(node);
+    markRefused(elt, node);
     if (!unasked(elt)) {
       node.scrollIntoView({ block: "nearest" });
       try { node.focus(); } catch (e) {}
@@ -282,6 +323,7 @@
     if (background(src)) return;
     var slot = errSlot(src);
     if (slot) clearSlot(slot);
+    clearRefused(src);
   });
   // A refusal placed under a detail header is cleared only by its own slot, and
   // the next thing the user does is usually somewhere else: empty the bucket,
@@ -460,6 +502,10 @@
     var titleEl = document.getElementById("confirm-title");
     var msgEl = document.getElementById("confirm-msg");
     titleEl.textContent = parts.title;
+    // The page's own heading is level 1 and the dialog's is the next one down;
+    // the element is an h3 in the layout, which skips a level.
+    titleEl.setAttribute("role", "heading");
+    titleEl.setAttribute("aria-level", "2");
     msgEl.textContent = parts.detail;
     msgEl.hidden = parts.detail === "";
     confirmBox.hidden = false;
@@ -481,8 +527,12 @@
     no.onclick = dismiss;
     confirmBox.onclick = function (ev) { if (ev.target === confirmBox) dismiss(); };
     document.addEventListener("keydown", onKey);
-    yes.focus();
+    // The trap is armed BEFORE anything in the dialog is focused: it records
+    // document.activeElement as what to give focus back to, and with the
+    // order the other way round that was the dialog's own button, which is
+    // gone when the dialog closes.
     if (window.dozeTrap) dozeTrap(document.getElementById("confirm"), true);
+    else yes.focus();
   });
 
   // ---------- command palette ----------
@@ -678,6 +728,14 @@
       var form = document.activeElement.closest ? document.activeElement.closest("form") : null;
       if (form && form.querySelector("textarea, .CodeMirror")) { e.preventDefault(); form.requestSubmit(); return; }
     }
+    // Esc in the filter clears it and hands the keys back to the list.
+    if (e.key === "Escape" && document.activeElement.matches && document.activeElement.matches(".listpane .filter input")) {
+      var fi = document.activeElement;
+      clearFilter(fi);
+      fi.blur();
+      e.preventDefault();
+      return;
+    }
     var tag = document.activeElement.tagName;
     if (/(INPUT|TEXTAREA|SELECT)/.test(tag) || document.activeElement.closest(".CodeMirror")) return;
     if (e.key === "/") {
@@ -742,6 +800,29 @@
       liveTimers.push(t);
     });
   }
+  // A live region is morphed in place, and the server's markup knows nothing of
+  // what Alpine has done to the copy on screen: x-show's inline display:none,
+  // the class a :class binding added. Morphing those attributes back to the
+  // server's made every closed message row open on the first refresh (the
+  // style went, Alpine's state did not change, so nothing put it back), and
+  // closed an open one the same way. Alpine owns those attributes on the
+  // elements it is bound to, so the morph leaves them alone there.
+  //
+  // before:morph:attr is one of htmx 4's extension hooks, not a DOM event: it
+  // is called with the element and {attrName, newValue}, and returning false
+  // skips that one attribute.
+  if (window.htmx && htmx.registerExtension) {
+    htmx.registerExtension("doze-alpine-morph", {
+      htmx_before_morph_attr: function (el, detail) {
+        var name = detail && detail.attrName;
+        if (!el || !el.hasAttribute || !name) return true;
+        if (name === "x-cloak") return !(el._x_dataStack || (el.closest && el.closest("[x-data]")));
+        if (name === "style" && el.hasAttribute("x-show")) return false;
+        if (name === "class" && (el.hasAttribute(":class") || el.hasAttribute("x-bind:class"))) return false;
+        return true;
+      },
+    });
+  }
   document.addEventListener("DOMContentLoaded", setupLive);
   document.addEventListener("htmx:after:swap", function (e) {
     // Re-arm after a navigation OR after a swap that lands (or contains) a live
@@ -784,22 +865,41 @@
   function fmtLeft(s) {
     return s >= 60 ? Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s" : s + "s";
   }
-  setInterval(function () {
+  // data-sleep-fmt="clock" writes m:ss (the held-message table's column), and
+  // a .rt-bar inside the same host is drawn as the share of data-sleep-total
+  // that is left.
+  function fmtClock(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function tickCountdowns() {
     document.querySelectorAll(".rt-cd").forEach(function (cd) {
       var host = cd.closest("[data-sleep-left]");
       if (!host) return;
-      if (host._deadline == null) {
-        host._deadline = Date.now() + parseInt(host.getAttribute("data-sleep-left") || "0", 10) * 1000;
+      // A morph keeps the element and changes the attribute: the deadline is
+      // re-based whenever the server's number is a new one.
+      var stated = host.getAttribute("data-sleep-left") || "0";
+      if (host._deadline == null || host._stated !== stated) {
+        host._stated = stated;
+        host._deadline = Date.now() + parseInt(stated, 10) * 1000;
       }
       var left = Math.round((host._deadline - Date.now()) / 1000);
       // The expired wording belongs to the caller. "any moment" is right for
       // a function about to go cold, and wrong for a message whose visibility
       // timeout has lapsed, which is "visible again" — same timer, different
       // fact.
-      cd.textContent = left > 0 ? fmtLeft(left)
+      var clock = host.getAttribute("data-sleep-fmt") === "clock";
+      cd.textContent = left > 0 ? (clock ? fmtClock(left) : fmtLeft(left))
         : (host.getAttribute("data-sleep-done") || "any moment");
+      var barEl = host.querySelector(".rt-bar");
+      if (barEl) {
+        var total = parseInt(host.getAttribute("data-sleep-total") || "0", 10);
+        barEl.style.width = (total > 0 ? Math.max(0, Math.min(100, Math.round(left / total * 100))) : 0) + "%";
+      }
     });
-  }, 1000);
+  }
+  setInterval(tickCountdowns, 1000);
+  // And at once when one arrives, so a row is never drawn with the number
+  // missing for its first second.
+  document.addEventListener("DOMContentLoaded", tickCountdowns);
+  document.addEventListener("htmx:after:swap", function () { setTimeout(tickCountdowns, 0); });
 
   // ---------- slow-request bar ----------
   // The button spinner answers "did my click land". It does not answer "is this
@@ -1135,8 +1235,11 @@
   // ---------- scrollable regions ----------
   // A code block, a log pane or a wide table that scrolls has to be reachable
   // from the keyboard, or its overflow can only be read with a mouse wheel.
+  // rootOf: an htmx event's target can be the document's window or a node with
+  // no querySelectorAll; then the whole document is what to look through.
+  function rootOf(root) { return root && root.querySelectorAll ? root : document; }
   function focusableScrollers(root) {
-    (root || document).querySelectorAll(".code-out pre, pre, .log-lines, .table-wrap").forEach(function (el) {
+    rootOf(root).querySelectorAll(".code-out pre, pre, .log-lines, .table-wrap").forEach(function (el) {
       if (el.hasAttribute("tabindex")) return;
       if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) el.setAttribute("tabindex", "0");
     });
@@ -1159,8 +1262,21 @@
     var f = focusables(trapped);
     if (!f.length) return;
     var first = f[0], last = f[f.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    // Focus that is somewhere else (the dialog was not shown yet when it
+    // opened, or a click put it on the page behind) comes in, not along.
+    if (!trapped.contains(document.activeElement)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  // Alpine's x-show reveals on a timer of its own, so a dialog opened by a
+  // state change is still display:none when this is called and has nothing to
+  // focus: the redrive dialog opened with focus left on the button behind it.
+  // Try for a few frames until something in it can take focus.
+  function focusInto(el, tries) {
+    if (trapped !== el) return;
+    var f = focusables(el);
+    if (f.length) { f[0].focus(); return; }
+    if (tries > 0) requestAnimationFrame(function () { focusInto(el, tries - 1); });
   }
   window.dozeTrap = function (el, open) {
     if (open) {
@@ -1168,12 +1284,19 @@
       trapReturn = document.activeElement;
       trapped = el;
       document.addEventListener("keydown", onTrapKey, true);
-      setTimeout(function () { var f = focusables(el); (f[0] || el).focus(); }, 0);
+      setTimeout(function () { focusInto(el, 20); }, 0);
     } else if (trapped === el) {
       trapped = null;
       document.removeEventListener("keydown", onTrapKey, true);
-      if (trapReturn && document.contains(trapReturn)) trapReturn.focus();
+      var back = trapReturn;
       trapReturn = null;
+      // What opened it may have been replaced by the swap the dialog caused
+      // (a panel re-rendered with the same button): a control that says where
+      // to find its successor (data-focus-key) gets focus back by that.
+      if (back && !document.contains(back) && back.getAttribute && back.getAttribute("data-focus-key")) {
+        back = document.querySelector('[data-focus-key="' + back.getAttribute("data-focus-key") + '"]');
+      }
+      if (back && document.contains(back)) setTimeout(function () { back.focus(); }, 0);
     }
   };
   // ---------- form labels ----------
@@ -1189,7 +1312,7 @@
   // JS, since htmx drives every mutation.
   var fieldSeq = 0;
   function linkLabels(root) {
-    (root || document).querySelectorAll(".field").forEach(function (f) {
+    rootOf(root).querySelectorAll(".field").forEach(function (f) {
       var lab = f.querySelector("label");
       var ctl = f.querySelector("input,select,textarea");
       if (!lab || !ctl || lab.htmlFor || lab.contains(ctl)) return;
@@ -1215,6 +1338,141 @@
     if (input) input.focus();
   }
 
+  // ---------- the SQS composer and create form ----------
+  // Everything here is delegated from the document and reads the form as it
+  // stands. None of it is called from an Alpine expression: this file is
+  // deferred AFTER Alpine, so on a full page load Alpine has evaluated every
+  // expression on the page before anything defined here exists.
+  //
+  // The preview is built from the fields the form posts and by the rules the
+  // handler applies (sqsSend, SendMessage, SendMessageBatch), so the command
+  // shown is the call made:
+  //   - a delay of 0 or blank is not sent;
+  //   - attribute rows with no name are dropped, a Binary one goes as BinaryValue;
+  //   - a FIFO send with no deduplication id typed carries the id shown here
+  //     (dedup_auto, renewed after every send), unless the queue deduplicates
+  //     on content, when none is sent;
+  //   - more than one copy is ONE SendMessageBatch of at most ten entries,
+  //     ids m0..m9, each FIFO entry with the id and "-<n>".
+  function sqsNewId() {
+    return "console-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function shQuote(v) {
+    return /^[A-Za-z0-9_.:\/@,+][A-Za-z0-9_.:\/@=,+-]*$/.test(v) ? v : "'" + String(v).replace(/'/g, "'\\''") + "'";
+  }
+  function sqsAuto(form) {
+    var a = form.elements["dedup_auto"];
+    if (a && !a.value) a.value = sqsNewId();
+    return a ? a.value : "";
+  }
+  function sqsCli(form) {
+    var val = function (name) {
+      var el = form.elements[name];
+      if (!el) return "";
+      return el.__cm ? el.__cm.getValue() : el.value;
+    };
+    var fifo = form.getAttribute("data-fifo") === "true", contentDedup = form.getAttribute("data-content-dedup") === "true";
+    var attrs = null;
+    try {
+      JSON.parse(val("attrs") || "[]").forEach(function (r) {
+        var name = (r.n || "").trim();
+        if (!name) return;
+        attrs = attrs || {};
+        var t = r.t || "String";
+        attrs[name] = t === "Binary" ? { DataType: t, BinaryValue: r.v } : { DataType: t, StringValue: r.v };
+      });
+    } catch (e) {}
+    var body = val("body"), delay = val("delay").trim();
+    var group = fifo ? (val("group").trim() || "default") : "";
+    var typed = fifo ? val("dedup").trim() : "", auto = sqsAuto(form);
+    var copies = Math.max(1, Math.min(parseInt(val("repeat"), 10) || 1, 10));
+    var url = form.getAttribute("data-url") || "";
+    var head = "aws --endpoint-url http://" + location.host + " sqs ";
+    if (copies > 1) {
+      var base = typed || auto, entries = [];
+      for (var i = 0; i < copies; i++) {
+        var e = { Id: "m" + i, MessageBody: body };
+        if (delay && delay !== "0") e.DelaySeconds = parseInt(delay, 10) || 0;
+        if (fifo) { e.MessageGroupId = group; e.MessageDeduplicationId = base + "-" + i; }
+        if (attrs) e.MessageAttributes = attrs;
+        entries.push(e);
+      }
+      return head + "send-message-batch --queue-url " + shQuote(url) + " --entries " + shQuote(JSON.stringify(entries));
+    }
+    var cmd = head + "send-message --queue-url " + shQuote(url) + " --message-body " + shQuote(body);
+    if (delay && delay !== "0") cmd += " --delay-seconds " + shQuote(delay);
+    if (fifo) {
+      cmd += " --message-group-id " + shQuote(group);
+      var dedup = typed || (contentDedup ? "" : auto);
+      if (dedup) cmd += " --message-deduplication-id " + shQuote(dedup);
+    }
+    if (attrs) cmd += " --message-attributes " + shQuote(JSON.stringify(attrs));
+    return cmd;
+  }
+  // Alpine writes the attribute rows into the hidden field after the event
+  // that changed them, so the preview is redrawn a tick later.
+  function sqsRefresh(form) {
+    setTimeout(function () {
+      var pre = form.querySelector("[data-sqs-cli]");
+      if (pre) pre.textContent = sqsCli(form);
+    }, 0);
+  }
+  ["input", "change", "click"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) {
+      var form = e.target && e.target.closest && e.target.closest("form[data-sqs-send]");
+      if (form) sqsRefresh(form);
+    });
+  });
+  // The id is in the form before the form is sent, whether or not the
+  // preview was ever opened.
+  document.addEventListener("submit", function (e) {
+    var form = e.target && e.target.closest && e.target.closest("form[data-sqs-send]");
+    if (form) sqsAuto(form);
+  }, true);
+  document.addEventListener("htmx:config:request", function (e) {
+    var src = e.detail && e.detail.ctx && e.detail.ctx.sourceElement;
+    var form = src && src.closest && src.closest("form[data-sqs-send]");
+    if (!form) return;
+    var body = e.detail.ctx.request && e.detail.ctx.request.body;
+    if (body && body.get && body.set && !body.get("dedup_auto")) body.set("dedup_auto", sqsAuto(form));
+  });
+  // A send that went through used up the id the preview showed, so the next
+  // one gets a new one; and the message it made is the last row of the list.
+  document.addEventListener("htmx:after:request", function (e) {
+    var ctx = e.detail && e.detail.ctx;
+    var form = ctx && ctx.sourceElement && ctx.sourceElement.closest && ctx.sourceElement.closest("form[data-sqs-send]");
+    if (!form || !ctx.response || ctx.response.status >= 400) return;
+    var a = form.elements["dedup_auto"];
+    if (a) a.value = sqsNewId();
+    sqsRefresh(form);
+    requestAnimationFrame(function () {
+      var m = document.querySelectorAll("#message-panel-wrap .msg");
+      if (m.length) m[m.length - 1].classList.add("landed");
+    });
+  });
+  // The SQS create form has two layouts (boards Sqs-03 and Sqs-04): Advanced
+  // is the last, closed card of the form's own column on a standard queue, and
+  // the first, open card of the right-hand column on a FIFO queue, with the
+  // buttons under whichever column ends the form. One form, one Advanced: the
+  // nodes are moved, not drawn twice.
+  function sqsCreateLayout(form, fifo) {
+    var left = form.querySelector("[data-col=left]"), right = form.querySelector("[data-col=right]");
+    var adv = form.querySelector(".adv-sec"), acts = form.querySelector(".q-actions"), group = form.querySelector(".q-group");
+    if (!left || !right || !adv || !acts) return;
+    if (fifo) {
+      if (adv.parentNode !== right) { right.insertBefore(adv, group || null); adv.open = true; }
+      if (acts.parentNode !== right) right.appendChild(acts);
+    } else {
+      if (adv.parentNode !== left) { left.appendChild(adv); adv.open = false; }
+      left.appendChild(acts);
+    }
+    if (window.dozeEditor && adv.open) dozeEditor.refresh(adv);
+  }
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (!t || !t.matches || !t.matches(".q-create input[name=fifo]")) return;
+    sqsCreateLayout(t.form, t.checked);
+  });
   window.dozeShell = { toast: toast, openPalette: openPalette, clearFilter: clearFilter };
 })();
 

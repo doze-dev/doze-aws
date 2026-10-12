@@ -342,6 +342,11 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 			}
 			return strings.ReplaceAll(humanCount(*n), ",", "\u00a0")
 		},
+		// settingDefault is a setting's default as the line under its field says
+		// it: "4 days", "1 048 576", "30".
+		"settingDefault": func(unit, def string) string {
+			return settingDefault(unit, def)
+		},
 		"region":    id.RegionName,
 		"icon":      icon,
 		"count":     humanCount,

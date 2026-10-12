@@ -47,10 +47,6 @@ var cliOmits = map[string]map[string]string{
 		"attrs": "repeating rows: --message-attributes takes one JSON document",
 		"count": "repeats the publish n times",
 	},
-	"sqs.html:sqs send-message": {
-		"attrs":  "repeating rows: --message-attributes takes one JSON document",
-		"repeat": "repeats the send n times",
-	},
 	// Console conveniences that repeat or switch the call.
 	"kinesis.html:kinesis put-record": {
 		"count": "above 1 the form calls PutRecords, which is a different command",

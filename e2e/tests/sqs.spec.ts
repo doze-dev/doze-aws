@@ -27,7 +27,8 @@ test.describe('create + identity', () => {
     await expect(page.locator('.det-title')).toContainText(name);
     await expect(page.locator('.chips .copychip', { hasText: 'arn' })).toContainText(name);
     await expect(page.locator('.chips .copychip', { hasText: 'url' })).toContainText(name);
-    await expect(page.locator('.badge.type')).toHaveCount(0);
+    // A standard queue says so beside its name (the design's "standard" pill).
+    await expect(page.locator('.det-title .badge.type')).toHaveText('standard');
   });
 
   test('FIFO queue wears the FIFO badge and gets a .fifo suffix', async ({
@@ -40,7 +41,8 @@ test.describe('create + identity', () => {
     expect(name).toBe(`${base}.fifo`);
     await page.goto(`sqs/${name}`);
     await expect(page.locator('.det-title')).toContainText(name);
-    await expect(page.locator('.badge.type')).toContainText('FIFO');
+    await expect(page.locator('.badge.type').first()).toHaveText('FIFO');
+    await expect(page.locator('.badge.type').nth(1)).toHaveText('content-based dedup off');
   });
 });
 
@@ -62,9 +64,9 @@ test.describe('DLQ created alongside', () => {
 
     // Config tab reports the redrive wiring.
     await page.goto(`sqs/${name}?tab=config`);
-    const dlqRow = page.locator('.tbl.kv tr', { hasText: 'Dead-letter queue' });
+    const dlqRow = page.locator('.q-cfg .q-r', { hasText: 'Dead-letter queue' });
     await expect(dlqRow).toContainText(dlq);
-    await expect(dlqRow).toContainText('after 4 receives');
+    await expect(dlqRow).toContainText('Gets a message that was received 4 times, on its next receive.');
 
     // The DLQ itself exists and wears the DLQ badge + "Fed by" connection.
     // Both are derived from the server's wiring graph, which is cached for
@@ -95,15 +97,15 @@ test.describe('DLQ created alongside', () => {
     expect(dlq).toBe(`${base}-dlq.fifo`);
 
     await page.goto(`sqs/${name}?tab=config`);
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Content-based deduplication' })).toContainText('on');
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Dead-letter queue' })).toContainText(dlq);
+    await expect(page.locator('.q-cfg .q-r', { hasText: 'Content-based deduplication' })).toContainText('on');
+    await expect(page.locator('.q-cfg .q-r', { hasText: 'Dead-letter queue' })).toContainText(dlq);
 
     // Same graph-cache race as the standard-queue case above.
     await expect(async () => {
       await page.goto(`sqs/${dlq}`);
       await expect(page.locator('.badge.dlq')).toContainText('DLQ', { timeout: 500 });
     }).toPass({ timeout: 5000 });
-    await expect(page.locator('.badge.type')).toContainText('FIFO');
+    await expect(page.locator('.badge.type').first()).toHaveText('FIFO');
   });
 });
 
@@ -159,7 +161,9 @@ test.describe('composer', () => {
 
     const msg = page.locator('.msg', { hasText: body });
     await expect(msg).toBeVisible();
-    await expect(msg.locator('.mm.attr', { hasText: 'source' })).toContainText('e2e-suite');
+    // What a message carries is read by opening it (board Queue).
+    await msg.locator('.rowopen').click();
+    await expect(msg.locator('.q-pill.attr', { hasText: 'source' })).toContainText('e2e-suite');
     // Binary attribute values don't currently round-trip into the peek: the
     // receive-message decode path in internal/console/client.go (QueueDetail, ~L407)
     // only reads StringValue off each attribute, dropping BinaryValue — so
@@ -167,7 +171,7 @@ test.describe('composer', () => {
     // body carried "aGVsbG8=" correctly (verified via network capture). This
     // asserts the type/name chip only, matching actual behavior; the empty
     // value is a real (minor) console gap worth a follow-up fix.
-    const payloadChip = msg.locator('.mm.attr', { hasText: 'payload' });
+    const payloadChip = msg.locator('.q-pill.attr', { hasText: 'payload' });
     await expect(payloadChip).toBeVisible();
     await expect(payloadChip).toHaveAttribute('title', 'message attribute · Binary');
   });
@@ -196,8 +200,9 @@ test.describe('composer', () => {
 
     const msg = page.locator('.msg', { hasText: body });
     await expect(msg).toBeVisible();
-    await expect(msg.locator('.mm', { hasText: 'group' })).toContainText(group);
-    await expect(msg.locator('.mm', { hasText: 'dedup' })).toContainText(dedup);
+    await msg.locator('.rowopen').click();
+    await expect(msg.locator('.q-pill', { hasText: 'group' })).toContainText(group);
+    await expect(msg.locator('.q-pill', { hasText: 'dedup' })).toContainText(dedup);
     // Note: no SequenceNumber assertion — the backend never populates that
     // attribute (grep confirms no writer for it outside internal/console/client.go's
     // read side), so the "seq" chip never renders in this emulator.
@@ -249,7 +254,7 @@ test.describe('message + queue lifecycle', () => {
     await confirmDialog('accept');
 
     await expect(page.locator('#message-panel-wrap .empty')).toContainText('No visible messages');
-    await expect(page.locator('.panel-head .badge.zero')).toContainText('0');
+    await expect(page.locator('.tabbar .tab-ct').first()).toHaveText('0');
   });
 });
 
@@ -310,16 +315,17 @@ test.describe('attribute edit', () => {
     const name = await createQueue(request, uniqueName('e2e-sqs-attredit'), { visibility: 30 });
     await page.goto(`sqs/${name}?tab=config`);
 
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('30s');
+    const visRow = page.locator('.q-cfg .q-r', { hasText: 'Visibility timeout' });
+    await expect(visRow).toContainText('30 s');
 
-    await page.getByTitle('Edit settings').click();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
     await page.locator('input[name=visibility]').fill('77');
     await page.getByRole('button', { name: 'Save settings' }).click();
 
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77s');
+    await expect(visRow).toContainText('77 s');
 
     await page.reload();
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77s');
+    await expect(visRow).toContainText('77 s');
   });
 });
 
@@ -333,12 +339,14 @@ test.describe('delete queue', () => {
     const name = await createQueue(request, uniqueName('e2e-sqs-delq'));
     await page.goto(`sqs/${name}`);
 
-    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await page.locator('.acts').getByRole('button', { name: 'Delete queue' }).click();
     await confirmDialog('accept');
 
+    // Back to the list, nothing opened, with a toast naming the queue (board Sqs-16).
     await page.waitForURL(/\/sqs(\?|$)/);
-    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Queue deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Queue “${name}” deleted`);
     await expect(page.locator('.li', { hasText: name })).toHaveCount(0);
+    await expect(page.locator('.li.on')).toHaveCount(0);
   });
 });
 
@@ -388,7 +396,7 @@ test.describe('live peek', () => {
     await sendViaApi(request, name, body);
     await polled;
     await waitForLive('#message-panel-wrap', (t) => t.includes(body));
-    await expect(page.locator('#message-panel-wrap .panel-head .badge').first()).toHaveText('1');
+    await expect(page.locator('.tabbar .tab-ct').first()).toHaveText('1');
   });
 });
 
@@ -411,12 +419,14 @@ test.describe('consume tab', () => {
     const receive = () => page.getByRole('button', { name: 'Receive', exact: true }).click();
     await receive();
     await expect(consumed.locator('.rcv-row')).toHaveCount(3);
-    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 1×');
+    await expect(consumed.locator('.rcv-count').first()).toHaveText('1×');
+    // The held table, as the design draws it: headed columns and a countdown.
+    await expect(consumed.locator('.q-rh')).toContainText('Held by you. Nobody else sees these until they come back.');
+    await expect(consumed.locator('.rcv-row .rt-cd').first()).toHaveText(/^[0-4]:[0-5]\d$/);
 
     // Release one: ChangeMessageVisibility to 0.
     await consumed.locator('.rcv-row').first().getByRole('button', { name: 'Release' }).click();
     expect(await waitForToast()).toContain('Released — visible again now');
-    await expect(consumed.locator('.rcv-note')).toContainText('Released');
 
     // The two still held stay on screen while their neighbour is released.
     await expect(consumed.locator('.rcv-row')).toHaveCount(2);
@@ -426,7 +436,7 @@ test.describe('consume tab', () => {
     // already held.
     await receive();
     await expect(consumed.locator('.rcv-row')).toHaveCount(3);
-    await expect(consumed.locator('.rcv-meta').last()).toContainText('received 2×');
+    await expect(consumed.locator('.rcv-count').last()).toHaveText('2×');
 
     // Release it through the multi-select: ChangeMessageVisibilityBatch.
     await consumed.locator('.rcv-row input[type=checkbox]').last().check();
@@ -438,7 +448,7 @@ test.describe('consume tab', () => {
     // DeleteMessageBatch.
     await receive();
     await expect(consumed.locator('.rcv-row')).toHaveCount(3);
-    await expect(consumed.locator('.rcv-meta').last()).toContainText('received 3×');
+    await expect(consumed.locator('.rcv-count').last()).toHaveText('3×');
     await consumed.locator('.rcv-row input[type=checkbox]').last().check();
     await consumed.getByRole('button', { name: 'Delete selected' }).click();
     await confirmDialog('accept');
@@ -478,14 +488,14 @@ test.describe('queue policy', () => {
     await expect(cfg.locator('.perm-none')).toBeVisible();
 
     const label = 'e2eGrant';
-    const form = cfg.locator('form.tag-row-form');
+    const form = cfg.locator('form.q-grant');
     await form.locator('input[name=label]').fill(label);
     await form.locator('input[name=account]').fill('111122223333');
     await form.locator('select[name=action]').selectOption('ReceiveMessage');
     await form.getByRole('button', { name: 'Grant' }).click();
     expect(await waitForToast()).toContain(`Permission “${label}” added`);
 
-    const row = page.locator('#sqs-config tr', { hasText: label, has: page.getByRole('button', { name: 'Revoke' }) });
+    const row = page.locator('#sqs-config .q-perms .q-r', { hasText: label, has: page.getByRole('button', { name: 'Revoke' }) });
     await expect(row).toContainText('111122223333');
     await expect(row).toContainText('ReceiveMessage');
     // AWS-side: the statement landed in the Policy attribute.
@@ -596,38 +606,38 @@ test('the wire under a queue shows the app’s calls to it as they happen', asyn
 
 test.describe('create form', () => {
   test('a period is legal only as the .fifo suffix of a FIFO queue (SQS-3)', async ({ page }) => {
+    // The form no longer second-guesses the name with a pattern of its own: it
+    // sends what was typed and shows what the service says (board Sqs-05).
     await page.goto('sqs/create');
     const name = page.locator('input[name=name]');
-    const valid = () => name.evaluate((el: HTMLInputElement) => el.checkValidity());
+    const err = page.locator('.err').first();
+    const submit = () => page.getByRole('button', { name: 'Create queue' }).click();
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
 
     await name.fill('a.b');
-    expect(await valid()).toBe(false);
+    await submit();
+    await expect(err).toContainText("queue name may contain only alphanumeric characters, hyphens and underscores, and got '.'");
     await name.fill('orders.fifo'); // FIFO is off
-    expect(await valid()).toBe(false);
-    await name.fill('orders');
-    expect(await valid()).toBe(true);
-
-    await page.locator('input[name=fifo]').check({ force: true });
-    await name.fill('orders.fifo');
-    expect(await valid()).toBe(true);
-    await name.fill('a.b');
-    expect(await valid()).toBe(false);
+    await submit();
+    await expect(err).toContainText('FIFO queue names must end in .fifo and only FIFO queues may');
     // The suffix counts toward 80: 75 + ".fifo" is the longest.
-    await name.fill('a'.repeat(75) + '.fifo');
-    expect(await valid()).toBe(true);
+    await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
     await name.fill('a'.repeat(76) + '.fifo');
-    expect(await valid()).toBe(false);
+    await submit();
+    await expect(err).toContainText('queue name is longer than 80 characters (the .fifo suffix counts toward the limit)');
+    await expect(page).toHaveURL(/\/sqs\/create$/);
   });
 
   test('the dead-letter name preview does not double the .fifo suffix (SQS-4)', async ({ page }) => {
     await page.goto('sqs/create');
-    await page.locator('input[name=fifo]').check({ force: true });
+    const fifoToggle = page.locator('.q-seg', { has: page.locator('input[name=fifo]') });
+    await fifoToggle.click();
     await page.locator('input[name=name]').fill('orders.fifo');
     const preview = page.locator('.dlq-mode', { hasText: 'Create one alongside' }).locator('.mono');
     await expect(preview).toHaveText('orders-dlq.fifo');
     await page.locator('input[name=name]').fill('orders');
     await expect(preview).toHaveText('orders-dlq.fifo');
-    await page.locator('input[name=fifo]').uncheck({ force: true });
+    await fifoToggle.click();
     await expect(preview).toHaveText('orders-dlq');
   });
 
@@ -647,12 +657,12 @@ test.describe('create form', () => {
     await expect(vis.locator('.hint')).toContainText('it comes back');
     await expect(vis.locator('.setting-meta')).toHaveText(/0\s–\s43\u00a0200 · default 30 · enforced/);
     const retention = page.locator('.field', { has: page.locator('input[name=retention]') });
-    await expect(retention.locator('.setting-meta')).toHaveText(/60\s–\s1\u00a0209\u00a0600 · default 345600 · enforced/);
+    await expect(retention.locator('.setting-meta')).toHaveText(/60\s–\s1\u00a0209\u00a0600 · default 4 days · enforced/);
     const maxrecv = page.locator('.field', { has: page.locator('input[name=max_receive]') });
     await expect(maxrecv.locator('.setting-meta')).toHaveText(/1\s–\s1\u00a0000 · enforced/);
     await page.locator('details.adv-sec summary').click();
     const size = page.locator('.field', { has: page.locator('input[name=max_bytes]') });
-    await expect(size.locator('.setting-meta')).toHaveText(/1\u00a0024\s–\s1\u00a0048\u00a0576 · default 1048576 · enforced/);
+    await expect(size.locator('.setting-meta')).toHaveText(/1\u00a0024\s–\s1\u00a0048\u00a0576 · default 1\u00a0048\u00a0576 · enforced/);
     // The value in words, below a minute as well.
     await page.locator('input[name=visibility]').fill('20');
     await expect(vis.locator('.dur-echo')).toHaveText('20 seconds');
@@ -664,42 +674,57 @@ test.describe('create form', () => {
     await page.goto('sqs/create');
     const life = page.locator('.life');
     await expect(life).toContainText('Waiting immediately. No delay is set.');
-    await expect(life).toContainText('It is hidden for 30 seconds');
+    await expect(life).toContainText('It is hidden for 30 s');
     await expect(life).toContainText('It is dropped after 4 days');
     await expect(life).toContainText('receive count goes to 2');
     await expect(page.locator('.life-foot')).toContainText('never reaches step 3');
     // The panel is beside the form, as the design draws it, not under it.
-    const formBox = await page.locator('.create-main').boundingBox();
+    const formBox = await page.locator('.q-col[data-col=left]').boundingBox();
     const lifeBox = await life.boundingBox();
     expect(lifeBox!.x).toBeGreaterThan(formBox!.x + formBox!.width - 1);
 
     await page.locator('input[name=visibility]').fill('90');
     await page.locator('input[name=delay]').fill('10');
     await page.locator('input[name=retention]').fill('3600');
-    await expect(life).toContainText('Invisible for 10 seconds');
-    await expect(life).toContainText('It is hidden for 1 minute 30 seconds');
+    await expect(life).toContainText('Invisible for 10 s');
+    await expect(life).toContainText('It is hidden for 90 s');
     await expect(life).toContainText('It is dropped after 1 hour');
 
     // The dead-letter step follows the mode and the count.
     await page.locator('input[name=max_receive]').fill('5');
     await expect(life).toContainText('Received 5 times');
-    await expect(life).toContainText('It moves to orders-dlq instead of coming back');
+    // Five deliveries, and the receive after them is the one that moves it.
+    await expect(life).toContainText('Its next receive moves it to orders-dlq instead of delivering it again');
     await page.locator('input[name=name]').fill('ship');
-    await expect(life).toContainText('It moves to ship-dlq');
-    await page.locator('input[name=dlq_mode][value=none]').check({ force: true });
+    await expect(life).toContainText('moves it to ship-dlq');
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
     await expect(life.locator('li', { hasText: 'Never moved' })).toBeVisible();
-    await expect(life.locator('li', { hasText: 'instead of coming back' })).toBeHidden();
+    await expect(life.locator('li', { hasText: 'instead of delivering it again' })).toBeHidden();
   });
 
   test('how a FIFO queue behaves appears with FIFO, and only then', async ({ page }) => {
     await page.goto('sqs/create');
-    const panel = page.locator('.panel', { hasText: 'How a group behaves' });
+    const panel = page.locator('.q-group');
     await expect(panel).toBeHidden();
-    await page.locator('input[name=fifo]').check({ force: true });
+    await expect(page.locator('details.adv-sec')).not.toHaveAttribute('open', '');
+    await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
     await expect(panel).toBeVisible();
     await expect(panel).toContainText('in the order sent');
     await expect(panel).toContainText('the next in that group waits');
     await expect(panel).toContainText('holds back only its own group');
+    // The board's three sentences, and no more.
+    await expect(panel.locator('li')).toHaveCount(3);
+    // The FIFO layout (board Sqs-04): Advanced open in the right-hand column,
+    // above the group panel, and the life of one message gone.
+    const adv = page.locator('details.adv-sec');
+    await expect(adv).toHaveAttribute('open', '');
+    await expect(page.locator('.life')).toBeHidden();
+    const general = (await page.locator('.q-col[data-col=left] .q-card').first().boundingBox())!;
+    const advBox = (await adv.boundingBox())!;
+    expect(advBox.x).toBeGreaterThan(general.x + general.width - 1);
+    expect(advBox.y).toBeLessThan((await panel.boundingBox())!.y);
+    await expect(page.locator('.field', { has: page.locator('input[name=delay]') })).toContainText('Queue-wide on a FIFO queue.');
+    await expect(page.locator('.q-create')).toContainText("A FIFO queue's dead-letter queue has to be FIFO too, so the one made alongside gets the .fifo suffix.");
   });
 });
 
@@ -717,24 +742,26 @@ test.describe('configuration tab', () => {
     await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
 
     await page.goto(`sqs/${queue}?tab=config`);
-    const reader = page.locator('.stack-readers .pub-receipt', { hasText: fn });
-    await expect(reader).toContainText('Its timeout is 60s and a received message stays hidden 30s');
-    await expect(reader).toContainText('can come back while the function is still working on it');
-    await expect(reader).toContainText('which here would be 360s');
+    const reader = page.locator('.stack-readers .q-callout', { hasText: fn });
+    await expect(reader).toHaveClass(/warn/);
+    await expect(reader).toContainText("Shorter than the reader's timeout");
+    await expect(reader).toContainText('may run for 60 s. A message received at the start comes back after 30 s and can be handled twice');
+    await expect(reader).toContainText('which here would be 360 s');
     await expect(reader).toContainText('does not check this when the trigger is created');
     await expect(reader.locator('a')).toHaveAttribute('href', new RegExp(`/lambda/${fn}$`));
 
     // The other state: a visibility timeout that covers the function.
     await postForm(request, `sqs/${queue}/attributes`, { visibility: 600 });
     await page.goto(`sqs/${queue}?tab=config`);
-    await expect(page.locator('.stack-readers .pub-receipt', { hasText: fn })).toContainText('one run finishes before the message returns');
-    await expect(page.locator('.stack-readers .pub-receipt.warn')).toHaveCount(0);
+    await expect(page.locator('.stack-readers .q-callout', { hasText: fn })).toContainText('Its timeout is 60 s and a received message stays hidden 600 s, so one run finishes before the message returns');
+    await expect(page.locator('.stack-readers .q-callout.warn')).toHaveCount(0);
+    await expect(page.locator('.stack-readers')).toContainText('which here would be 360 s');
   });
 
   test('"what saving does" names each change against what is stored', async ({ page, request, uniqueName }) => {
     const queue = await createQueue(request, uniqueName('e2e-sqs-changes'), { visibility: 30 });
     await page.goto(`sqs/${queue}?tab=config`);
-    await page.getByTitle('Edit settings').click();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
     const changes = page.locator('.what-panel');
     // Beside the form, with its own quiet state.
     await expect(changes).toBeVisible();
@@ -745,11 +772,11 @@ test.describe('configuration tab', () => {
 
     await page.locator('input[name=visibility]').fill('120');
     await expect(changes).toContainText('Only the settings you touched');
-    await expect(changes).toContainText('Visibility 30 seconds → 2 minutes');
+    await expect(changes).toContainText('Visibility30 s → 120 s');
     await expect(changes).toContainText('Messages already held keep the timeout they were received with');
 
     await page.locator('input[name=retention]').fill('120');
-    await expect(changes).toContainText('Retention 4 days → 2 minutes');
+    await expect(changes).toContainText('Retention4 days → 120 s');
     await expect(changes).toContainText('dropped the next time the queue is read or swept');
 
     // Putting it back removes the sentence.
@@ -768,15 +795,16 @@ test.describe('configuration tab', () => {
     await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
 
     await page.goto(`sqs/${queue}?tab=config`);
-    await page.getByTitle('Edit settings').click();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
     const callout = page.locator('.cfg-neighbour');
     await expect(callout).toBeHidden(); // 600 s covers 30 s: quiet when it fits
     await page.locator('input[name=visibility]').fill('20');
     await expect(callout).toBeVisible();
     await expect(callout).toContainText("Shorter than the reader's timeout");
     await expect(callout).toContainText(fn);
-    await expect(callout).toContainText('may run for 30 seconds');
-    await expect(callout).toContainText('comes back after 20 seconds');
+    await expect(callout).toContainText('may run for 30 s');
+    await expect(callout).toContainText('comes back after 20 s');
+    await expect(callout).toContainText('which here would be 180 s');
     await page.locator('input[name=visibility]').fill('300');
     await expect(callout).toBeHidden();
   });
@@ -784,11 +812,14 @@ test.describe('configuration tab', () => {
   test('the After receives field says what its number means', async ({ page, request, uniqueName }) => {
     const queue = await createQueue(request, uniqueName('e2e-sqs-afterrecv'), { dlqMode: 'new', maxReceive: 3 });
     await page.goto(`sqs/${queue}?tab=config`);
-    await page.getByTitle('Edit settings').click();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    // A message is delivered N times and the NEXT receive moves it
+    // (sqs/receive.go: moved when ReceiveCount >= MaxReceiveCount at receive time).
     const field = page.locator('.field', { has: page.locator('input[name=max_receive]') });
-    await expect(field).toContainText('set aside on its 3rd receive');
+    const says = page.locator('#sqs-config .cfg-after');
+    await expect(says).toHaveText('With 3, a message that keeps coming back is delivered 3 times; the next receive sets it aside.');
     await page.locator('input[name=max_receive]').fill('1');
-    await expect(field).toContainText('set aside on its 1st receive');
+    await expect(says).toHaveText('With 1, a message that keeps coming back is delivered 1 time; the next receive sets it aside.');
     await expect(field.locator('.setting-meta')).toContainText('enforced');
   });
 
@@ -799,11 +830,13 @@ test.describe('configuration tab', () => {
     await postForm(request, `sqs/${queue}/send`, { body: 'one' });
     await page.goto(`sqs/${queue}`);
 
-    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await page.locator('.acts').getByRole('button', { name: 'Delete queue' }).click();
     await expect(page.locator('#confirm-title')).toContainText(`Delete queue “${queue}”`);
     await expect(page.locator('#confirm-msg')).toContainText('removed from this machine');
     await expect(page.locator('#confirm-msg')).toContainText('NonExistentQueue');
     await expect(page.locator('#confirm-no')).toHaveText('Keep it');
+    await expect(page.locator('#confirm-yes')).toHaveText('Delete queue');
+    await expect(page.locator('#confirm-yes')).toHaveClass(/btn-destructive/);
     await confirmDialog('cancel');
 
     await page.getByRole('button', { name: 'Purge' }).click();
@@ -815,9 +848,9 @@ test.describe('configuration tab', () => {
   test('settings that do nothing locally say so', async ({ page, request, uniqueName }) => {
     const queue = await createQueue(request, uniqueName('e2e-sqs-cosmetic'));
     await page.goto(`sqs/${queue}?tab=config`);
-    await page.getByTitle('Edit settings').click();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
     await expect(page.locator('.field', { has: page.locator('input[name=kms_key]') }).locator('.hint'))
-      .toContainText('Nothing is encrypted locally');
+      .toContainText('Accepted and stored. Messages are not encrypted here.');
   });
 });
 
@@ -861,4 +894,338 @@ test('no control on any tab of a queue is left without a name, and nothing scrol
     }
   }
   expect(problems, problems.join('\n')).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------
+// What the fidelity audit found (plan/services/sqs.md 6a). Each of these was
+// written against the page as it stood and failed there first.
+// ---------------------------------------------------------------------------
+const AWS_ACCT_DLQ = (name: string) => `${name}-dlq`;
+
+test.describe('refusals are shown where the board shows them', () => {
+  test('a refused create is on screen, above the form, with what was typed kept', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-refuse'));
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill(name);
+    await page.locator('input[name=visibility]').fill('45');
+    await page.locator('.dlq-mode', { hasText: 'None' }).click(); // so the one difference is the visibility
+    await page.getByRole('button', { name: 'Create queue' }).click();
+    const err = page.locator('.err').first();
+    await expect(err).toBeInViewport();
+    await expect(err).toContainText('QueueNameExists');
+    await expect(err).toContainText('A queue already exists with the same name and a different value for attribute VisibilityTimeout');
+    const errBox = (await err.boundingBox())!;
+    const nameBox = (await page.locator('input[name=name]').boundingBox())!;
+    expect(errBox.y, 'the refusal sits above the form, as the board draws it').toBeLessThan(nameBox.y);
+    await expect(page.locator('input[name=name]')).toHaveValue(name);
+    await expect(page.locator('input[name=visibility]')).toHaveValue('45');
+  });
+
+  test('a refused create leaves no dead-letter queue behind', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-orphan'));
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill(name);
+    await page.locator('input[name=visibility]').fill('45');
+    // "Create one alongside" is the form's default.
+    await page.getByRole('button', { name: 'Create queue' }).click();
+    await expect(page.locator('.err').first()).toContainText('QueueNameExists');
+    await page.goto(`sqs/${name}`);
+    await expect(page.locator('.li', { hasText: name })).toHaveCount(1);
+    await expect(page.locator(`.li[data-name="${AWS_ACCT_DLQ(name)}"]`)).toHaveCount(0);
+  });
+
+  test('a name the service refuses comes back in the service\'s words, not the browser\'s', async ({ page }) => {
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill('harbour.checkout.orders');
+    await page.getByRole('button', { name: 'Create queue' }).click();
+    const err = page.locator('.err').first();
+    await expect(err).toBeInViewport();
+    await expect(err).toContainText('InvalidParameterValue');
+    await expect(err).toContainText("queue name may contain only alphanumeric characters, hyphens and underscores, and got '.'");
+    await expect(page.locator('input[name=name]')).toHaveValue('harbour.checkout.orders');
+    await expect(page.locator('input[name=name]')).toHaveAttribute('aria-invalid', 'true');
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.err .err-h')!).color)).not.toMatch(/rgb\((1[5-9]\d|2\d\d), (\d|[1-5]\d), /);
+  });
+
+  test('an out-of-range setting is refused by the service, above the settings, and the form stays open', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-cfgrefuse'));
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await page.locator('#sqs-config input[name=visibility]').fill('90000');
+    await page.getByRole('button', { name: 'Save settings' }).click();
+    const err = page.locator('#sqs-config .err').first();
+    await expect(err).toBeInViewport();
+    await expect(err).toContainText('InvalidAttributeValue');
+    await expect(err).toContainText('Value for parameter VisibilityTimeout is invalid. Reason: must be between 0 and 43200.');
+    const vis = page.locator('#sqs-config input[name=visibility]');
+    await expect(vis).toBeVisible();
+    await expect(vis).toHaveValue('90000');
+    expect((await err.boundingBox())!.y).toBeLessThan((await vis.boundingBox())!.y);
+    expect(await err.evaluate((e) => !!e.closest('.pb'))).toBe(false);
+  });
+
+  test('a refused send is at the top of the composer', async ({ page, request, uniqueName, setEditor }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-sendrefuse'));
+    await page.goto(`sqs/${name}`);
+    await openComposer(page);
+    await setEditor('textarea[name=body][data-editor]', 'bad ￾ char');
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
+    const err = page.locator('.sqs-compose .err').first();
+    await expect(err).toContainText('InvalidMessageContents');
+    const body = page.locator('.sqs-compose .CodeMirror').first();
+    expect((await err.boundingBox())!.y).toBeLessThan((await body.boundingBox())!.y);
+  });
+});
+
+test.describe('the message list under a live refresh', () => {
+  test('a message arriving from outside leaves closed rows closed', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-liverows'));
+    await postForm(request, `sqs/${name}/send`, { body: 'first' });
+    await page.goto(`sqs/${name}`);
+    await expect(page.locator('.msg')).toHaveCount(1);
+    await postForm(request, `sqs/${name}/send`, { body: 'second' });
+    await expect(page.locator('.msg')).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.locator('.msg-detail:visible')).toHaveCount(0);
+    // And an opened row stays open across the next refresh.
+    await page.locator('.msg').first().locator('.rowopen').click();
+    await expect(page.locator('.msg-detail:visible')).toHaveCount(1);
+    await postForm(request, `sqs/${name}/send`, { body: 'third' });
+    await expect(page.locator('.msg')).toHaveCount(3, { timeout: 15_000 });
+    await expect(page.locator('.msg-detail:visible')).toHaveCount(1);
+  });
+
+  test('another queue\'s count in the list follows a send to it', async ({ page, request, uniqueName }) => {
+    const a = await createQueue(request, uniqueName('e2e-sqs-cnt-a'));
+    const b = await createQueue(request, uniqueName('e2e-sqs-cnt-b'));
+    await page.goto(`sqs/${a}`);
+    const other = page.locator(`.li[data-name="${b}"] .sb`);
+    await expect(other).toHaveText('0');
+    await postForm(request, `sqs/${b}/send`, { body: 'x' });
+    await expect(other).toHaveText('1', { timeout: 15_000 });
+  });
+
+  test('nothing throws while the page swaps', async ({ page, request, uniqueName }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const name = await createQueue(request, uniqueName('e2e-sqs-noerr'));
+    await page.goto(`sqs/${name}`);
+    await postForm(request, `sqs/${name}/send`, { body: 'x' });
+    await expect(page.locator('.msg')).toHaveCount(1, { timeout: 15_000 });
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.goto('sqs/create');
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('dialogs', () => {
+  async function dlqWith(request: any, uniqueName: (p: string) => string, n: number) {
+    const name = await createQueue(request, uniqueName('e2e-sqs-dlg'), { dlqMode: 'new' });
+    const dlq = dlqNameFor(name, false);
+    for (let i = 0; i < n; i++) await postForm(request, `sqs/${dlq}/send`, { body: `m${i}` });
+    return { name, dlq };
+  }
+
+  test('the redrive dialog holds focus, Esc closes it, and focus goes back to the button', async ({ page, request, uniqueName }) => {
+    const { dlq } = await dlqWith(request, uniqueName, 2);
+    await page.goto(`sqs/${dlq}`);
+    const trigger = page.getByRole('button', { name: /^Redrive/ }).first();
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'Redrive messages' });
+    await expect(dialog).toBeVisible();
+    const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role=dialog]'));
+    await expect.poll(inside).toBe(true);
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Tab');
+      expect(await inside(), `Tab ${i + 1} left the dialog`).toBe(true);
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test('the confirm dialog gives focus back to what opened it', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-cfocus'));
+    await page.goto(`sqs/${name}`);
+    const purge = page.getByRole('button', { name: 'Purge' });
+    await purge.click();
+    await expect(page.locator('#confirm')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#confirm')).toBeHidden();
+    await expect(purge).toBeFocused();
+  });
+
+  test('the redrive dialog counts what is in the queue now, not at page load', async ({ page, request, uniqueName }) => {
+    const { dlq } = await dlqWith(request, uniqueName, 1);
+    await page.goto(`sqs/${dlq}`);
+    await expect(page.locator('.msg')).toHaveCount(1);
+    await postForm(request, `sqs/${dlq}/send`, { body: 'late' });
+    await postForm(request, `sqs/${dlq}/send`, { body: 'later' });
+    await expect(page.locator('.msg')).toHaveCount(3, { timeout: 15_000 });
+    await page.getByRole('button', { name: /^Redrive/ }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Redrive messages' })).toContainText('Move all 3 messages back?');
+  });
+
+  test('neither dialog breaks the heading order', async ({ page, request, uniqueName }) => {
+    const { dlq } = await dlqWith(request, uniqueName, 1);
+    await page.goto(`sqs/${dlq}`);
+    const axePath = path.join(__dirname, '..', 'node_modules', 'axe-core', 'axe.min.js');
+    const headingOrder = async () => {
+      await page.addScriptTag({ path: axePath });
+      return page.evaluate(async () => {
+        const r = await (window as any).axe.run(document, { runOnly: ['heading-order'] });
+        return r.violations.map((v: any) => v.nodes.map((n: any) => n.target.join(' ')).join(', '));
+      });
+    };
+    await page.getByRole('button', { name: 'Purge' }).click();
+    await expect(page.locator('#confirm')).toBeVisible();
+    expect(await headingOrder()).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /^Redrive/ }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Redrive messages' })).toBeVisible();
+    expect(await headingOrder()).toEqual([]);
+  });
+});
+
+test.describe('the send preview is the call the form makes', () => {
+  test('attributes and copies are in the previewed command', async ({ page, request, uniqueName, setEditor }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-clieq'));
+    await page.goto(`sqs/${name}`);
+    await openComposer(page);
+    await setEditor('textarea[name=body][data-editor]', '{"n":1}');
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Add' }).click();
+    await page.locator('.sqs-compose input[placeholder=name]').fill('source');
+    await page.locator('.sqs-compose input[placeholder=value]').fill('checkout-api');
+    await page.locator('.sqs-compose .cli-btn').click();
+    const pre = page.locator('.sqs-compose .cli-out pre');
+    await expect(pre).toContainText('sqs send-message ');
+    await expect(pre).toContainText(`--message-attributes '{"source":{"DataType":"String","StringValue":"checkout-api"}}'`);
+    await page.locator('.sqs-compose input[name=repeat]').fill('3');
+    await expect(pre).toContainText('sqs send-message-batch ');
+    await expect(pre).toContainText('"Id":"m2"');
+  });
+
+  test('a FIFO preview carries the deduplication id the form will send', async ({ page, request, uniqueName, setEditor }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-clififo'), { fifo: true });
+    await page.goto(`sqs/${name}`);
+    await openComposer(page);
+    await setEditor('textarea[name=body][data-editor]', 'fifo body');
+    await page.locator('.sqs-compose input[name=group]').fill('g1');
+    await page.locator('.sqs-compose .cli-btn').click();
+    const pre = page.locator('.sqs-compose .cli-out pre');
+    await expect(pre).toContainText('--message-group-id g1');
+    const text = await pre.innerText();
+    const m = text.match(/--message-deduplication-id (\S+)/);
+    expect(m, 'the preview names a deduplication id').not.toBeNull();
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
+    await expect(page.locator('.msg')).toHaveCount(1);
+    await page.locator('.msg .rowopen').first().click();
+    await expect(page.locator('.msg').first()).toContainText(m![1].replace(/'/g, ''));
+  });
+});
+
+test.describe('what the pages say', () => {
+  test('After receives says the next receive moves the message, not the Nth', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-nth'), { dlqMode: 'new', maxReceive: 3 });
+    await page.goto(`sqs/${name}?tab=config`);
+    await expect(page.locator('#sqs-config')).not.toContainText(/on its 3rd receive|after 3 receives$/);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    const field = page.locator('#sqs-config .field', { has: page.locator('input[name=max_receive]') });
+    await expect(page.locator('#sqs-config')).not.toContainText(/set aside on its \d+(st|nd|rd|th) receive/);
+    await expect(page.locator('#sqs-config')).toContainText(/delivered 3 times.*next receive/);
+    await expect(field).toBeVisible();
+  });
+
+  test('every settings field teaches: unit, words, sentence, range and default', async ({ page, request, uniqueName }) => {
+    await page.goto('sqs/create');
+    const f = (n: string) => page.locator('.field', { has: page.locator(`input[name=${n}]`) });
+    await expect(f('visibility').locator('label')).toHaveText(/Visibility\s·\ss/);
+    await expect(f('retention').locator('.setting-meta')).toHaveText(/60\s–\s1 209 600 · default 4 days · enforced/);
+    await page.locator('details.adv-sec summary').click();
+    await expect(f('receive_wait').locator('label')).toHaveText(/Receive wait\s·\ss\s·\slong polling/);
+    await expect(f('receive_wait').locator('.setting-meta')).toHaveText(/0\s–\s20 · default 0 · enforced/);
+    await expect(f('max_bytes').locator('.setting-meta')).toHaveText(/1 024\s–\s1 048 576 · default 1 048 576 · enforced/);
+    await page.locator('input[name=max_bytes]').fill('262144');
+    await expect(f('max_bytes').locator('.dur-echo')).toHaveText('256 KiB');
+    const name = await createQueue(request, uniqueName('e2e-sqs-teach'), { fifo: true });
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    const e = (n: string) => page.locator('#sqs-config .field', { has: page.locator(`[name=${n}]`) });
+    await expect(e('sse')).toContainText('Accepted and stored, not enforced.');
+    await expect(e('dedup_scope')).toContainText('duplicates are found within a group, not across the whole queue');
+    await expect(e('max_bytes')).toContainText('body and attributes together');
+  });
+
+  test('a zero is "none", never "no time"', async ({ page, request, uniqueName }) => {
+    await page.goto('sqs/create');
+    await page.locator('input[name=visibility]').fill('0');
+    await expect(page.locator('.life')).not.toContainText('no time');
+    const name = await createQueue(request, uniqueName('e2e-sqs-zero'));
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await page.locator('#sqs-config input[name=delay]').fill('900');
+    await expect(page.locator('.what-panel')).toContainText('Delay');
+    await expect(page.locator('.what-panel')).not.toContainText('no time');
+  });
+
+  test('a held message that came back is never "hidden for visible again", and the header counts it', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-back'), { visibility: 2 });
+    await postForm(request, `sqs/${name}/send`, { body: 'x' });
+    await page.goto(`sqs/${name}?tab=consume`);
+    await page.getByRole('button', { name: 'Receive' }).click();
+    await expect(page.locator('#sqs-consumed .rcv-row')).toHaveCount(1);
+    const slug = name.replace(/[^a-zA-Z0-9_-]/g, '-');
+    await expect(page.locator(`#sum-sqs-${slug}-inflight`)).toHaveText('1');
+    await expect(page.locator(`#sum-sqs-${slug}-visible`)).toHaveText('1', { timeout: 15_000 });
+    await expect(page.locator(`#sum-sqs-${slug}-inflight`)).toHaveText('0');
+    await expect(page.locator('#sqs-consumed')).not.toContainText('hidden for visible again');
+  });
+});
+
+test.describe('Esc does what the key bar says', () => {
+  test('in the filter, the create form, the composer and the settings form', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-esc'));
+    await page.goto(`sqs/${name}`);
+    await page.keyboard.press('/');
+    const filter = page.locator('.listpane .filter input');
+    await expect(filter).toBeFocused();
+    await page.keyboard.type('zzzz-no-such');
+    await expect(page.locator('.li:visible')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(filter).toHaveValue('');
+    await expect(filter).not.toBeFocused();
+    await expect(page.locator(`.li[data-name="${name}"]`)).toBeVisible();
+
+    await openComposer(page);
+    await expect(page.locator('.sqs-compose')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sqs-compose')).toBeHidden();
+
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await page.locator('#sqs-config input[name=visibility]').focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#sqs-config input[name=visibility]')).toBeHidden();
+
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill('never-made');
+    await page.keyboard.press('Escape');
+    await page.waitForURL(/\/sqs$/);
+  });
+});
+
+test.describe('the service home', () => {
+  test('lists the queues and opens none (board Sqs-02)', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-home'));
+    await page.goto('sqs');
+    await expect(page.locator(`.li[data-name="${name}"]`)).toBeVisible();
+    await expect(page.locator('.li.on')).toHaveCount(0);
+    await expect(page.locator('.detail')).toContainText('Select a queue to read its messages without consuming them, send one, or set up redrive.');
+    await expect(page.locator('.detail')).toContainText('to move, ⏎ to open');
+    await expect(page.locator('.listpane')).toContainText('The number is messages waiting. In-flight ones are not counted.');
+    // j, then Enter, opens the first.
+    await page.keyboard.press('j');
+    await page.keyboard.press('Enter');
+    await page.waitForURL(/\/sqs\/[^/]+$/);
+    await expect(page.locator('.li.on')).toHaveCount(1);
+  });
 });

@@ -77,10 +77,13 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTA:     "New table",
 		CTAPath: "/ddb/create",
 	},
+	// SQS's home is its list with nothing opened (the design's rail links the
+	// service there), so its Unsel line is the first thing seen with queues.
 	"sqs": {
-		Case:    caseFirst,
+		Case:    caseUnselected,
 		Short:   "No queues yet",
 		None:    "No queues yet, so nothing in this stack has anywhere to queue up. A queue is what lets a slow consumer fall behind without losing work — and what a dead-letter queue catches when it fails to keep up at all.",
+		Unsel:   "Select a queue to read its messages without consuming them, send one, or set up redrive.",
 		CTA:     "New queue",
 		CTAPath: "/sqs/create",
 	},

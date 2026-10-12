@@ -489,6 +489,7 @@ type Queue struct {
 	Available int    // ApproximateNumberOfMessages
 	InFlight  int    // ApproximateNumberOfMessagesNotVisible
 	DLQ       string // redrive target queue name, "" when none (from the same attrs fetch)
+	IsDLQ     bool   // some queue in the list dead-letters into this one
 }
 
 type SQSMessage struct {
@@ -503,6 +504,7 @@ type SQSMessage struct {
 	Attrs         []MsgAttr
 	Sum           MsgSummary // display form, filled by the handler before render
 	Left          int        // Consume tab: seconds until the message is visible again
+	Hide          int        // Consume tab: the seconds it was hidden for, which Left counts down from
 }
 
 // ReceiveState says how close this message is to being dead-lettered, which is
@@ -570,6 +572,15 @@ func (b *backend) ListQueues(ctx context.Context) ([]Queue, error) {
 			q.DLQ = sqsConfigOf(attrs).DLQ // BuildGraph reads redrive edges from here
 		}
 		queues = append(queues, q)
+	}
+	targets := map[string]bool{}
+	for _, q := range queues {
+		if q.DLQ != "" {
+			targets[q.DLQ] = true
+		}
+	}
+	for i := range queues {
+		queues[i].IsDLQ = targets[queues[i].Name]
 	}
 	sort.Slice(queues, func(i, j int) bool { return queues[i].Name < queues[j].Name })
 	return queues, nil
@@ -649,6 +660,9 @@ type SendOpts struct {
 	DedupID string    // FIFO: explicit dedup ID; blank auto-generates one
 	Delay   string    // standard queues: per-message DelaySeconds
 	Attrs   []MsgAttr // message attributes (metadata)
+	// NoDedup sends a FIFO message with no deduplication id at all, for a
+	// queue whose content-based deduplication is the id.
+	NoDedup bool
 }
 
 func (b *backend) SendMessage(ctx context.Context, name, body string, o SendOpts) error {
@@ -656,10 +670,12 @@ func (b *backend) SendMessage(ctx context.Context, name, body string, o SendOpts
 	if o.GroupID != "" {
 		in["MessageGroupId"] = o.GroupID
 		dedup := o.DedupID
-		if dedup == "" { // keep repeat sends distinct even without content-based dedup
+		if dedup == "" && !o.NoDedup { // keep repeat sends distinct even without content-based dedup
 			dedup = fmt.Sprintf("console-%d", time.Now().UnixNano())
 		}
-		in["MessageDeduplicationId"] = dedup
+		if dedup != "" {
+			in["MessageDeduplicationId"] = dedup
+		}
 	}
 	if o.Delay != "" && o.Delay != "0" {
 		in["DelaySeconds"] = atoi(o.Delay)
