@@ -14,7 +14,7 @@ package awshttp_test
 // retries anything).
 //
 // boto3 and the JavaScript SDK are covered by the conformance harness
-// (conformance/tests/test_wire.py), where those SDKs live.
+// (conformance/tests/test_notbuilt_retry.py), where those SDKs live.
 
 import (
 	"context"
