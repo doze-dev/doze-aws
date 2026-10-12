@@ -196,8 +196,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		if why, stubbed := stubActions[action]; stubbed {
 			s.logf("cloudformation: %s -> unsupported", action)
-			s.api.WriteError(w, awshttp.Errf(400, "ValidationError",
-				"doze-aws does not implement %s: %s", action, why))
+			// ValidationError is the code for an input that is wrong, and
+			// this input is not. Until these move to awshttp.NotBuilt the
+			// answer is stamped as a stub's, so the model sweep counts it as
+			// one and not as an operation that was handled.
+			refusal := awshttp.Errf(400, "ValidationError", "doze-aws does not implement %s: %s", action, why)
+			refusal.LegacyStub = true
+			s.api.WriteError(w, refusal)
 			return
 		}
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown CloudFormation action %q", action))

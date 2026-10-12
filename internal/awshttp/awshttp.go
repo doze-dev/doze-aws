@@ -46,6 +46,13 @@ type APIError struct {
 	// call would be accepted there. Written as X-Doze-Local-Limit, so the
 	// console can say "AWS would accept this" rather than "AWS refuses this".
 	Local bool
+	// LegacyStub marks the answer of an old refusal table that has not moved
+	// to NotBuilt: an operation doze-aws does not build, refused under a code
+	// that says something else (CloudFormation's ValidationError, Secrets
+	// Manager's InvalidRequestException). The code reads as a refusal of the
+	// input, so the model sweep counted these as handled and nothing made them
+	// move. Written as X-Doze-Legacy-Stub; it goes when the last table does.
+	LegacyStub bool
 }
 
 // The two kinds of operation doze-aws does not build. They are the two
@@ -62,6 +69,7 @@ const (
 	NotBuiltHeader   = "X-Doze-Not-Built"
 	DeniedHeader     = "X-Doze-Denied"
 	LocalLimitHeader = "X-Doze-Local-Limit"
+	LegacyStubHeader = "X-Doze-Legacy-Stub"
 )
 
 // StampHeaders writes e's provenance headers. The protocol writers reach it
@@ -79,6 +87,9 @@ func StampHeaders(w http.ResponseWriter, e *APIError) {
 	}
 	if e.Local {
 		w.Header().Set(LocalLimitHeader, "1")
+	}
+	if e.LegacyStub {
+		w.Header().Set(LegacyStubHeader, "1")
 	}
 }
 

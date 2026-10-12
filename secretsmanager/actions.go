@@ -38,19 +38,38 @@ var handlers = map[string]handler{
 	"ValidateResourcePolicy":   (*Server).validateResourcePolicy,
 }
 
+// stubActions are documented operations doze-aws refuses on purpose.
+// Replication needs other regions, which don't exist locally; these answer
+// honestly.
+//
+// They are registered as handlers, so they are dispatched, validated and
+// guarded like any other operation and refuse only a request that was
+// otherwise fine. The table has a name so that a test can walk it: each answer
+// is stamped as a stub's (see stubRefusal), and the table is what says which
+// answers those are.
+var stubActions = map[string]string{
+	"ReplicateSecretToRegions":     "there is exactly one region locally",
+	"RemoveRegionsFromReplication": "there is exactly one region locally",
+	"StopReplicationToReplica":     "there is exactly one region locally",
+}
+
 func init() {
-	// Replication needs other regions, which don't exist locally; these answer
-	// honestly.
-	for name, why := range map[string]string{
-		"ReplicateSecretToRegions":     "there is exactly one region locally",
-		"RemoveRegionsFromReplication": "there is exactly one region locally",
-		"StopReplicationToReplica":     "there is exactly one region locally",
-	} {
-		reason := why
+	for name, why := range stubActions {
 		handlers[name] = func(*Server, map[string]any) (any, *awshttp.APIError) {
-			return nil, awshttp.Errf(400, "InvalidRequestException", "not supported by doze-aws: %s", reason)
+			return nil, stubRefusal(why)
 		}
 	}
+}
+
+// stubRefusal is a stub's answer. InvalidRequestException is the code for a
+// request that is wrong, and this one is not, so the answer is stamped as a
+// stub's: the model sweep reads the stamp and counts it as a stub still to
+// move to awshttp.NotBuilt, where it used to read the code and count it as
+// handled.
+func stubRefusal(why string) *awshttp.APIError {
+	e := awshttp.Errf(400, "InvalidRequestException", "not supported by doze-aws: %s", why)
+	e.LegacyStub = true
+	return e
 }
 
 // ---- param helpers ----

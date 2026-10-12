@@ -31,8 +31,12 @@ package dozeaws_test
 //	            operation reached something that understood it.
 //	notbuilt    501 with X-Doze-Not-Built. The agreed refusal (plan decision D5).
 //	legacystub  An answer an old refusal table gives: UnsupportedOperation-
-//	            Exception, or a 501 with no header. Understood, but not in the
-//	            agreed shape. Burns down as services move to notbuilt.
+//	            Exception, a 501 with no header, or anything stamped
+//	            X-Doze-Legacy-Stub. The stamp is for the tables that refuse
+//	            under a code for a bad input (CloudFormation's ValidationError,
+//	            Secrets Manager's InvalidRequestException), which the code
+//	            alone reads as handled. Understood, but not in the agreed
+//	            shape. Burns down as services move to notbuilt.
 //	unknown     InvalidAction, UnknownOperation, "unknown path", a route
 //	            miss. A false statement that the operation does not exist.
 //	fault       5xx. A bug.
@@ -153,6 +157,37 @@ type answer struct {
 	code    string
 	message string
 	header  string
+	// legacy is the X-Doze-Legacy-Stub header: the stub table's own word that
+	// this answer came from it.
+	legacy string
+}
+
+// A stub that refuses under the code for a bad input is a stub, and the sweep
+// knows it from the stamp the stub's writer sets and not from the code or from
+// how the message is spelled. CloudFormation's 67 stubs answer 400
+// ValidationError and Secrets Manager's 3 answer 400 InvalidRequestException;
+// by the code both are an input refused, which is "handled", and so nothing
+// made them move to the agreed refusal.
+func TestTheSweepReadsAStubFromItsStamp(t *testing.T) {
+	for _, tc := range []struct {
+		what string
+		a    answer
+		want string
+	}{
+		{"a CloudFormation stub", answer{status: 400, code: "ValidationError", message: "doze-aws does not implement DetectStackDrift: there is nothing to drift from locally", legacy: "1"}, "legacystub"},
+		{"a Secrets Manager stub", answer{status: 400, code: "InvalidRequestException", message: "not supported by doze-aws: there is exactly one region locally", legacy: "1"}, "legacystub"},
+		// The same codes with no stamp are what they say: an input refused.
+		{"a real ValidationError", answer{status: 400, code: "ValidationError", message: "1 validation error detected"}, "handled"},
+		{"a real InvalidRequestException", answer{status: 400, code: "InvalidRequestException", message: "You can't perform this operation on the secret because it was marked for deletion."}, "handled"},
+		// A message that reads like a stub's is not evidence of one.
+		{"a message that says doze-aws", answer{status: 400, code: "ValidationError", message: "doze-aws does not implement this property"}, "handled"},
+		// The agreed refusal outranks the stamp: it is where a stub ends up.
+		{"not built", answer{status: 501, code: "NotImplemented", header: "deferred", legacy: "1"}, "notbuilt"},
+	} {
+		if got := classify(tc.a); got != tc.want {
+			t.Errorf("%s: classified %s, want %s", tc.what, got, tc.want)
+		}
+	}
 }
 
 var (
@@ -162,7 +197,8 @@ var (
 
 func readAnswer(resp *http.Response) answer {
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
-	a := answer{status: resp.StatusCode, header: resp.Header.Get(awshttp.NotBuiltHeader)}
+	a := answer{status: resp.StatusCode, header: resp.Header.Get(awshttp.NotBuiltHeader),
+		legacy: resp.Header.Get(awshttp.LegacyStubHeader)}
 	var j map[string]any
 	if json.Unmarshal(body, &j) == nil {
 		for _, k := range []string{"__type", "code", "Code", "errorType"} {
@@ -205,6 +241,9 @@ func classify(a answer) string {
 		return "handled"
 	case a.status == 501 && a.header != "":
 		return "notbuilt"
+	case a.legacy != "":
+		// The stub table's own stamp, whatever code the stub borrowed.
+		return "legacystub"
 	case a.status == 501:
 		return "legacystub"
 	case a.status >= 500:
