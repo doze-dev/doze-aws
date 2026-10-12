@@ -76,7 +76,7 @@ func hListDeadLetterSourceQueues(s *store, req *request) (any, *apiError) {
 func moveTaskError(err error) *apiError {
 	aerr := asAPIError(err)
 	if aerr != nil && aerr.Code == "AWS.SimpleQueueService.NonExistentQueue" {
-		return &apiError{Code: "ResourceNotFoundException", Status: 400, SenderFault: true, Message: aerr.Message}
+		return &apiError{Code: "ResourceNotFoundException", Status: 404, SenderFault: true, Message: aerr.Message}
 	}
 	return aerr
 }
@@ -106,13 +106,21 @@ type listMoveTasksResult struct {
 }
 
 func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
-	source := arnQueueName(req.p.str("SourceArn"))
-	if source == "" {
+	if req.p.str("SourceArn") == "" {
 		return nil, errInvalid("SourceArn is required")
+	}
+	source, ok := s.ownQueue(req.p.str("SourceArn"))
+	if !ok {
+		return nil, moveTaskError(errQueueMissing(req.p.str("SourceArn")))
 	}
 	// Optional: without one each message returns to the queue it was
 	// dead-lettered from (doc: the StartMessageMoveTask API reference).
-	dest := arnQueueName(req.p.str("DestinationArn"))
+	dest := ""
+	if arn := req.p.str("DestinationArn"); arn != "" {
+		if dest, ok = s.ownQueue(arn); !ok {
+			return nil, moveTaskError(errQueueMissing(arn))
+		}
+	}
 	// doc: "The maximum value for messages per second is 500".
 	perSecond, _, aerr := req.p.intParam("MaxNumberOfMessagesPerSecond", 1, 500)
 	if aerr != nil {
@@ -126,7 +134,10 @@ func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
 }
 
 func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
-	source := arnQueueName(req.p.str("SourceArn"))
+	source, ok := s.ownQueue(req.p.str("SourceArn"))
+	if !ok {
+		return nil, moveTaskError(errQueueMissing(req.p.str("SourceArn")))
+	}
 	// doc: "The default is 1 ... The upper limit is 10."
 	max, present, aerr := req.p.intParam("MaxResults", 1, 10)
 	if aerr != nil {
@@ -151,8 +162,7 @@ func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 			FailureReason:                     t.FailureReason,
 		}
 		// doc: the handle "is only populated for tasks that are in RUNNING
-		// status", and the destination is absent when none was named. A move
-		// here finishes inside the call, so nothing is ever RUNNING.
+		// status", and the destination is absent when none was named.
 		if t.Status == "RUNNING" {
 			view.TaskHandle = t.Handle
 		}

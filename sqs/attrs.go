@@ -32,7 +32,8 @@ var attrRange = map[string][2]int{
 // to make a standard queue and answer 200. Case is accepted either way, which
 // is not established (recording queue).
 func boolAttr(attr, v string) (bool, error) {
-	switch strings.ToLower(strings.TrimSpace(v)) {
+	// model: "Valid values are true and false", as written.
+	switch v {
 	case "true":
 		return true, nil
 	case "false", "":
@@ -59,7 +60,15 @@ func atoiAttr(attr, v string) (int, error) {
 // queueLookup resolves a queue by name so redrive can be validated against
 // what actually exists. Passing nil skips the checks that need it, which is
 // what the pure attribute tests do.
-type queueLookup func(name string) (*queue, error)
+type queueLookup struct {
+	// byARN finds the queue an ARN names, if the ARN is this instance's: its
+	// service, its Region and its account. An ARN elsewhere names no queue here,
+	// whatever its last segment is (model: a dead-letter queue is one "in this
+	// Amazon Web Services account in the same Region").
+	byARN func(arn string) (*queue, error)
+	// arnOf is the ARN of a queue here.
+	arnOf func(name string) string
+}
 
 // applyAttrs folds an SQS attribute map into a queue definition.
 func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
@@ -213,6 +222,11 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 	if (scope != "" || limit != "") && !q.FIFO {
 		return errInvalidAttrValue("DeduplicationScope", "DeduplicationScope and FifoThroughputLimit apply only to FIFO queues")
 	}
+	// Checked only when the request names it, so a queue already holding the
+	// value from before this rule can still have its other attributes set.
+	if _, named := attrs["ContentBasedDeduplication"]; named && q.ContentBasedDedup && !q.FIFO {
+		return errInvalidAttrValue("ContentBasedDeduplication", "ContentBasedDeduplication applies only to FIFO queues")
+	}
 	if limit == "perMessageGroupId" && scope != "messageGroup" {
 		return errInvalidAttrValue("FifoThroughputLimit", "perMessageGroupId requires DeduplicationScope to be messageGroup")
 	}
@@ -363,6 +377,14 @@ func (s *store) SetAttributes(name string, attrs map[string]string) error {
 		if err != nil {
 			return err
 		}
+		// model: FifoQueue "You can provide this attribute only during queue
+		// creation. You can't change it for an existing queue." It was applied,
+		// which turned a standard queue into one that refuses every send
+		// without a group id, and a FIFO queue into one with no ordering.
+		if _, named := attrs["FifoQueue"]; named {
+			return &apiError{Code: "InvalidAttributeName", Status: 400, SenderFault: true,
+				Message: "Unknown Attribute FifoQueue. It can be set only when the queue is created."}
+		}
 		if err := applyAttrs(q, attrs, s.lookupIn(tx)); err != nil {
 			return err
 		}
@@ -393,23 +415,28 @@ func applyRedrive(q *queue, v string, lookup queueLookup) error {
 		return errInvalidAttrValue("RedrivePolicy", "deadLetterTargetArn is required")
 	}
 	// AWS writes maxReceiveCount as a number and accepts it quoted; Terraform
-	// and the console send the quoted form, so both have to work.
-	count, err := strconv.Atoi(strings.Trim(strings.TrimSpace(string(rp.MaxReceiveCount)), `"`))
-	if err != nil {
-		return errInvalidAttrValue("RedrivePolicy", "maxReceiveCount must be an integer")
+	// and the console send the quoted form, so both have to work. Left out, it
+	// is ten (model: maxReceiveCount "Default: 10").
+	count := defMaxReceiveCount
+	if raw := strings.Trim(strings.TrimSpace(string(rp.MaxReceiveCount)), `"`); raw != "" && raw != "null" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return errInvalidAttrValue("RedrivePolicy", "maxReceiveCount must be an integer")
+		}
+		count = n
 	}
 	if count < 1 || count > 1000 {
 		return errInvalidAttrValue("RedrivePolicy", "maxReceiveCount must be between 1 and 1000")
 	}
 
 	target := arnQueueName(rp.DeadLetterTargetArn)
-	if target == q.Name {
-		return errInvalidAttrValue("RedrivePolicy", "a queue cannot be its own dead-letter queue")
-	}
-	if lookup != nil {
-		dlq, err := lookup(target)
+	if lookup.byARN != nil {
+		dlq, err := lookup.byARN(rp.DeadLetterTargetArn)
 		if err != nil {
-			return errInvalidAttrValue("RedrivePolicy", "dead-letter target does not exist: "+target)
+			return errInvalidAttrValue("RedrivePolicy", "dead-letter target does not exist: "+rp.DeadLetterTargetArn)
+		}
+		if dlq.Name == q.Name {
+			return errInvalidAttrValue("RedrivePolicy", "a queue cannot be its own dead-letter queue")
 		}
 		// A FIFO source needs a FIFO dead-letter queue and a standard source a
 		// standard one: ordering and deduplication have to survive the move,
@@ -418,10 +445,12 @@ func applyRedrive(q *queue, v string, lookup queueLookup) error {
 			return errInvalidAttrValue("RedrivePolicy",
 				"dead-letter queue must be the same type as the source queue (FIFO or standard)")
 		}
-		if !redriveAllowed(dlq, q.Name) {
+		if !redriveAllowed(dlq, lookup.arnOf(q.Name)) {
 			return errInvalidAttrValue("RedrivePolicy",
 				"the dead-letter queue's RedriveAllowPolicy does not allow this queue to use it")
 		}
+	} else if target == q.Name {
+		return errInvalidAttrValue("RedrivePolicy", "a queue cannot be its own dead-letter queue")
 	}
 	q.DeadLetterTarget, q.MaxReceiveCount = target, count
 	return nil
@@ -454,7 +483,7 @@ func validRedriveAllowPolicy(v string) *apiError {
 }
 
 // redriveAllowed reports whether a dead-letter queue's RedriveAllowPolicy lets
-// the named queue use it. No policy is allowAll.
+// the queue with this ARN use it. No policy is allowAll.
 func redriveAllowed(dlq *queue, source string) bool {
 	raw := dlq.Attrs["RedriveAllowPolicy"]
 	if raw == "" {
@@ -472,7 +501,7 @@ func redriveAllowed(dlq *queue, source string) bool {
 		return false
 	case "byQueue":
 		for _, a := range p.Sources {
-			if arnQueueName(a) == source {
+			if a == source {
 				return true
 			}
 		}

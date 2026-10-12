@@ -147,8 +147,9 @@ func TestPeekReturnsAsManyAsAskedFor(t *testing.T) {
 
 func TestACancelOfAnUnknownTaskIsNotFound(t *testing.T) {
 	ts := testServer(t)
+	// model: ResourceNotFoundException httpError 404.
 	code, body := jsonBody(t, ts.URL, "CancelMessageMoveTask", `{"TaskHandle":"no-such-task"}`)
-	if code != 400 || !strings.Contains(body, "ResourceNotFoundException") {
+	if code != 404 || !strings.Contains(body, "ResourceNotFoundException") {
 		t.Errorf("%d %.200s", code, body)
 	}
 }

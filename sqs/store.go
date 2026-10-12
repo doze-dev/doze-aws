@@ -6,7 +6,9 @@ package sqs
 import (
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -27,6 +29,7 @@ const (
 	maxWaitTimeSeconds   = 20      // long-poll ceiling
 	dedupWindow          = 5 * 60  // seconds, FIFO dedup window
 	maxReceiveBatch      = 10
+	defMaxReceiveCount   = 10    // a RedrivePolicy that names none (model: "Default: 10")
 	maxListQueues        = 1000  // MaxResults on ListQueues, and a page's size
 	maxDelaySeconds      = 900   // DelaySeconds on a send, and on a queue
 	maxVisibilityTimeout = 43200 // 12 hours, in seconds
@@ -130,7 +133,16 @@ func (s *store) now() time.Time { return s.clock() }
 // lookupIn binds a transaction into a queueLookup, so attribute validation can
 // ask whether a queue it has been pointed at actually exists.
 func (s *store) lookupIn(tx *bolt.Tx) queueLookup {
-	return func(name string) (*queue, error) { return s.getQueue(tx, name) }
+	return queueLookup{
+		byARN: func(arn string) (*queue, error) {
+			name, ok := s.ownQueue(arn)
+			if !ok {
+				return nil, errQueueMissing(arn)
+			}
+			return s.getQueue(tx, name)
+		},
+		arnOf: s.queueARN,
+	}
 }
 
 func (s *store) getQueue(tx *bolt.Tx, name string) (*queue, error) {
@@ -401,8 +413,13 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 	var dedupKey string
 	if q.FIFO {
 		if dedupID == "" && q.ContentBasedDedup {
-			sum := md5.Sum([]byte(body))
-			dedupID = fmt.Sprintf("%x", sum)
+			// model: "Amazon SQS uses a SHA-256 hash to generate the
+			// MessageDeduplicationId using the body of the message (but not
+			// the attributes of the message)". It was an MD5, so the id a
+			// consumer read back, and one a producer computed itself to match,
+			// were not the ones AWS gives.
+			sum := sha256.Sum256([]byte(body))
+			dedupID = hex.EncodeToString(sum[:])
 		}
 		if dedupID == "" {
 			return nil, false, errInvalid("MessageDeduplicationId is required (or enable ContentBasedDeduplication)")

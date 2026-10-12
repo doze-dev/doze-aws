@@ -121,8 +121,9 @@ func TestStrictOverTheWireSpellsTheErrorsTheModelDoes(t *testing.T) {
 	if code, _ := jsonBody(t, ts.URL, "PurgeQueue", `{"QueueUrl":"`+u+`"}`); code != 200 {
 		t.Fatalf("first purge %d", code)
 	}
+	// model: PurgeQueueInProgress httpError 403.
 	code, body = jsonBody(t, ts.URL, "PurgeQueue", `{"QueueUrl":"`+u+`"}`)
-	if code != 400 || !strings.Contains(body, `"PurgeQueueInProgress"`) {
+	if code != 403 || !strings.Contains(body, `"PurgeQueueInProgress"`) {
 		t.Errorf("JSON second purge: %d %.200s", code, body)
 	}
 }

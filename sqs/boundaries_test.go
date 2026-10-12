@@ -259,7 +259,7 @@ func TestSystemAttributeValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	m, _ := s.Send("q", "x", nil, -1, "tenant", "", nil)
-	got := systemAttrs(*m, []string{"All"})
+	got := systemAttrs(*m, []string{"All"}, false)
 	if got["SentTimestamp"] != "1700000000123" {
 		t.Errorf("SentTimestamp %q, want 1700000000123", got["SentTimestamp"])
 	}
@@ -273,7 +273,7 @@ func TestSystemAttributeValues(t *testing.T) {
 		t.Errorf("MessageGroupId %q", got["MessageGroupId"])
 	}
 	recv, _ := s.Receive("q", 1, 0, -1)
-	got = systemAttrs(recv[0], []string{"All"})
+	got = systemAttrs(recv[0], []string{"All"}, false)
 	if got["ApproximateFirstReceiveTimestamp"] != "1700000000123" {
 		t.Errorf("ApproximateFirstReceiveTimestamp %q", got["ApproximateFirstReceiveTimestamp"])
 	}

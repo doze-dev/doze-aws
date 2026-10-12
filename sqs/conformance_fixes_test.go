@@ -180,15 +180,17 @@ func TestFIFOMessagesCarryASequenceNumber(t *testing.T) {
 	s.CreateQueue("plain", nil, nil)
 	a, _ := s.Send("q.fifo", "one", nil, -1, "g", "d1", nil)
 	b, _ := s.Send("q.fifo", "two", nil, -1, "g", "d2", nil)
-	p, _ := s.Send("plain", "x", nil, -1, "", "", nil)
-	sa, sb := sequenceNumber(a), sequenceNumber(b)
+	// With a group id, which a standard queue takes too: the group is not
+	// what makes a queue FIFO.
+	p, _ := s.Send("plain", "x", nil, -1, "g", "", nil)
+	sa, sb := sequenceNumber(a, isFIFOName("q.fifo")), sequenceNumber(b, isFIFOName("q.fifo"))
 	if len(sa) != 20 || len(sb) != 20 || sb <= sa {
 		t.Errorf("sequence numbers %q then %q: want twenty digits, rising", sa, sb)
 	}
-	if sequenceNumber(p) != "" {
-		t.Errorf("a standard queue's message has a sequence number: %q", sequenceNumber(p))
+	if got := sequenceNumber(p, isFIFOName("plain")); got != "" {
+		t.Errorf("a standard queue's message has a sequence number: %q", got)
 	}
-	if got := systemAttrs(*a, []string{"All"})["SequenceNumber"]; got != sa {
+	if got := systemAttrs(*a, []string{"All"}, true)["SequenceNumber"]; got != sa {
 		t.Errorf("received SequenceNumber %q, sent %q", got, sa)
 	}
 }

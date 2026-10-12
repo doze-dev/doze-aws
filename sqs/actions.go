@@ -93,9 +93,9 @@ func hDeleteQueue(s *store, req *request) (any, *apiError) {
 }
 
 func hListQueues(s *store, req *request) (any, *apiError) {
-	// MaxResults is 1 to 1000 (doc: the ListQueues API reference); with none a
-	// call returns up to the most a page can hold, and a token if there are more.
-	limit, _, aerr := req.p.intParam("MaxResults", 1, maxListQueues)
+	// MaxResults is 1 to 1000 (model: ListQueues); with none a call returns up
+	// to the most a page can hold, and no token.
+	limit, paged, aerr := req.p.intParam("MaxResults", 1, maxListQueues)
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -110,6 +110,11 @@ func hListQueues(s *store, req *request) (any, *apiError) {
 		// the claims table; InvalidParameterValue is the code every action can
 		// raise for an argument it will not take.
 		return nil, errInvalid("Value for parameter NextToken is invalid. Reason: the token is not one this listing issued.")
+	}
+	// model: "You must set MaxResults to receive a value for NextToken in the
+	// response." Without it a call returns up to 1,000 and says no more.
+	if !paged {
+		next = ""
 	}
 	urls := make([]string, 0, len(page))
 	for _, n := range page {
@@ -158,14 +163,17 @@ func hSendMessage(s *store, req *request) (any, *apiError) {
 	} else if present {
 		delay = n
 	}
+	sys, aerr := req.p.systemAttrs()
+	if aerr != nil {
+		return nil, aerr
+	}
 	m, err := s.Send(targetQueue(req), req.p.str("MessageBody"), req.p.messageAttrs(),
-		delay, req.p.str("MessageGroupId"), req.p.str("MessageDeduplicationId"),
-		req.p.systemAttrs())
+		delay, req.p.str("MessageGroupId"), req.p.str("MessageDeduplicationId"), sys)
 	if err != nil {
 		return nil, asAPIError(err)
 	}
 	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs,
-		MD5OfSysAttrs: md5SystemAttributes(m.SysAttrs), SequenceNumber: sequenceNumber(m)}, nil
+		MD5OfSysAttrs: md5SystemAttributes(m.SysAttrs), SequenceNumber: sequenceNumber(m, isFIFOName(targetQueue(req)))}, nil
 }
 
 func hSendMessageBatch(s *store, req *request) (any, *apiError) {
@@ -191,7 +199,10 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
-		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID, SysAttrs: e.SysAttrs}
+		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID, SysAttrs: e.SysAttrs, Invalid: e.Invalid}
+		if e.Invalid != nil {
+			continue
+		}
 		if e.Delay != nil {
 			// An entry's own number is judged as its own failure.
 			if *e.Delay < 0 || *e.Delay > maxDelaySeconds {
@@ -219,7 +230,7 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 		}
 		res.Successful = append(res.Successful, sendBatchOK{
 			ID: e.ID, MessageID: r.Msg.ID, MD5OfBody: r.Msg.MD5Body, MD5OfAttrs: r.Msg.MD5Attrs,
-			MD5OfSysAttrs: md5SystemAttributes(r.Msg.SysAttrs), SequenceNumber: sequenceNumber(r.Msg),
+			MD5OfSysAttrs: md5SystemAttributes(r.Msg.SysAttrs), SequenceNumber: sequenceNumber(r.Msg, isFIFOName(queue)),
 		})
 	}
 	return res, nil
@@ -274,7 +285,7 @@ func hReceiveMessage(s *store, req *request) (any, *apiError) {
 	var res receiveResult
 	for _, m := range msgs {
 		mv := msgView{MessageID: m.ID, ReceiptHandle: m.Handle(), MD5OfBody: m.MD5Body, Body: m.Body}
-		if sa := systemAttrs(m, attrNames); len(sa) > 0 {
+		if sa := systemAttrs(m, attrNames, isFIFOName(queue)); len(sa) > 0 {
 			mv.Attributes = sa
 		}
 		if ma := filterAttrs(m.Attrs, maNames); len(ma) > 0 {
@@ -303,7 +314,7 @@ func hDozePeek(s *store, req *request) (any, *apiError) {
 	var res receiveResult
 	for _, m := range msgs {
 		mv := msgView{MessageID: m.ID, ReceiptHandle: m.Handle(), MD5OfBody: m.MD5Body, Body: m.Body}
-		if sa := systemAttrs(m, attrNames); len(sa) > 0 {
+		if sa := systemAttrs(m, attrNames, isFIFOName(queue)); len(sa) > 0 {
 			mv.Attributes = sa
 		}
 		if ma := filterAttrs(m.Attrs, maNames); len(ma) > 0 {
@@ -397,7 +408,7 @@ func hPurgeQueue(s *store, req *request) (any, *apiError) {
 }
 
 // systemAttrs builds the requested message system attributes.
-func systemAttrs(m message, names []string) kvAttrs {
+func systemAttrs(m message, names []string, fifo bool) kvAttrs {
 	if len(names) == 0 {
 		return nil
 	}
@@ -419,7 +430,7 @@ func systemAttrs(m message, names []string) kvAttrs {
 	if m.GroupID != "" {
 		add("MessageGroupId", m.GroupID)
 	}
-	if seq := sequenceNumber(&m); seq != "" {
+	if seq := sequenceNumber(&m, fifo); seq != "" {
 		add("SequenceNumber", seq)
 	}
 	if m.DedupID != "" {
@@ -445,8 +456,10 @@ func systemAttrs(m message, names []string) kvAttrs {
 // ReceiveMessage repeats it: twenty digits, increasing within the queue. A
 // standard queue's messages have none. It was missing altogether, so a FIFO
 // send came back without the one field that says the queue is FIFO.
-func sequenceNumber(m *message) string {
-	if m.GroupID == "" {
+func sequenceNumber(m *message, fifo bool) string {
+	// model: "This parameter applies only to FIFO (first-in-first-out) queues."
+	// A group id does not make a queue FIFO: a standard queue takes one too.
+	if !fifo || m.GroupID == "" {
 		return ""
 	}
 	return fmt.Sprintf("%020d", uint64(10_000_000_000_000_000_000)+m.Seq)

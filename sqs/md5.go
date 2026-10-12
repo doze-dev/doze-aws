@@ -14,6 +14,22 @@ import (
 // on which instance minted it, and the store is what carries that.
 func (s *store) queueARN(name string) string { return s.id.ARN("sqs", name) }
 
+// isFIFOName reports whether a queue of this name is FIFO. The suffix is the
+// type: CreateQueue refuses a FIFO queue without it and a standard one with it.
+func isFIFOName(name string) bool { return strings.HasSuffix(name, ".fifo") }
+
+// ownQueue is the name of the queue an ARN names, when the ARN is one this
+// instance mints: SQS, this Region, this account. Reading only the last
+// segment made arn:aws:sqs:us-east-1:999999999999:orders, and
+// arn:aws:sns:...:orders, the queue called orders here.
+func (s *store) ownQueue(arn string) (string, bool) {
+	prefix := s.queueARN("")
+	if !strings.HasPrefix(arn, prefix) || len(arn) == len(prefix) {
+		return "", false
+	}
+	return arn[len(prefix):], true
+}
+
 // encodeHandle builds an opaque receipt handle from the message's sequence key
 // (8 bytes), its unique id and the number of times it has been received.
 //

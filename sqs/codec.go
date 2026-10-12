@@ -216,6 +216,8 @@ type sendEntry struct {
 	DedupID  string
 	Attrs    map[string]attr
 	SysAttrs map[string]string
+	// Invalid is a refusal of this entry alone, decided while reading it.
+	Invalid *apiError
 }
 
 // delEntry is one DeleteMessageBatch entry.
@@ -234,13 +236,13 @@ func (p params) sendBatchEntries() []sendEntry {
 				break
 			}
 			e := sendEntry{
-				ID:       id,
-				Body:     p.form.Get(base + "MessageBody"),
-				GroupID:  p.form.Get(base + "MessageGroupId"),
-				DedupID:  p.form.Get(base + "MessageDeduplicationId"),
-				Attrs:    fromQueryAttrs(awsquery.MessageAttrs(p.form, base+"MessageAttribute")),
-				SysAttrs: querySystemAttrs(p.form, base+"MessageSystemAttribute"),
+				ID:      id,
+				Body:    p.form.Get(base + "MessageBody"),
+				GroupID: p.form.Get(base + "MessageGroupId"),
+				DedupID: p.form.Get(base + "MessageDeduplicationId"),
+				Attrs:   fromQueryAttrs(awsquery.MessageAttrs(p.form, base+"MessageAttribute")),
 			}
+			e.SysAttrs, e.Invalid = querySystemAttrs(p.form, base+"MessageSystemAttribute")
 			if d := p.form.Get(base + "DelaySeconds"); d != "" {
 				if n, err := strconv.Atoi(d); err == nil {
 					e.Delay = &n
@@ -263,9 +265,10 @@ func (p params) sendBatchEntries() []sendEntry {
 		_ = json.Unmarshal(raw, &entries)
 	}
 	for _, e := range entries {
+		sys, bad := jsonSystemAttrs(e.SysAttrs)
 		out = append(out, sendEntry{
 			ID: e.ID, Body: e.Body, Delay: e.Delay, GroupID: e.GroupID, DedupID: e.DedupID,
-			Attrs: jsonMessageAttrs(e.MessageAttrs), SysAttrs: jsonSystemAttrs(e.SysAttrs),
+			Attrs: jsonMessageAttrs(e.MessageAttrs), SysAttrs: sys, Invalid: bad,
 		})
 	}
 	return out
@@ -434,21 +437,23 @@ func errorSenderClass(status int) string {
 func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
 	e := *err
 	e.SenderFault = err.Status < 500
-	if isJSON {
-		// Query-compatible services carry the legacy code in this header while
-		// __type holds the modern shape name.
-		w.Header().Set("x-amzn-query-error", err.Code+";"+errorSenderClass(err.Status))
-		e.Code = jsonErrorType(err.Code)
-		japi.WriteError(w, &e)
-		return
-	}
-	// The model gives these a 404 on the Query protocol (awsQueryError); the
-	// JSON protocol answers 400 for all of them.
+	// The status is the error shape's own, on both wires: the model gives
+	// these shapes httpError 404 and 403, and awsQueryError says the same for
+	// the Query protocol. The JSON wire answered 400 for all of them on the
+	// strength of a recollection; the model is what is on disk.
 	switch e.Code {
 	case "ReceiptHandleIsInvalid", "ResourceNotFoundException", "InvalidAddress":
 		e.Status = 404
-	case "AWS.SimpleQueueService.PurgeQueueInProgress":
+	case "AWS.SimpleQueueService.PurgeQueueInProgress", "OverLimit":
 		e.Status = 403
+	}
+	if isJSON {
+		// Query-compatible services carry the legacy code in this header while
+		// __type holds the modern shape name.
+		w.Header().Set("x-amzn-query-error", err.Code+";"+errorSenderClass(e.Status))
+		e.Code = jsonErrorType(err.Code)
+		japi.WriteError(w, &e)
+		return
 	}
 	qapi.WriteError(w, &e)
 }
@@ -512,39 +517,35 @@ func (p params) tagKeys() []string {
 // would refuse means code that works here fails on deploy. The values live
 // apart from user attributes because SQS excludes them from
 // MD5OfMessageAttributes and returns them with SentTimestamp and friends.
-func (p params) systemAttrs() map[string]string {
-	out := map[string]string{}
+func (p params) systemAttrs() (map[string]string, *apiError) {
 	// Query protocol, in either spelling of a map: MessageSystemAttribute.N.Name
 	// (flattened, which the model's xmlFlattened asks for) and
 	// MessageSystemAttribute.entry.N.Name.
 	if p.form != nil {
-		for k, v := range querySystemAttrs(p.form, "MessageSystemAttribute") {
-			out[k] = v
-		}
+		return querySystemAttrs(p.form, "MessageSystemAttribute")
 	}
 	// JSON protocol: {"MessageSystemAttributes":{"AWSTraceHeader":{"StringValue":..}}}
-	if raw, ok := p.obj["MessageSystemAttributes"]; ok {
-		var m map[string]struct {
-			StringValue string `json:"StringValue"`
-		}
-		if json.Unmarshal(raw, &m) == nil {
-			for k, v := range m {
-				if k == sysAttrTraceHeader && v.StringValue != "" {
-					out[k] = v.StringValue
-				}
-			}
-		}
+	return jsonSystemAttrs(p.obj["MessageSystemAttributes"])
+}
+
+// checkSystemAttr holds a message system attribute to what the model allows:
+// "the only supported message system attribute is AWSTraceHeader. Its type must
+// be String". Any other name, and any other type, used to be dropped without a
+// word, so a typo sent a message with no trace on it and answered 200.
+func checkSystemAttr(name, dataType string) *apiError {
+	if name != sysAttrTraceHeader {
+		return errInvalid("Message system attribute name '" + name + "' is invalid. The only supported message system attribute is " + sysAttrTraceHeader + ".")
 	}
-	if len(out) == 0 {
-		return nil
+	if dataType != "String" {
+		return errInvalid("Message system attribute " + sysAttrTraceHeader + " must have the data type String, not '" + dataType + "'.")
 	}
-	return out
+	return nil
 }
 
 // querySystemAttrs reads the AWSTraceHeader out of a Query request's system
 // attribute list under prefix, in either spelling of a map.
-func querySystemAttrs(form url.Values, prefix string) map[string]string {
-	out := map[string]string{}
+func querySystemAttrs(form url.Values, prefix string) (map[string]string, *apiError) {
+	var out map[string]string
 	for _, spelling := range []string{prefix + ".%d.", prefix + ".entry.%d."} {
 		for i := 1; ; i++ {
 			base := fmt.Sprintf(spelling, i)
@@ -552,33 +553,56 @@ func querySystemAttrs(form url.Values, prefix string) map[string]string {
 			if name == "" {
 				break
 			}
-			if v := form.Get(base + "Value.StringValue"); name == sysAttrTraceHeader && v != "" {
+			if aerr := checkSystemAttr(name, form.Get(base+"Value.DataType")); aerr != nil {
+				return nil, aerr
+			}
+			if v := form.Get(base + "Value.StringValue"); v != "" {
+				if out == nil {
+					out = map[string]string{}
+				}
 				out[name] = v
 			}
 		}
 	}
-	return out
+	return out, nil
 }
 
 // jsonSystemAttrs reads the AWSTraceHeader out of a JSON MessageSystemAttributes
 // member.
-func jsonSystemAttrs(raw json.RawMessage) map[string]string {
+func jsonSystemAttrs(raw json.RawMessage) (map[string]string, *apiError) {
 	if len(raw) == 0 {
-		return nil
+		return nil, nil
 	}
 	var m map[string]struct {
+		DataType    string `json:"DataType"`
 		StringValue string `json:"StringValue"`
 	}
 	if json.Unmarshal(raw, &m) != nil {
-		return nil
+		return nil, nil
 	}
-	out := map[string]string{}
+	var out map[string]string
 	for k, v := range m {
-		if k == sysAttrTraceHeader && v.StringValue != "" {
+		if aerr := checkSystemAttr(k, v.DataType); aerr != nil {
+			return nil, aerr
+		}
+		if v.StringValue != "" {
+			if out == nil {
+				out = map[string]string{}
+			}
 			out[k] = v.StringValue
 		}
 	}
-	return out
+	return out, nil
+}
+
+// hasFormPrefix reports whether a Query request carries any key under prefix.
+func (p params) hasFormPrefix(prefix string) bool {
+	for k := range p.form {
+		if strings.HasPrefix(k, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // sysAttrTraceHeader is the one message system attribute AWS defines.

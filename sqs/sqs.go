@@ -140,15 +140,36 @@ func (s *Server) checkOwner(req *request) *apiError {
 		return errQueueMissing(req.p.str("QueueName"))
 	}
 	if u := req.p.str("QueueUrl"); u != "" {
-		trim := strings.TrimRight(u, "/")
-		parts := strings.Split(trim, "/")
-		if n := len(parts); n >= 2 {
-			if acct := parts[n-2]; len(acct) == 12 && strings.Trim(acct, "0123456789") == "" && acct != own {
-				return errQueueMissing(parts[n-1])
+		// The path is /<account>/<name>, or /<name> alone, which is how a
+		// sibling service in this process spells it (peercall names no
+		// account). Anything with more to it, or another account, is not a
+		// queue here; reading only the last two segments served
+		// /999999999999/extra/orders as orders.
+		path := u
+		if i := strings.Index(path, "://"); i >= 0 {
+			path = path[i+3:]
+			if j := strings.Index(path, "/"); j >= 0 {
+				path = path[j:]
+			} else {
+				path = ""
 			}
+		}
+		parts := strings.Split(strings.Trim(path, "/"), "/")
+		switch {
+		case len(parts) == 1:
+		case len(parts) == 2 && parts[0] == own:
+		default:
+			return errQueueMissing(parts[len(parts)-1])
 		}
 	}
 	return nil
+}
+
+// batchEntryPrefix is the Query-protocol name of each batch operation's entries.
+var batchEntryPrefix = map[string]string{
+	"SendMessageBatch":             "SendMessageBatchRequestEntry",
+	"DeleteMessageBatch":           "DeleteMessageBatchRequestEntry",
+	"ChangeMessageVisibilityBatch": "ChangeMessageVisibilityBatchRequestEntry",
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +190,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	code := modelcheck.CodeQuery
 	if req.json {
 		code = modelcheck.CodeJSON
+	}
+	// A batch with no entries is EmptyBatchRequest (model: the batch
+	// operations' errors). The Query protocol cannot spell an empty list, so
+	// there it is a batch with no entry keys at all, which the required-member
+	// check below would otherwise name a ValidationError.
+	if prefix := batchEntryPrefix[req.action]; prefix != "" && !req.json && !req.p.hasFormPrefix(prefix+".") {
+		writeError(w, false, errBatch("EmptyBatchRequest", "There should be at least one "+prefix+" in the request."))
+		return
 	}
 	if aerr := modelcheck.ValidateMapAs(req.p.asMap(), constraintTables[req.action], code); aerr != nil {
 		writeError(w, req.json, &apiError{
