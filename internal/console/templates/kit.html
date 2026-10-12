@@ -47,11 +47,11 @@
      dict: Prefix, Svc (the console's service key), Resource (the name the wire
      records for it), Noun ("queue"). */}}
 {{define "res_wire"}}
-<div id="res-wire" class="res-wire" hx-get="{{.Prefix}}/traffic/for?svc={{.Svc}}&res={{.Resource}}&noun={{.Noun}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="outerHTML"></div>
+<div id="res-wire" class="res-wire" hx-get="{{.Prefix}}/traffic/for?svc={{urlquery .Svc}}&res={{urlquery .Resource}}&noun={{urlquery .Noun}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="outerHTML"></div>
 {{end}}
 
 {{define "res_wire_rows"}}
-<div id="res-wire" class="res-wire" data-live="{{.Prefix}}/traffic/for?svc={{.Svc}}&res={{.Resource}}&noun={{.Noun}}" data-hash="{{.Hash}}">
+<div id="res-wire" class="res-wire" data-live="{{.Prefix}}/traffic/for?svc={{urlquery .Svc}}&res={{urlquery .Resource}}&noun={{urlquery .Noun}}" data-hash="{{.Hash}}">
   <div class="rw-h"><span class="rw-t">On the wire</span><span class="dim">calls your app made to this {{.Noun}}, newest first</span><a class="rw-all" href="{{.Prefix}}/traffic">The wire &rarr;</a></div>
   {{if not .Enabled}}<p class="mini-note">Traffic capture is off for this instance.</p>
   {{else if .Rows}}

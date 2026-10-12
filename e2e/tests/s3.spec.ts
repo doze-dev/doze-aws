@@ -139,6 +139,56 @@ test.describe('object drawer', () => {
   });
 });
 
+test.describe('a key with URL characters in it', () => {
+  // A key is any UTF-8, and the inspector, the folder link and the delete
+  // button each write it into a URL or into hx-vals. Written bare, a "+"
+  // arrived as a space, a "#" cut the request short, a "&" began another
+  // parameter and a quote ended the JSON: the inspector answered 400 and the
+  // delete sent nothing.
+  test('opens in the inspector, downloads, and deletes', async ({ page, request, uniqueName, confirmDialog }) => {
+    const bucket = uniqueName('e2e-s3-keychars');
+    await createBucket(request, bucket);
+    const key = 'a+b #c&d=e?f%g"h.txt';
+    const folder = 'dir +x&y#z/';
+    for (const k of [key, folder + key]) {
+      const put = await request.put(`${ORIGIN}/${bucket}/${k.split('/').map(encodeURIComponent).join('/')}`, {
+        data: `body of ${k}`,
+      });
+      expect(put.ok(), `PutObject ${k}`).toBeTruthy();
+    }
+
+    const failed: string[] = [];
+    page.on('response', (r) => {
+      if (r.status() >= 400 && r.url().includes('/_console/s3/')) failed.push(`${r.status()} ${r.url()}`);
+    });
+
+    await page.goto(`s3/${bucket}`);
+    await openDrawer(page, key);
+    await expect(page.locator('#drawer-inner .meta-list .meta-row', { hasText: 'Size' }).locator('.v')).toContainText('B');
+    // The download link names this key and no other.
+    const href = await page.locator('#drawer-inner a', { hasText: 'Download' }).getAttribute('href');
+    const got = await request.get(new URL(href!, ORIGIN).toString());
+    expect(await got.text()).toBe(`body of ${key}`);
+
+    // Into the folder, whose name has the same characters, and the key under it.
+    await page.goto(`s3/${bucket}`);
+    await page.locator('tr.folder a').click();
+    await expect(page.locator('#object-table nav.bc')).toContainText('dir +x&y#z');
+    await openDrawer(page, key);
+    await expect(page.locator('#drawer-inner')).toContainText(`s3://${bucket}/${folder}${key}`);
+
+    // Delete from the row: hx-vals carries the key as JSON, quote and all.
+    await page.goto(`s3/${bucket}`);
+    await page.locator('tr', { hasText: key }).getByTitle('Delete').click();
+    await confirmDialog('accept');
+    await expect(page.locator('#object-table .cell-name.link')).toHaveCount(0);
+    const gone = await request.get(`${ORIGIN}/${bucket}/${encodeURIComponent(key)}`);
+    expect(gone.status()).toBe(404);
+
+    expect(failed, 'no request the page made was refused').toEqual([]);
+  });
+});
+
 test.describe('presign / share link', () => {
   test('generates a URL that actually serves the uploaded content', async ({
     page,

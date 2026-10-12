@@ -9,17 +9,17 @@
 {{define "sfn_versions_tab"}}
 <div class="panel">
   <div class="panel-h"><h2>{{icon "git-branch"}} Versions <span class="badge">{{len .Versions}}</span></h2><span class="dim">revision {{.Machine.Revision}} is what Publish freezes</span></div>
-  <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/{{.Name}}/publish" hx-indicator="#publish-spin">
+  <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/publish" hx-indicator="#publish-spin">
     <input class="input" name="description" placeholder="Description — optional, kept on the version" maxlength="256" autocomplete="off">
     <span id="publish-spin" class="dim htmx-indicator">Working…</span>
     <button class="btn btn-sm" type="submit">{{icon "plus"}} Publish version</button>
   </form>
   {{if .Versions}}<table class="tbl"><thead><tr><th class="right">Version</th><th>Description</th><th>Created</th><th class="right"></th></tr></thead><tbody>{{range .Versions}}
     <tr>
-      <td class="right mono"><button type="button" class="link-btn" hx-get="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}" hx-target="#sfn-version-out" hx-select="" hx-swap="innerHTML" title="{{.ARN}}">v{{.Number}}</button></td>
+      <td class="right mono"><button type="button" class="link-btn" hx-get="{{$.Prefix}}/sfn/{{pathesc $.Name}}/version/{{pathesc .Number}}" hx-target="#sfn-version-out" hx-select="" hx-swap="innerHTML" title="{{.ARN}}">v{{.Number}}</button></td>
       <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
       <td class="dim" title="{{zoned .Created}}">{{ago .Created}}</td>
-      <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}" title="Delete version {{.Number}}">{{icon "trash"}}</button></td>
+      <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Name}}/version/{{pathesc .Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}" title="Delete version {{.Number}}">{{icon "trash"}}</button></td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No versions yet — Publish freezes the definition as it stands, so an alias can point at it while you keep editing.</p></div>{{end}}
 </div>
@@ -35,7 +35,7 @@
         {{/* The inline edit: the same two rows the create form has, posted
              to Update. Description is left out on purpose — the model
              treats an absent description as "keep it". */}}
-        <form x-show="edit" x-cloak class="sfn-routes" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/update">
+        <form x-show="edit" x-cloak class="sfn-routes" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Name}}/alias/{{pathesc .Name}}/update">
           {{range $i, $r := .Routing}}
           <span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v{{add $i 1}}" value="{{$r.Version}}" size="3" inputmode="numeric" required><input class="input mono" name="w{{add $i 1}}" value="{{$r.Weight}}" size="3" inputmode="numeric"><span class="dim">%</span></span>
           {{end}}
@@ -48,7 +48,7 @@
       <td class="dim" title="{{zoned .Updated}}">{{ago .Updated}}</td>
       <td class="right">
         <button type="button" class="icon-btn" @click="edit=!edit" title="Edit routing" aria-label="Edit routing of {{.Name}}">{{icon "pencil"}}</button>
-        <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}" title="Delete alias {{.Name}}">{{icon "trash"}}</button>
+        <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Name}}/alias/{{pathesc .Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}" title="Delete alias {{.Name}}">{{icon "trash"}}</button>
       </td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No aliases. An alias is a name — PROD, canary — that StartExecution accepts in place of the machine and that routes to one or two versions by weight.</p></div>{{end}}
@@ -56,7 +56,7 @@
 
 <div class="panel" x-data="{two:false}">
   <div class="panel-h"><h2>{{icon "plus"}} Create alias</h2><span class="dim">{{if .Versions}}one version, or two with weights summing to 100{{else}}publish a version first — an alias has to point at one{{end}}</span></div>
-  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/alias/create" hx-indicator="#alias-spin">
+  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/alias/create" hx-indicator="#alias-spin">
     <div class="field"><label>Name <span class="dim">not a number — that would read as a version</span></label><input class="input mono" name="name" placeholder="PROD" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
     <div class="field stack"><label>Description <span class="dim">optional</span></label><input class="input" name="description" maxlength="256" autocomplete="off"></div>
     <div class="field stack"><label>Routing</label>
@@ -113,7 +113,7 @@
 {{define "sfn_test_panel"}}
 <div class="panel" x-data="{mock:'none'}">
   <div class="panel-h"><h2>{{icon "play"}} Test a state</h2><span class="dim">runs one state of the definition above — as edited, saved or not</span></div>
-  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/test-state" hx-include="#sfn-def-editor" hx-target="#sfn-test-out" hx-select="" hx-swap="innerHTML" hx-indicator="#test-spin" data-err-slot="#sfn-test-out">
+  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/test-state" hx-include="#sfn-def-editor" hx-target="#sfn-test-out" hx-select="" hx-swap="innerHTML" hx-indicator="#test-spin" data-err-slot="#sfn-test-out">
     <div class="sfn-inline">
       <div class="field"><label>State</label><select class="input mono" name="state" required>{{range .StateNames}}<option value="{{.}}">{{.}}</option>{{end}}</select></div>
       <div class="field"><label>Inspection <span class="dim">DEBUG adds the path pipeline, TRACE the request too</span></label><select class="input" name="level"><option value="INFO">INFO</option><option value="DEBUG">DEBUG</option><option value="TRACE">TRACE</option></select></div>
@@ -171,25 +171,25 @@
       <td class="right num">{{.Counts.Total}}</td>
     </tr></tbody></table>
   <div class="form-b sfn-inline">
-    <form class="sfn-inline" hx-post="{{$.Prefix}}/sfn/{{$.Machine}}/execution/{{$.Name}}/maprun" hx-target="#sfn-history" hx-select="" hx-swap="outerHTML">
+    <form class="sfn-inline" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Machine}}/execution/{{pathesc $.Name}}/maprun" hx-target="#sfn-history" hx-select="" hx-swap="outerHTML">
       <input type="hidden" name="arn" value="{{.ARN}}">
       <label class="dim">Max concurrency <span title="0 means unlimited">(0 = unlimited)</span></label>
       <input class="input mono" name="max" value="{{.MaxConcurrency}}" size="4" inputmode="numeric" required>
       <button class="btn btn-outline btn-sm" type="submit"{{if ne .Status "RUNNING"}} disabled title="The run has finished"{{end}}>Set concurrency</button>
     </form>
     <span class="dim">tolerates {{.TolCount}} failures / {{.TolPct}}%{{if .RedriveCount}} · redriven {{.RedriveCount}}×{{end}}</span>
-    <button type="button" class="btn btn-outline btn-sm" hx-get="{{$.Prefix}}/sfn/{{$.Machine}}/execution/{{$.Name}}/maprun-children?arn={{.ARN}}" hx-target="#sfn-map-children" hx-select="" hx-swap="innerHTML">{{icon "list"}} Child executions</button>
+    <button type="button" class="btn btn-outline btn-sm" hx-get="{{$.Prefix}}/sfn/{{pathesc $.Machine}}/execution/{{pathesc $.Name}}/maprun-children?arn={{urlquery .ARN}}" hx-target="#sfn-map-children" hx-select="" hx-swap="innerHTML">{{icon "list"}} Child executions</button>
   </div>
 </div>
 {{end}}
 {{end}}
 
 {{define "sfn_map_children"}}
-<div class="panel" id="sfn-map-children-live" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/maprun-children?arn={{.ARN}}" data-live-ms="1500" data-hash="{{.Hash}}"{{if not .Running}} data-live-paused="1"{{end}}>
+<div class="panel" id="sfn-map-children-live" data-live="{{.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}/maprun-children?arn={{urlquery .ARN}}" data-live-ms="1500" data-hash="{{.Hash}}"{{if not .Running}} data-live-paused="1"{{end}}>
   <div class="panel-h"><h2>{{icon "list"}} Child executions{{with .Label}} <span class="mono">{{.}}</span>{{end}} <span class="badge">{{len .Execs}}</span></h2><span class="dim">one per item — listed through the Map Run, never through the machine{{if .Running}} · refreshing while children run{{end}}</span></div>
   {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
     <tr>
-      <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
+      <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}">{{icon "route"}} {{.Name}}</a></td>
       <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
       <td class="dim" title="{{zoned .Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
       <td class="right">{{template "sfn_status" .Status}}</td>
@@ -225,9 +225,9 @@
             <td>{{template "copychip" dict "Label" "" "Value" .ARN}}</td>
             <td class="dim" title="{{zoned .Created}}">{{ago .Created}}</td>
             <td class="right">
-              <button type="button" class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/take" hx-target="#sfn-task-out" hx-select="" hx-swap="innerHTML" hx-indicator="#take-spin-{{slug .Name}}" data-err-slot="#sfn-task-out">{{icon "download"}} Take a task</button>
+              <button type="button" class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/sfn/activities/{{pathesc .Name}}/take" hx-target="#sfn-task-out" hx-select="" hx-swap="innerHTML" hx-indicator="#take-spin-{{slug .Name}}" data-err-slot="#sfn-task-out">{{icon "download"}} Take a task</button>
               <span id="take-spin-{{slug .Name}}" class="dim htmx-indicator">polling…</span>
-              <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/delete" hx-confirm="Delete activity “{{.Name}}”? A Task state naming it will fail to schedule." aria-label="Delete activity {{.Name}}" title="Delete activity {{.Name}}">{{icon "trash"}}</button>
+              <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/activities/{{pathesc .Name}}/delete" hx-confirm="Delete activity “{{.Name}}”? A Task state naming it will fail to schedule." aria-label="Delete activity {{.Name}}" title="Delete activity {{.Name}}">{{icon "trash"}}</button>
             </td>
           </tr>
         {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No activities. Create one, then name its ARN as a Task's Resource — the execution parks there until a worker answers.</p></div>{{end}}

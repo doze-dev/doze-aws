@@ -39,7 +39,7 @@ func (c *Console) sfnCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name, "State machine “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name), "State machine “"+name+"” created")
 }
 
 // sfnValidate is the create form's live check: the analyser's diagnostics,
@@ -68,7 +68,7 @@ func (c *Console) sfnUpdateDefinition(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=definition", "Definition updated — running executions keep the one they started with")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=definition", "Definition updated — running executions keep the one they started with")
 }
 
 func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 		}
 	case "logs":
 		if sm.LogGroup != "" {
-			data["Tail"] = c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+name+"/logs")
+			data["Tail"] = c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+seg(name)+"/logs")
 		}
 	}
 	c.render(w, r, "sfn_machine", data)
@@ -114,7 +114,7 @@ func (c *Console) sfnLogs(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, fmt.Errorf("state machine %s does not log to a group", name))
 		return
 	}
-	data := c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+name+"/logs")
+	data := c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+seg(name)+"/logs")
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}
@@ -161,10 +161,10 @@ func (c *Console) sfnStart(w http.ResponseWriter, r *http.Request) {
 		// An Express execution's ARN says :express:, and there is no record
 		// behind it to visit — AWS keeps none either. The Start tab offers
 		// the synchronous run for exactly this reason.
-		c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=start", "Express execution started — its history is in the Logs tab; run it synchronously to see the result here")
+		c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=start", "Express execution started — its history is in the Logs tab; run it synchronously to see the result here")
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"/execution/"+exec, "Execution “"+exec+"” started")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"/execution/"+seg(exec), "Execution “"+exec+"” started")
 }
 
 // parseExecutionARN splits arn:aws:states:<r>:<a>:execution:<machine>:<name>.
@@ -241,7 +241,7 @@ func (c *Console) sfnStop(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+machine+"/execution/"+name, "Execution stopped")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(machine)+"/execution/"+seg(name), "Execution stopped")
 }
 
 // sfnTaskResult redeems a task token by hand. A state parked on

@@ -30,7 +30,7 @@ func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sns/"+name, "Topic “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/sns/"+seg(name), "Topic “"+name+"” created")
 }
 
 func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +305,7 @@ func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Attribute “"+name+"” stored")
+	c.redirect(w, r, c.prefix+"/sns/"+seg(topic)+"?tab=details", "Attribute “"+name+"” stored")
 }
 
 // snsAddPermission / snsRemovePermission write the topic's access policy.
@@ -330,7 +330,7 @@ func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Permission “"+label+"” added")
+	c.redirect(w, r, c.prefix+"/sns/"+seg(topic)+"?tab=details", "Permission “"+label+"” added")
 }
 
 func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
@@ -339,7 +339,7 @@ func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Permission removed")
+	c.redirect(w, r, c.prefix+"/sns/"+seg(topic)+"?tab=details", "Permission removed")
 }
 
 // snsDataProtection stores the data protection policy. C-tier and worth saying
@@ -351,5 +351,5 @@ func (c *Console) snsDataProtection(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Data protection policy stored")
+	c.redirect(w, r, c.prefix+"/sns/"+seg(topic)+"?tab=details", "Data protection policy stored")
 }

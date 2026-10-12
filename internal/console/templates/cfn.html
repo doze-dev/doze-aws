@@ -1,7 +1,7 @@
 {{define "cfn_lp"}}
 {{template "lp_head" dict "Svc" "cfn" "Prefix" .Prefix "Label" "CloudFormation" "Count" (len .List) "NewURL" (printf "%s/cfn/create" .Prefix)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{pathesc .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}{{if .Parent}} <span class="badge type">nested under {{.Parent}}</span>{{end}}</span>
     <span class="sb">{{if .Failed}}{{icon "alert"}}{{else}}{{len .Outputs}}{{end}}</span>
   </a>
@@ -26,10 +26,10 @@
         <tr>
           <td class="mono sub">{{.Name}}</td>
           <td class="mono sub trunc" style="max-width:260px">{{.Value}}</td>
-          <td class="sub"><a href="{{$.Prefix}}/cfn/{{.Stack}}">{{.Stack}}</a></td>
+          <td class="sub"><a href="{{$.Prefix}}/cfn/{{pathesc .Stack}}">{{.Stack}}</a></td>
           {{/* The importer list is the blast radius: who breaks if this value
                changes. Its absence is as useful as its presence. */}}
-          <td class="sub">{{if .Importers}}{{range .Importers}}<a class="badge type" href="{{$.Prefix}}/cfn/{{.}}">{{.}}</a> {{end}}{{else}}<span class="dim">nothing &mdash; safe to change</span>{{end}}</td>
+          <td class="sub">{{if .Importers}}{{range .Importers}}<a class="badge type" href="{{$.Prefix}}/cfn/{{pathesc .}}">{{.}}</a> {{end}}{{else}}<span class="dim">nothing &mdash; safe to change</span>{{end}}</td>
         </tr>
       {{end}}
       </tbody>
@@ -53,8 +53,8 @@
     <div class="det-h">
       <div class="det-title" role="heading" aria-level="1">{{awsIcon "cfn"}} {{.Stack.Name}}
         <div class="acts">
-          <a class="btn" href="{{.Prefix}}/cfn/{{.Stack.Name}}?tab=update">{{icon "pencil"}} Update</a>
-          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/delete"
+          <a class="btn" href="{{.Prefix}}/cfn/{{pathesc .Stack.Name}}?tab=update">{{icon "pencil"}} Update</a>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cfn/{{pathesc .Stack.Name}}/delete"
                   hx-confirm="Delete stack “{{.Stack.Name}}”? Everything it created goes with it.">{{icon "trash"}} Delete</button>
         </div>
       </div>
@@ -67,10 +67,10 @@
       </div>
       {{if .Stack.StatusReason}}<p class="mini-note" style="margin-top:6px">{{.Stack.StatusReason}}</p>{{end}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "resources" "Label" "Resources" "Icon" "list" "URL" (printf "%s/cfn/%s" .Prefix .Stack.Name))
-        (dict "Key" "events" "Label" "Events" "Icon" "activity" "URL" (printf "%s/cfn/%s?tab=events" .Prefix .Stack.Name))
-        (dict "Key" "template" "Label" "Template" "Icon" "braces" "URL" (printf "%s/cfn/%s?tab=template" .Prefix .Stack.Name))
-        (dict "Key" "changesets" "Label" "Change sets" "Icon" "git-branch" "URL" (printf "%s/cfn/%s?tab=changesets" .Prefix .Stack.Name)))}}
+        (dict "Key" "resources" "Label" "Resources" "Icon" "list" "URL" (printf "%s/cfn/%s" .Prefix (pathesc .Stack.Name)))
+        (dict "Key" "events" "Label" "Events" "Icon" "activity" "URL" (printf "%s/cfn/%s?tab=events" .Prefix (pathesc .Stack.Name)))
+        (dict "Key" "template" "Label" "Template" "Icon" "braces" "URL" (printf "%s/cfn/%s?tab=template" .Prefix (pathesc .Stack.Name)))
+        (dict "Key" "changesets" "Label" "Change sets" "Icon" "git-branch" "URL" (printf "%s/cfn/%s?tab=changesets" .Prefix (pathesc .Stack.Name))))}}
     </div>
 
     <div class="det-b">
@@ -106,13 +106,13 @@
           <tbody>
           {{range .ChangeSets}}
             <tr>
-              <td class="mono sub"><a href="{{$.Prefix}}/cfn/{{$.Stack.Name}}?tab=changesets&cs={{.Name}}">{{.Name}}</a></td>
+              <td class="mono sub"><a href="{{$.Prefix}}/cfn/{{pathesc $.Stack.Name}}?tab=changesets&cs={{urlquery .Name}}">{{.Name}}</a></td>
               <td><span class="chip {{if eq .Status "FAILED"}}bad{{end}}">{{.Status}}</span></td>
               <td><span class="chip">{{.ExecutionStatus}}</span></td>
               <td class="dim sub mono"><time title="{{zoned .Created}}">{{.Created}}</time></td>
               <td><div class="cs-acts">
-                {{if .Executable}}<button class="btn btn-sm" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/execute" hx-confirm="Execute change set “{{.Name}}”? The reviewed template deploys.">{{icon "zap"}} Execute</button>{{end}}
-                <button class="icon-btn sm danger" title="Delete change set {{.Name}}" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/delete" hx-confirm="Delete change set “{{.Name}}”? The diff is discarded; the stack is untouched.">{{icon "trash"}}</button>
+                {{if .Executable}}<button class="btn btn-sm" hx-post="{{$.Prefix}}/cfn/{{pathesc $.Stack.Name}}/changeset/{{pathesc .Name}}/execute" hx-confirm="Execute change set “{{.Name}}”? The reviewed template deploys.">{{icon "zap"}} Execute</button>{{end}}
+                <button class="icon-btn sm danger" title="Delete change set {{.Name}}" hx-post="{{$.Prefix}}/cfn/{{pathesc $.Stack.Name}}/changeset/{{pathesc .Name}}/delete" hx-confirm="Delete change set “{{.Name}}”? The diff is discarded; the stack is untouched.">{{icon "trash"}}</button>
               </div></td>
             </tr>
           {{end}}
@@ -153,7 +153,7 @@
              CreateChangeSet when the review switch asks for the diff first.
              An empty parameter keeps the current value — the emulator merges
              with the stack's existing set, so blank means unchanged. */}}
-        <form hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <form hx-post="{{.Prefix}}/cfn/{{pathesc .Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
           <div class="panel form-sec"><div class="panel-h"><h2>Template</h2></div><div class="form-b">
             <div class="opt-row"><div><div class="opt-l">Use previous template</div><div class="opt-d">Change only parameters; the template stays as deployed</div></div><label class="switch"><input aria-label="Use previous template" type="checkbox" name="useprev" x-model="useprev"><span class="track"></span><span class="thumb"></span></label></div>
             <div class="field" x-show="!useprev" style="margin-top:10px"><label>Template <span class="dim">JSON or YAML</span></label>
@@ -170,7 +170,7 @@
             <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">Review the resource-level diff before anything deploys</div></div><label class="switch"><input aria-label="Create a change set instead" type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
             <div class="field" x-show="review" x-cloak style="margin-top:10px"><label>Change set name</label><input class="input mono" name="changeset" value="{{.CSDefault}}" pattern="[a-zA-Z][a-zA-Z0-9\-]*" spellcheck="false"></div>
           </div></div>
-          {{template "form_actions" dict "Cancel" (printf "%s/cfn/%s" .Prefix .Stack.Name) "Submit" "Update stack"}}
+          {{template "form_actions" dict "Cancel" (printf "%s/cfn/%s" .Prefix (pathesc .Stack.Name)) "Submit" "Update stack"}}
         </form>
         </div>
 
@@ -181,7 +181,7 @@
           <tbody>
           {{range .Resources}}
             <tr>
-              <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/resource" hx-vals='{"logical":"{{.LogicalID}}"}' hx-target="#cfn-res-out" hx-select="" hx-swap="innerHTML" title="Resource detail">{{.LogicalID}}</a></td>
+              <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/cfn/{{pathesc $.Stack.Name}}/resource" hx-vals='{"logical":"{{jsonstr .LogicalID}}"}' hx-target="#cfn-res-out" hx-select="" hx-swap="innerHTML" title="Resource detail">{{.LogicalID}}</a></td>
               <td class="dim sub mono">{{.Type}}</td>
               <td class="mono sub trunc" style="max-width:320px">
                 {{/* A stack is most useful as a way into the things it built. */}}

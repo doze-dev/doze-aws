@@ -187,7 +187,7 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 		"URL": urlCfg.URL, "URLAuth": urlCfg.AuthType, "Queues": queues,
 	}
 	if data["Tab"] == "logs" {
-		data["Tail"] = c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+name+"/logs")
+		data["Tail"] = c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+seg(name)+"/logs")
 	}
 	c.render(w, r, "lambda_fn", data)
 }
@@ -282,7 +282,7 @@ func (c *Console) lambdaCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/lambda/"+name, "Function “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/lambda/"+seg(name), "Function “"+name+"” created")
 }
 
 // lambdaSaveConfig edits env / timeout / memory.

@@ -1,7 +1,7 @@
 {{define "kinesis_lp"}}
 {{template "lp_head" dict "Svc" "kinesis" "Prefix" .Prefix "Label" "Kinesis" "NewURL" (printf "%s/kinesis/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/kinesis/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Shards}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/kinesis/{{pathesc .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Shards}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "kinesis" "Prefix" $.Prefix}}
     {{end}}
 {{template "lp_foot" .}}
@@ -18,7 +18,7 @@
 <div class="det-h">
   <div class="det-title" role="heading" aria-level="1">{{awsIcon "kinesis"}} {{.Stream}}
     <div class="acts">
-      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
+      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
     </div>
   </div>
   <div class="chips">
@@ -28,10 +28,10 @@
     <span class="chip">{{.Summary.Retention}}h retention</span>
   </div>
   {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-    (dict "Key" "shards" "Label" "Shards" "Icon" "git-branch" "URL" (printf "%s/kinesis/%s" .Prefix .Stream))
-    (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix .Stream))
-    (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/kinesis/%s/details" .Prefix .Stream))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/kinesis/%s/tags" .Prefix .Stream)))}}
+    (dict "Key" "shards" "Label" "Shards" "Icon" "git-branch" "URL" (printf "%s/kinesis/%s" .Prefix (pathesc .Stream)))
+    (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix (pathesc .Stream)))
+    (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/kinesis/%s/details" .Prefix (pathesc .Stream)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/kinesis/%s/tags" .Prefix (pathesc .Stream))))}}
 </div>
 {{end}}
 
@@ -55,7 +55,7 @@
           {{range .Shards}}
             <tr {{if .Closed}}class="dim"{{end}}>
               <td class="mono sub">
-                <a href="{{$.Prefix}}/kinesis/{{$.Stream}}/records?shard={{.ID}}">{{.ID}}</a>
+                <a href="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/records?shard={{urlquery .ID}}">{{.ID}}</a>
                 {{if .Closed}}<span class="chip">closed</span>{{end}}
               </td>
               <td>
@@ -66,7 +66,7 @@
               </td>
               {{/* Kinesis has no count API, so depth costs a read. It loads
                    after the page so a deep stream still paints at once. */}}
-              <td class="num sub" hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/shards/{{.ID}}/depth"
+              <td class="num sub" hx-get="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/shards/{{pathesc .ID}}/depth"
                   hx-trigger="load" hx-target="this" hx-select=""
                   hx-swap="innerHTML"><span class="dim">·</span></td>
               <td class="dim sub mono">
@@ -76,7 +76,7 @@
               </td>
               <td class="right">
                 {{if not .Closed}}
-                <form hx-post="{{$.Prefix}}/kinesis/{{$.Stream}}/split" hx-confirm="Split {{.ID}} in two? The parent closes and two children open.">
+                <form hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/split" hx-confirm="Split {{.ID}} in two? The parent closes and two children open.">
                   <input type="hidden" name="shard" value="{{.ID}}">
                   <input type="hidden" name="at" value="{{midpoint .StartKey .EndKey}}">
                   <button class="btn btn-outline btn-sm" type="submit">{{icon "git-branch"}} Split</button>
@@ -95,7 +95,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "send"}} Put record</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/put">
+            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/put">
               <div class="field" style="margin-bottom:10px">
                 <label>Partition key</label>
                 <input class="input" name="partitionKey" placeholder="device-7" value="console" autocomplete="off">
@@ -126,7 +126,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "clock"}} Retention</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/retention">
+            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/retention">
               <div class="field">
                 <label>Hours <span class="dim">24 – 8760</span></label>
                 <input class="input" name="hours" type="number" min="24" max="8760" value="{{.Summary.Retention}}">
@@ -168,7 +168,7 @@
      apart is why the footer can say what it actually scanned. */}}
 {{define "kinesis_filters"}}
 <form class="explorer-form" x-data="{more:{{if or .Query.Partition .Query.Contains}}true{{else}}false{{end}}}"
-      hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+      hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/records/query"
       hx-target="#k-records" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field" style="width:210px"><label>Shard</label>
@@ -286,7 +286,7 @@
            view, and a truncated record could never be opened. */}}
       {{if .Binary}}<span class="chip">base64</span>{{end}}<span class="mono trunc">{{.Data}}{{if .Truncated}}<span class="dim">…</span>{{end}}</span>
       {{if .Truncated}}<button class="btn btn-outline btn-sm"
-              hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/record?shard={{.Shard}}&seq={{.Seq}}"
+              hx-get="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/record?shard={{urlquery .Shard}}&seq={{urlquery .Seq}}"
               hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML"
               @click="drawer=true">{{icon "search"}} Full</button>{{end}}
     </div></td>
@@ -297,7 +297,7 @@
   {{/* Following polls forward from the cursor and replaces itself with whatever
        arrived, plus a fresh trigger carrying the advanced cursor. */}}
   <tr id="k-tail"><td colspan="{{$cols}}" style="text-align:center;padding:6px">
-    <span class="dim sub" role="button" tabindex="0" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+    <span class="dim sub" role="button" tabindex="0" hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/records/query"
           hx-vals='{{.NextVals}}' hx-trigger="every 2s"
           hx-target="closest tr" hx-select="" hx-swap="outerHTML">
       {{icon "activity"}} following — new records appear here
@@ -306,7 +306,7 @@
 {{else if and .Result.Cursor (not .Result.Drained)}}
   <tr><td colspan="{{$cols}}" style="text-align:center;padding:6px">
     <button type="button" class="btn btn-outline btn-sm"
-            hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+            hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/records/query"
             hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="" hx-swap="outerHTML">
       {{icon "plus"}} Load {{.Query.Limit}} more
     </button>
@@ -347,7 +347,7 @@
             {{if eq .Summary.Mode "ON_DEMAND"}}
               <p class="mini-note">Shard layout is managed for you on an on-demand stream. Switch to provisioned to reshard by hand.</p>
             {{else if .Pairs}}
-            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/merge"
+            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/merge"
                   hx-confirm="Merge these two shards? Both close and one child opens covering their combined range.">
               <div class="field">
                 <label>Adjacent pair</label>
@@ -378,7 +378,7 @@
             {{if eq .Summary.Mode "ON_DEMAND"}}
               <p class="mini-note">On-demand streams scale themselves; the count is not yours to set.</p>
             {{else}}
-            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/scale"
+            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/scale"
                   hx-confirm="Rescale the stream? Existing shards close and a new set opens, tiling the key space evenly.">
               <div class="field">
                 <label>Target shards</label>
@@ -397,7 +397,7 @@
       <div class="sec-title">Capacity mode</div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/mode">
+          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/mode">
             <div class="ex-grid">
               <div class="field" style="width:220px">
                 <label>Stream mode</label>
@@ -421,7 +421,7 @@
       <div class="sec-title">Encryption <span class="dim">— recorded, not applied</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/encryption">
+          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/encryption">
             <div class="ex-grid">
               <div class="field" style="width:320px">
                 <label>KMS key</label>
@@ -445,7 +445,7 @@
       <div class="sec-title">Shard-level metrics <span class="dim">— recorded, not published</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/metrics">
+          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/metrics">
             <div class="chips" style="margin-bottom:12px">
               {{$on := .Summary.Metrics}}
               {{range .AllMetrics}}
@@ -474,7 +474,7 @@
               <td><span class="chip">{{.Status}}</span></td>
               <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
               <td class="right">
-                <form hx-post="{{$.Prefix}}/kinesis/{{$.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
+                <form hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
                   <input type="hidden" name="name" value="{{.Name}}">
                   <button class="icon-btn sm danger" title="Deregister">{{icon "trash"}}</button>
                 </form>
@@ -488,7 +488,7 @@
       </div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/consumers/add">
+          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/consumers/add">
             <div class="ex-grid">
               <div class="field" style="width:280px">
                 <label>Register a consumer</label>
@@ -503,7 +503,7 @@
       <div class="sec-title">Resource policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/policy">
+          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/policy">
             <div class="field">
               <label>Policy JSON <span class="dim">empty removes it</span></label>
               {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .Policy "Rows" 8 "UID" (printf "kinpol-%s" .Stream) "Check" false}}

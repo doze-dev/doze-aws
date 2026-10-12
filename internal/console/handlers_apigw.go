@@ -32,7 +32,7 @@ func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
 		// A link built from an execute-api ARN cannot tell the two kinds
 		// apart; an HTTP API's id lands on its own page.
 		if _, herr := c.be.HTTPAPI(r.Context(), id); herr == nil {
-			http.Redirect(w, r, c.prefix+"/apigw-http/"+id, http.StatusSeeOther)
+			http.Redirect(w, r, c.prefix+"/apigw-http/"+seg(id), http.StatusSeeOther)
 			return
 		}
 		c.fail(w, err)
@@ -100,7 +100,7 @@ func (c *Console) apigwCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/apigw/"+id, "API created — add resources and methods, then deploy")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id), "API created — add resources and methods, then deploy")
 }
 
 func (c *Console) apigwUpdate(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func (c *Console) apigwUpdate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=settings", "API settings saved")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=settings", "API settings saved")
 }
 
 func (c *Console) apigwDelete(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +262,7 @@ func (c *Console) apigwDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=stages", "Deployed to "+stage+" — the routes are live")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=stages", "Deployed to "+stage+" — the routes are live")
 }
 
 func (c *Console) apigwDeleteDeployment(w http.ResponseWriter, r *http.Request) {
@@ -271,7 +271,7 @@ func (c *Console) apigwDeleteDeployment(w http.ResponseWriter, r *http.Request) 
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=stages", "Deployment deleted")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=stages", "Deployment deleted")
 }
 
 func (c *Console) apigwCreateStage(w http.ResponseWriter, r *http.Request) {
@@ -281,7 +281,7 @@ func (c *Console) apigwCreateStage(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=stages", "Stage "+name+" created")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=stages", "Stage "+name+" created")
 }
 
 func (c *Console) apigwUpdateStage(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +292,7 @@ func (c *Console) apigwUpdateStage(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=stages", "Stage "+name+" repointed")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=stages", "Stage "+name+" repointed")
 }
 
 func (c *Console) apigwDeleteStage(w http.ResponseWriter, r *http.Request) {
@@ -302,5 +302,5 @@ func (c *Console) apigwDeleteStage(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw/"+id+"?tab=stages", "Stage "+name+" deleted")
+	c.redirect(w, r, c.prefix+"/apigw/"+seg(id)+"?tab=stages", "Stage "+name+" deleted")
 }

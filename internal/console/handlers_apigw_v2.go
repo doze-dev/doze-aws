@@ -45,7 +45,7 @@ func (c *Console) apigwHTTPCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id, "HTTP API created — add a route, and it answers at $default")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id), "HTTP API created — add a route, and it answers at $default")
 }
 
 func (c *Console) apigwHTTPUpdate(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func (c *Console) apigwHTTPUpdate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=settings", "API settings saved")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=settings", "API settings saved")
 }
 
 func splitCSV(s string) []string {
@@ -157,7 +157,7 @@ func (c *Console) apigwHTTPCreateStage(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=stages", "Stage "+name+" created")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=stages", "Stage "+name+" created")
 }
 
 func (c *Console) apigwHTTPDeleteStage(w http.ResponseWriter, r *http.Request) {
@@ -166,7 +166,7 @@ func (c *Console) apigwHTTPDeleteStage(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=stages", "Stage deleted")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=stages", "Stage deleted")
 }
 
 func (c *Console) apigwHTTPDeploy(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +175,7 @@ func (c *Console) apigwHTTPDeploy(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=stages", "Deployed to "+r.FormValue("stage"))
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=stages", "Deployed to "+r.FormValue("stage"))
 }
 
 func (c *Console) apigwHTTPCreateAuthorizer(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +186,7 @@ func (c *Console) apigwHTTPCreateAuthorizer(w http.ResponseWriter, r *http.Reque
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=settings", "Authorizer created")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=settings", "Authorizer created")
 }
 
 func (c *Console) apigwHTTPDeleteAuthorizer(w http.ResponseWriter, r *http.Request) {
@@ -195,5 +195,5 @@ func (c *Console) apigwHTTPDeleteAuthorizer(w http.ResponseWriter, r *http.Reque
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/apigw-http/"+id+"?tab=settings", "Authorizer deleted")
+	c.redirect(w, r, c.prefix+"/apigw-http/"+seg(id)+"?tab=settings", "Authorizer deleted")
 }

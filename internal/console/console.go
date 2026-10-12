@@ -361,6 +361,8 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 			return slices.Contains(set, v)
 		},
 		"slug":      resSlug,
+		"pathesc":   pathEsc,
+		"jsonstr":   jsonStr,
 		"tagsJSON":  tagsJSON,
 		"secs":      humanSecs,
 		"ago":       ago,

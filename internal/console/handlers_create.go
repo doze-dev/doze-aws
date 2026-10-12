@@ -87,42 +87,42 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 
 	if buckets, err := c.be.ListBuckets(ctx); err == nil {
 		for _, b := range buckets {
-			add("s3", b.Name, "/s3/"+b.Name)
+			add("s3", b.Name, "/s3/"+seg(b.Name))
 		}
 	}
 	if queues, err := c.be.ListQueues(ctx); err == nil {
 		for _, q := range queues {
-			add("sqs", q.Name, "/sqs/"+q.Name)
+			add("sqs", q.Name, "/sqs/"+seg(q.Name))
 		}
 	}
 	if tables, err := c.be.ListTables(ctx); err == nil {
 		for _, t := range tables {
-			add("ddb", t.Name, "/ddb/"+t.Name)
+			add("ddb", t.Name, "/ddb/"+seg(t.Name))
 		}
 	}
 	if topics, err := c.be.ListTopics(ctx); err == nil {
 		for _, t := range topics {
-			add("sns", t.Name, "/sns/"+t.Name)
+			add("sns", t.Name, "/sns/"+seg(t.Name))
 		}
 	}
 	if buses, err := c.be.ListBuses(ctx); err == nil {
 		for _, b := range buses {
-			add("eb", b.Name, "/eb/"+b.Name)
+			add("eb", b.Name, "/eb/"+seg(b.Name))
 			if rules, err := c.be.ListRules(ctx, b.Name); err == nil {
 				for _, rl := range rules {
-					add("eb", b.Name+" › "+rl.Name, "/eb/"+b.Name+"/rule/"+rl.Name)
+					add("eb", b.Name+" › "+rl.Name, "/eb/"+seg(b.Name)+"/rule/"+seg(rl.Name))
 				}
 			}
 		}
 	}
 	if fns, err := c.be.ListFunctions(ctx); err == nil {
 		for _, f := range fns {
-			add("lambda", f.Name, "/lambda/"+f.Name)
+			add("lambda", f.Name, "/lambda/"+seg(f.Name))
 		}
 	}
 	if sms, err := c.be.ListStateMachines(ctx); err == nil {
 		for _, m := range sms {
-			add("sfn", m.Name, "/sfn/"+m.Name)
+			add("sfn", m.Name, "/sfn/"+seg(m.Name))
 		}
 	}
 	if keys, err := c.be.ListKeys(ctx); err == nil {
@@ -131,7 +131,7 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 			if label == "" {
 				label = k.ID
 			}
-			add("kms", label, "/kms/"+k.ID)
+			add("kms", label, "/kms/"+seg(k.ID))
 		}
 	}
 	if params, err := c.be.ListParameters(ctx); err == nil {
@@ -149,31 +149,31 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 	// thirteen services had working pages that ⌘K could not reach.
 	if streams, err := c.be.ListStreams(ctx); err == nil {
 		for _, st := range streams {
-			add("kinesis", st.Name, "/kinesis/"+st.Name)
+			add("kinesis", st.Name, "/kinesis/"+seg(st.Name))
 		}
 	}
 	if stacks, err := c.be.ListStacks(ctx); err == nil {
 		for _, st := range stacks {
-			add("cfn", st.Name, "/cfn/"+st.Name)
+			add("cfn", st.Name, "/cfn/"+seg(st.Name))
 		}
 	}
 	if apis, err := c.be.ListAllAPIs(ctx); err == nil {
 		for _, a := range apis {
 			if a.Protocol == "HTTP" {
-				add("apigw", a.Name, "/apigw-http/"+a.ID)
+				add("apigw", a.Name, "/apigw-http/"+seg(a.ID))
 				continue
 			}
-			add("apigw", a.Name, "/apigw/"+a.ID)
+			add("apigw", a.Name, "/apigw/"+seg(a.ID))
 		}
 	}
 	if ps, err := c.be.ListPrincipals(ctx); err == nil {
 		for _, pr := range ps {
-			add("iam", pr.Name, "/iam/"+pr.Kind+"/"+pr.Name)
+			add("iam", pr.Name, "/iam/"+seg(pr.Kind)+"/"+seg(pr.Name))
 		}
 	}
 	if alarms, err := c.be.ListAlarms(ctx); err == nil {
 		for _, a := range alarms {
-			add("cw", a.Name, "/cw/alarm/"+a.Name)
+			add("cw", a.Name, "/cw/alarm/"+seg(a.Name))
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")

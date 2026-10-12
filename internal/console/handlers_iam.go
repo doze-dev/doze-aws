@@ -195,7 +195,7 @@ func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
 	kind := r.FormValue("kind")
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		c.redirect(w, r, c.prefix+"/iam/create?kind="+kind, "A name is required")
+		c.redirect(w, r, c.prefix+"/iam/create?kind="+urlQuery(kind), "A name is required")
 		return
 	}
 	var err error
@@ -206,19 +206,19 @@ func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(trust) == "" {
 			trust = defaultTrust
 		}
-		err, to = c.be.CreateRole(r.Context(), name, trust), "/iam/role/"+name
+		err, to = c.be.CreateRole(r.Context(), name, trust), "/iam/role/"+seg(name)
 	case "policy":
 		err, to = c.be.CreatePolicy(r.Context(), name, r.FormValue("document")), "/iam"
 	case "group":
-		err, to = c.be.CreateIAMGroup(r.Context(), name), "/iam/group/"+name
+		err, to = c.be.CreateIAMGroup(r.Context(), name), "/iam/group/"+seg(name)
 	case "profile":
-		err, to = c.be.CreateInstanceProfile(r.Context(), name), "/iam/profile/"+name
+		err, to = c.be.CreateInstanceProfile(r.Context(), name), "/iam/profile/"+seg(name)
 	case "slr":
 		// name carries the AWS service (CreateServiceLinkedRole names the
 		// role itself from it).
 		err, to = c.be.CreateServiceLinkedRole(r.Context(), name), "/iam"
 	default:
-		err, to = c.be.CreateUser(r.Context(), name), "/iam/user/"+name
+		err, to = c.be.CreateUser(r.Context(), name), "/iam/user/"+seg(name)
 	}
 	if err != nil {
 		c.fail(w, err)
@@ -231,14 +231,14 @@ func (c *Console) iamAttach(w http.ResponseWriter, r *http.Request) {
 	kind, name := param(r, "kind"), param(r, "name")
 	arn := r.FormValue("arn")
 	if arn == "" {
-		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Pick a policy to attach")
+		c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "Pick a policy to attach")
 		return
 	}
 	if err := c.be.AttachPolicy(r.Context(), kind, name, arn); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Attached")
+	c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "Attached")
 }
 
 func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
@@ -247,7 +247,7 @@ func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Detached")
+	c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "Detached")
 }
 
 func (c *Console) iamDeletePrincipal(w http.ResponseWriter, r *http.Request) {
@@ -301,7 +301,7 @@ func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The one flash that must survive being read: AWS never shows this again.
-	c.redirectSticky(w, r, c.prefix+"/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
+	c.redirectSticky(w, r, c.prefix+"/iam/user/"+seg(name), id+" / "+secret+" — the secret is not retrievable again")
 }
 
 func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
@@ -310,7 +310,7 @@ func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/user/"+name, "Key deleted")
+	c.redirect(w, r, c.prefix+"/iam/user/"+seg(name), "Key deleted")
 }
 
 // iamPutInline saves an inline policy. Inline policies are how permissions are
@@ -320,14 +320,14 @@ func (c *Console) iamPutInline(w http.ResponseWriter, r *http.Request) {
 	kind, name := param(r, "kind"), param(r, "name")
 	policyName := strings.TrimSpace(r.FormValue("policy"))
 	if policyName == "" {
-		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "An inline policy needs a name")
+		c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "An inline policy needs a name")
 		return
 	}
 	if err := c.be.PutInlinePolicy(r.Context(), kind, name, policyName, r.FormValue("document")); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Saved "+policyName)
+	c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "Saved "+policyName)
 }
 
 func (c *Console) iamDeleteInline(w http.ResponseWriter, r *http.Request) {
@@ -336,7 +336,7 @@ func (c *Console) iamDeleteInline(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Removed inline policy")
+	c.redirect(w, r, c.prefix+"/iam/"+seg(kind)+"/"+seg(name), "Removed inline policy")
 }
 
 // ---- groups, instance profiles, account: the burn-down surfaces ----
@@ -387,7 +387,7 @@ func (c *Console) iamGroupMember(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("remove") != "" {
 		verb = "removed from"
 	}
-	c.redirect(w, r, c.prefix+"/iam/group/"+group, user+" "+verb+" "+group)
+	c.redirect(w, r, c.prefix+"/iam/group/"+seg(group), user+" "+verb+" "+group)
 }
 
 func (c *Console) iamGroupRename(w http.ResponseWriter, r *http.Request) {
@@ -397,7 +397,7 @@ func (c *Console) iamGroupRename(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/group/"+newName, "Group renamed to "+newName)
+	c.redirect(w, r, c.prefix+"/iam/group/"+seg(newName), "Group renamed to "+newName)
 }
 
 func (c *Console) iamProfileRole(w http.ResponseWriter, r *http.Request) {
@@ -413,7 +413,7 @@ func (c *Console) iamProfileRole(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/profile/"+profile, "Profile updated")
+	c.redirect(w, r, c.prefix+"/iam/profile/"+seg(profile), "Profile updated")
 }
 
 // iamAccount is the account page: summary, aliases, password policy, and the
@@ -473,7 +473,7 @@ func (c *Console) iamKeyToggle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		toast(w, "Key deactivated — requests signed with it are refused until it is re-activated")
 	}
-	c.redirect(w, r, c.prefix+"/iam/user/"+name, "")
+	c.redirect(w, r, c.prefix+"/iam/user/"+seg(name), "")
 }
 
 // iamTrust replaces a role's assume-role policy (the study-3 leftover).
@@ -483,7 +483,7 @@ func (c *Console) iamTrust(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/role/"+name, "Trust policy updated — who may assume this role just changed")
+	c.redirect(w, r, c.prefix+"/iam/role/"+seg(name), "Trust policy updated — who may assume this role just changed")
 }
 
 // iamRoleMeta writes description and session duration.
@@ -494,7 +494,7 @@ func (c *Console) iamRoleMeta(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/role/"+name, "Role settings saved")
+	c.redirect(w, r, c.prefix+"/iam/role/"+seg(name), "Role settings saved")
 }
 
 func (c *Console) iamRenameUser(w http.ResponseWriter, r *http.Request) {
@@ -504,7 +504,7 @@ func (c *Console) iamRenameUser(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/user/"+newName, "User renamed to "+newName)
+	c.redirect(w, r, c.prefix+"/iam/user/"+seg(newName), "User renamed to "+newName)
 }
 
 // ---- managed-policy versions ----
@@ -547,7 +547,7 @@ func (c *Console) iamJoinGroup(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/user/"+name, name+" added to "+group)
+	c.redirect(w, r, c.prefix+"/iam/user/"+seg(name), name+" added to "+group)
 }
 
 // ---- STS: minting credentials against the local account ----

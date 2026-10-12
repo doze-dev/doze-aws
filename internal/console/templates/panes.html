@@ -74,7 +74,7 @@
      Expects Prefix, Svc (sqs|sns|ddb|lambda|kms|sm|eb), ID (the console id). */}}
 {{define "tags_panel"}}
 <div class="sec-title">Tags</div>
-<div hx-get="{{.Prefix}}/tags/view?svc={{.Svc}}&id={{.ID}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="innerHTML"><div class="panel"><div class="mini-note" style="padding:10px 14px">Loading tags…</div></div></div>
+<div hx-get="{{.Prefix}}/tags/view?svc={{urlquery .Svc}}&id={{urlquery .ID}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="innerHTML"><div class="panel"><div class="mini-note" style="padding:10px 14px">Loading tags…</div></div></div>
 {{end}}
 
 {{/* tag_editor — a draft you submit, not a set of controls that each fire.
@@ -209,7 +209,7 @@
   {{else}}
     <div class="deck-line">
       {{if .Attention}}
-        {{range .Attention}}<a class="dk-att" href="{{$.Prefix}}/{{.Slug}}">{{icon "alert"}} {{.Text}}</a>{{end}}
+        {{range .Attention}}<a class="dk-att" href="{{$.Prefix}}/{{pathesc .Slug}}">{{icon "alert"}} {{.Text}}</a>{{end}}
       {{end}}
       {{if .Unwired}}
         <span class="dk-unwired" title="Nothing sends to them and they send to nothing: {{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} not connected to anything</span>
@@ -225,7 +225,7 @@
     {{if .Services}}
     <div class="deck-board">
       {{range .Services}}
-      <a class="dk-svc{{if .Warn}} warn{{end}}" href="{{$.Prefix}}/{{.Svc}}">
+      <a class="dk-svc{{if .Warn}} warn{{end}}" href="{{$.Prefix}}/{{pathesc .Svc}}">
         {{awsIcon .Svc}}
         <span class="dk-b">
           <span class="dk-l">{{.Label}}</span>
@@ -287,7 +287,7 @@
   <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="window.dozeTrap && dozeTrap($el, info)" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
     <div class="dialog wide anim">
       <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
-      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{.Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
       <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
     </div>
   </div>

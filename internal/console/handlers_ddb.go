@@ -60,7 +60,7 @@ func (c *Console) ddbCreateTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/ddb/"+name, "Table “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/ddb/"+seg(name), "Table “"+name+"” created")
 }
 
 func def(v, fallback string) string {

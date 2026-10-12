@@ -36,7 +36,7 @@ func (c *Console) kmsCreateKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/kms/"+id, "Key created")
+	c.redirect(w, r, c.prefix+"/kms/"+seg(id), "Key created")
 }
 
 func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +126,7 @@ func (c *Console) kmsEncrypt(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "kms_crypto_result", map[string]any{
 		"Label": "Ciphertext (base64)", "Value": out,
 		// One-click round-trip: the result card can decrypt itself.
-		"DecryptURL": c.prefix + "/kms/" + param(r, "key") + "/decrypt",
+		"DecryptURL": c.prefix + "/kms/" + seg(param(r, "key")) + "/decrypt",
 	})
 }
 
@@ -535,7 +535,7 @@ func (c *Console) kmsDescription(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/kms/"+id, "Description updated")
+	c.redirect(w, r, c.prefix+"/kms/"+seg(id), "Description updated")
 }
 
 // kmsRandom asks the service for bytes. No key involved, which is what makes it

@@ -30,7 +30,7 @@ func (c *Console) sfnPublish(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=versions", "Published version "+qualifierOf(arn)+" — the definition as it stands now, frozen")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=versions", "Published version "+qualifierOf(arn)+" — the definition as it stands now, frozen")
 }
 
 // sfnVersion is the detail partial for one version: DescribeStateMachine on
@@ -61,7 +61,7 @@ func (c *Console) sfnVersionDelete(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=versions", "Version "+strconv.Itoa(n)+" deleted")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=versions", "Version "+strconv.Itoa(n)+" deleted")
 }
 
 // routesFromForm reads the one or two version+weight rows an alias form
@@ -96,7 +96,7 @@ func (c *Console) sfnAliasCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=versions", "Alias “"+alias+"” created — start an execution through it from the Start tab")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=versions", "Alias “"+alias+"” created — start an execution through it from the Start tab")
 }
 
 // sfnAliasUpdate is the inline routing edit. The description travels only
@@ -113,7 +113,7 @@ func (c *Console) sfnAliasUpdate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=versions", "Alias “"+alias+"” updated — the next execution through it follows the new routing")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=versions", "Alias “"+alias+"” updated — the next execution through it follows the new routing")
 }
 
 func (c *Console) sfnAliasDelete(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +122,7 @@ func (c *Console) sfnAliasDelete(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=versions", "Alias “"+alias+"” deleted — its versions stay")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(name)+"?tab=versions", "Alias “"+alias+"” deleted — its versions stay")
 }
 
 // startTargetOf reads the Start tab's "Run as" choice: the machine itself

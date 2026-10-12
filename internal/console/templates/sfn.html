@@ -1,7 +1,7 @@
 {{define "sfn_lp"}}
 {{template "lp_head" dict "Svc" "sfn" "Prefix" .Prefix "Label" "Step Functions" "NewURL" (printf "%s/sfn/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{if eq .Type "EXPRESS"}}express{{else}}standard{{end}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/{{pathesc .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{if eq .Type "EXPRESS"}}express{{else}}standard{{end}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "sfn" "Prefix" $.Prefix}}
     {{end}}
   {{/* Activities belong to no machine, so they are a row under the machines
@@ -28,7 +28,7 @@
     <div class="det-h">
       <div class="det-title" role="heading" aria-level="1">{{awsIcon "sfn"}} {{.Name}} <span class="badge type">{{.Machine.Type}}</span>
         <div class="acts">
-          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{.Name}}/delete" hx-confirm="Delete state machine “{{.Name}}”? Its executions and their history go with it.">{{icon "trash"}} Delete</button>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/delete" hx-confirm="Delete state machine “{{.Name}}”? Its executions and their history go with it.">{{icon "trash"}} Delete</button>
         </div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
       <div class="factstrip">
@@ -38,13 +38,13 @@
         <div class="fact"><div class="fx-k">Updated</div><div class="fx-v" title="{{zoned .Machine.Updated}}">{{ago .Machine.Updated}}</div></div>
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "executions" "Label" "Executions" "Icon" "list" "CtID" (printf "tabct-sfn-%s-execs" (slug .Name)) "Ct" (len .Execs) "URL" (printf "%s/sfn/%s" .Prefix .Name))
-        (dict "Key" "start" "Label" "Start execution" "Icon" "send" "URL" (printf "%s/sfn/%s?tab=start" .Prefix .Name))
-        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s?tab=graph" .Prefix .Name))
-        (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s?tab=definition" .Prefix .Name))
-        (dict "Key" "versions" "Label" "Versions & aliases" "Icon" "git-branch" "URL" (printf "%s/sfn/%s?tab=versions" .Prefix .Name))
-        (dict "Key" "logs" "Label" "Logs" "Icon" "list" "URL" (printf "%s/sfn/%s?tab=logs" .Prefix .Name))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sfn/%s?tab=tags" .Prefix .Name)))}}
+        (dict "Key" "executions" "Label" "Executions" "Icon" "list" "CtID" (printf "tabct-sfn-%s-execs" (slug .Name)) "Ct" (len .Execs) "URL" (printf "%s/sfn/%s" .Prefix (pathesc .Name)))
+        (dict "Key" "start" "Label" "Start execution" "Icon" "send" "URL" (printf "%s/sfn/%s?tab=start" .Prefix (pathesc .Name)))
+        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s?tab=graph" .Prefix (pathesc .Name)))
+        (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s?tab=definition" .Prefix (pathesc .Name)))
+        (dict "Key" "versions" "Label" "Versions & aliases" "Icon" "git-branch" "URL" (printf "%s/sfn/%s?tab=versions" .Prefix (pathesc .Name)))
+        (dict "Key" "logs" "Label" "Logs" "Icon" "list" "URL" (printf "%s/sfn/%s?tab=logs" .Prefix (pathesc .Name)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sfn/%s?tab=tags" .Prefix (pathesc .Name))))}}
     </div>
 
     {{if eq .Tab "definition"}}
@@ -57,7 +57,7 @@
            bug. */}}
       <div class="panel">
         <div class="panel-h"><h2>{{icon "settings"}} Definition</h2><span class="dim">revision {{.Machine.Revision}} · {{if .Machine.RoleARN}}<span class="mono">{{.Machine.RoleARN}}</span>{{else}}no role{{end}}</span></div>
-        <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/definition" hx-indicator="#submit-spin" data-err-slot="#sfn-def-out">
+        <form class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/definition" hx-indicator="#submit-spin" data-err-slot="#sfn-def-out">
           <div class="field"><textarea id="sfn-def-editor" name="definition" data-editor="json" rows="18" spellcheck="false" required>{{.Machine.Definition}}</textarea></div>
           <div id="sfn-def-out"></div>
           <div class="send-foot">
@@ -108,7 +108,7 @@
       <div class="panel">
         <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">{{if .Express}}runs to completion and answers here — an Express execution’s history is in the Logs tab{{else}}lands you on its history as it runs{{end}}</span></div>
         <div class="form-b">
-        <form hx-post="{{.Prefix}}/sfn/{{.Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
+        <form hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
           <div class="field"><label>Name <span class="dim">optional — one is generated</span></label><input class="input mono" name="name" placeholder="order-1042" pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
           <div class="field stack"><label>Run as <span class="dim">the machine as it stands, or a frozen version, or whatever an alias routes to</span></label>
             <select class="input" name="target">
@@ -136,7 +136,7 @@
            can never appear. */}}
       <div class="panel">
         <div class="panel-h"><h2>{{icon "list"}} Executions</h2><span class="badge type">EXPRESS</span></div>
-        <div class="empty flat"><p>Express executions leave no record — no list, no history, no page. Run one synchronously and read the result where you started it.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{.Name}}?tab=start">{{icon "send"}} Run one</a></div>
+        <div class="empty flat"><p>Express executions leave no record — no list, no history, no page. Run one synchronously and read the result where you started it.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{pathesc .Name}}?tab=start">{{icon "send"}} Run one</a></div>
       </div>
     </div>
 
@@ -154,22 +154,22 @@
      The poll stops costing anything once nothing is RUNNING — the hash is the
      same every tick and the server answers 204. */}}
 {{define "sfn_executions"}}
-<div id="sfn-executions" data-live="{{.Prefix}}/sfn/{{.Name}}/executions{{with .Filter}}?status={{.}}{{end}}" data-live-ms="1500" data-hash="{{.Hash}}">
+<div id="sfn-executions" data-live="{{.Prefix}}/sfn/{{pathesc .Name}}/executions{{with .Filter}}?status={{urlquery .}}{{end}}" data-live-ms="1500" data-hash="{{.Hash}}">
   <div class="panel">
     <div class="panel-h"><h2>{{icon "list"}} Executions <span class="badge">{{len .Execs}}</span></h2>
       <span class="ws-seg">
-        <a href="{{$.Prefix}}/sfn/{{.Name}}" {{if not .Filter}}class="on"{{end}}>all</a>
-        <a href="{{$.Prefix}}/sfn/{{.Name}}?status=RUNNING" {{if eq .Filter "RUNNING"}}class="on"{{end}}>running</a>
-        <a href="{{$.Prefix}}/sfn/{{.Name}}?status=FAILED" {{if eq .Filter "FAILED"}}class="on"{{end}}>failed</a>
+        <a href="{{$.Prefix}}/sfn/{{pathesc .Name}}" {{if not .Filter}}class="on"{{end}}>all</a>
+        <a href="{{$.Prefix}}/sfn/{{pathesc .Name}}?status=RUNNING" {{if eq .Filter "RUNNING"}}class="on"{{end}}>running</a>
+        <a href="{{$.Prefix}}/sfn/{{pathesc .Name}}?status=FAILED" {{if eq .Filter "FAILED"}}class="on"{{end}}>failed</a>
       </span></div>
     {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
       <tr>
-        <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{$.Name}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
+        <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{pathesc $.Name}}/execution/{{pathesc .Name}}">{{icon "route"}} {{.Name}}</a></td>
         <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
         <td class="dim" title="{{zoned .Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
         <td class="right">{{template "sfn_status" .Status}}</td>
       </tr>
-    {{end}}</tbody></table>{{else}}<div class="empty flat"><p>{{if .Filter}}No {{.Filter}} executions.{{else}}No executions yet — nothing has run.{{end}}</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{.Name}}?tab=start">{{icon "send"}} Start one</a></div>{{end}}
+    {{end}}</tbody></table>{{else}}<div class="empty flat"><p>{{if .Filter}}No {{.Filter}} executions.{{else}}No executions yet — nothing has run.{{end}}</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{pathesc .Name}}?tab=start">{{icon "send"}} Start one</a></div>{{end}}
   </div>
 </div>
 {{end}}
@@ -191,14 +191,14 @@
   {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Machine "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title" role="heading" aria-level="1"><a class="dim" href="{{.Prefix}}/sfn/{{.Machine}}">{{awsIcon "sfn"}} {{.Machine}}</a> <span class="dim">/</span> {{.Name}}
+      <div class="det-title" role="heading" aria-level="1"><a class="dim" href="{{.Prefix}}/sfn/{{pathesc .Machine}}">{{awsIcon "sfn"}} {{.Machine}}</a> <span class="dim">/</span> {{.Name}}
         <div class="acts">
           {{/* Redrive is offered exactly when DescribeExecution says
                REDRIVABLE: finished other than SUCCEEDED, Standard, within
                14 days. The reason it is not is in the fact strip below, so
                a missing button is never a mystery. */}}
-          {{if .Exec.Redrivable}}<button class="btn btn-outline" hx-post="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/redrive" hx-confirm="Redrive “{{.Name}}”? The states that finished stay finished; the failed, aborted or timed-out ones run again with the input they had.">{{icon "rotate"}} Redrive</button>{{end}}
-          {{if eq .Exec.Status "RUNNING"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/stop" hx-confirm="Stop execution “{{.Name}}”? It ends ABORTED; a parked task token stays unredeemable.">{{icon "x"}} Stop</button>{{end}}
+          {{if .Exec.Redrivable}}<button class="btn btn-outline" hx-post="{{.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}/redrive" hx-confirm="Redrive “{{.Name}}”? The states that finished stay finished; the failed, aborted or timed-out ones run again with the input they had.">{{icon "rotate"}} Redrive</button>{{end}}
+          {{if eq .Exec.Status "RUNNING"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}/stop" hx-confirm="Stop execution “{{.Name}}”? It ends ABORTED; a parked task token stays unredeemable.">{{icon "x"}} Stop</button>{{end}}
         </div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}{{with .Exec.MapRunARN}}{{template "copychip" dict "Label" "map run" "Value" .}}{{end}}</div>
       <div class="factstrip">
@@ -211,10 +211,10 @@
         {{else if and (ne .Exec.Status "RUNNING") (ne .Exec.Status "SUCCEEDED") (not .Exec.Redrivable)}}<div class="fact"><div class="fx-k">Redrive</div><div class="fx-v dim" title="{{.Exec.RedriveReason}}">not possible</div></div>{{end}}
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "history" "Label" "History" "Icon" "list" "URL" (printf "%s/sfn/%s/execution/%s" .Prefix .Machine .Name))
-        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s/execution/%s?tab=graph" .Prefix .Machine .Name))
-        (dict "Key" "io" "Label" "Input & output" "Icon" "braces" "URL" (printf "%s/sfn/%s/execution/%s?tab=io" .Prefix .Machine .Name))
-        (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s/execution/%s?tab=definition" .Prefix .Machine .Name)))}}
+        (dict "Key" "history" "Label" "History" "Icon" "list" "URL" (printf "%s/sfn/%s/execution/%s" .Prefix (pathesc .Machine) (pathesc .Name)))
+        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s/execution/%s?tab=graph" .Prefix (pathesc .Machine) (pathesc .Name)))
+        (dict "Key" "io" "Label" "Input & output" "Icon" "braces" "URL" (printf "%s/sfn/%s/execution/%s?tab=io" .Prefix (pathesc .Machine) (pathesc .Name)))
+        (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s/execution/%s?tab=definition" .Prefix (pathesc .Machine) (pathesc .Name))))}}
     </div>
 
     {{if eq .Tab "io"}}
@@ -261,7 +261,7 @@
      for the same reason the executions list does. The task-result form sits
      under a RUNNING history because that is when a token can be redeemed. */}}
 {{define "sfn_history"}}
-<div id="sfn-history" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/history" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
+<div id="sfn-history" data-live="{{.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}/history" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
   <div class="panel">
     <div class="panel-h"><h2>{{icon "list"}} History <span class="badge">{{len .Events}}</span></h2>{{template "sfn_status" .Exec.Status}}</div>
     {{/* Fixed column widths, so a row that opens never moves the columns
@@ -296,8 +296,8 @@
   <div class="panel">
     <div class="panel-h"><h2>{{icon "send"}} Send task result</h2><span class="dim">for a state parked on .waitForTaskToken — you are the worker</span></div>
     {{template "sfn_task_form" dict "Prefix" .Prefix
-        "Action" (printf "%s/sfn/%s/execution/%s/task-result" .Prefix .Machine .Name)
-        "Heartbeat" (printf "%s/sfn/%s/execution/%s/heartbeat" .Prefix .Machine .Name)
+        "Action" (printf "%s/sfn/%s/execution/%s/task-result" .Prefix (pathesc .Machine) (pathesc .Name))
+        "Heartbeat" (printf "%s/sfn/%s/execution/%s/heartbeat" .Prefix (pathesc .Machine) (pathesc .Name))
         "Target" "#sfn-history" "Swap" "outerHTML" "Token" "" "Activity" ""
         "TokenHint" "from the parameters the Task sent — a TaskScheduled row above"}}
   </div>

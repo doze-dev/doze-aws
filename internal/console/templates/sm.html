@@ -1,7 +1,7 @@
 {{define "sm_lp"}}
 {{template "lp_head" dict "Svc" "sm" "Prefix" .Prefix "Label" "Secrets Manager" "NewURL" (printf "%s/sm/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}} {{if .Deleted}}li-deleted{{end}}" href="{{$.Prefix}}/sm/secret?name={{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span>{{if .Deleted}}<span class="sb">deleted</span>{{end}}</a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}} {{if .Deleted}}li-deleted{{end}}" href="{{$.Prefix}}/sm/secret?name={{urlquery .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span>{{if .Deleted}}<span class="sb">deleted</span>{{end}}</a>
   {{else}}{{template "lp_empty" dict "Svc" "sm" "Prefix" $.Prefix}}
     {{end}}
 {{template "lp_foot" .}}
@@ -25,9 +25,9 @@
       {{if .S.Deleted}}<span class="badge dlq">pending deletion</span>{{end}}
       <div class="acts">
         {{if .S.Deleted}}
-        <button class="btn" hx-post="{{.Prefix}}/sm/restore" hx-vals='{"name":"{{.S.Name}}"}'>{{icon "rotate"}} Restore secret</button>
+        <button class="btn" hx-post="{{.Prefix}}/sm/restore" hx-vals='{"name":"{{jsonstr .S.Name}}"}'>{{icon "rotate"}} Restore secret</button>
         {{else}}
-        <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button>
+        <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{jsonstr .S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button>
         {{end}}
       </div></div>
     {{/* Description and KMS key are editable in place, through UpdateSecret
@@ -76,8 +76,8 @@
       {{if .S.RotationOn}}
       <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated <time title="{{zoned .S.LastRotated}}">{{.S.LastRotated}}</time>{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
-        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" data-confirm-verb="Turn off" data-confirm-destructive="true" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
+        <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{jsonstr .S.Name}}"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
+        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{jsonstr .S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" data-confirm-verb="Turn off" data-confirm-destructive="true" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
       </div>
       {{else}}
       <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">

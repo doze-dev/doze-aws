@@ -154,7 +154,7 @@ func (c *Console) cwCreateAlarm(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/cw/alarm/"+name, "Alarm “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/cw/alarm/"+seg(name), "Alarm “"+name+"” created")
 }
 
 // cwSetState flips an alarm by hand: POST /cw/alarm/{name}/state
@@ -173,7 +173,7 @@ func (c *Console) cwSetState(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/cw/alarm/"+name, "Alarm “"+name+"” set to "+state)
+	c.redirect(w, r, c.prefix+"/cw/alarm/"+seg(name), "Alarm “"+name+"” set to "+state)
 }
 
 // cwSetActions enables or disables an alarm's actions: POST /cw/alarm/{name}/actions
@@ -188,7 +188,7 @@ func (c *Console) cwSetActions(w http.ResponseWriter, r *http.Request) {
 	if enabled {
 		word = "enabled"
 	}
-	c.redirect(w, r, c.prefix+"/cw/alarm/"+name, "Actions "+word+" for “"+name+"”")
+	c.redirect(w, r, c.prefix+"/cw/alarm/"+seg(name), "Actions "+word+" for “"+name+"”")
 }
 
 // cwDeleteAlarm removes one: POST /cw/alarm/{name}/delete

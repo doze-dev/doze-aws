@@ -147,6 +147,65 @@ test.describe('cloudwatch metrics and alarms', () => {
 
 // The alarm page's actions switch: disabling leaves the alarm evaluating but
 // notifying nothing, and the header says so with an "actions off" badge.
+test.describe('an alarm whose name is not a path', () => {
+  // AlarmName is any 1-255 characters. The alarm's page takes the name as a
+  // path segment, so "/", "#" and "?" each ended it early: the list link, the
+  // tabs, the actions and the redirect after create all answered 404.
+  test('opens from the list, changes tab, takes a state, and deletes', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    const namespace = uniqueName('E2ELinks');
+    const alarmName = `${uniqueName('e2e')}/high #1? 50%+a&b=c`;
+    const put = await request.post('/', {
+      headers: {
+        'content-type': 'application/x-amz-json-1.0',
+        'x-amz-target': 'GraniteServiceVersion20100801.PutMetricData',
+      },
+      data: { Namespace: namespace, MetricData: [{ MetricName: 'Errors', Value: 1, Unit: 'Count' }] },
+    });
+    expect(put.status(), await put.text()).toBe(200);
+
+    const failed: string[] = [];
+    page.on('response', (r) => {
+      if (r.status() >= 400 && r.url().includes('/_console/')) failed.push(`${r.status()} ${r.url()}`);
+    });
+
+    // Through the form, so the redirect after create is followed for real.
+    await page.goto('cw/create');
+    await page.locator('input[name=name]').fill(alarmName);
+    const metric = page.locator('select[name=metric]');
+    await metric.selectOption(
+      (await metric.locator('option').evaluateAll((os, ns) => (os as HTMLOptionElement[]).find((o) => o.dataset.ns === ns)!.value, namespace)) as string,
+    );
+    await page.getByRole('button', { name: 'Create alarm' }).click();
+    await expect(page.locator('.det-title')).toContainText(alarmName);
+
+    // From the list, and across the tabs.
+    await page.goto('cw');
+    await page.locator('.listpane a.li', { hasText: alarmName }).click();
+    await expect(page.locator('.det-title')).toContainText(alarmName);
+    await page.locator('.tabbar a', { hasText: 'History' }).click();
+    await expect(page).toHaveURL(/tab=history/);
+    await expect(page.locator('.det-title')).toContainText(alarmName);
+    await page.locator('.tabbar a', { hasText: 'State' }).click();
+
+    await page.getByRole('button', { name: 'Set state' }).click();
+    expect(await waitForToast()).toContain('set to ALARM');
+    await expect(page.locator('.det-title')).toContainText(alarmName);
+
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    await page.waitForURL(/\/cw(\?|$)/);
+    await expect(page.locator('.listpane a.li', { hasText: alarmName })).toHaveCount(0);
+
+    expect(failed, 'no request the page made was refused').toEqual([]);
+  });
+});
+
 test.describe('cloudwatch alarm actions', () => {
   test('disable and re-enable an alarm’s actions', async ({ page, request, uniqueName, waitForToast }) => {
     const alarmName = uniqueName('e2e-acts');

@@ -1,7 +1,7 @@
 {{define "eb_lp"}}
 {{template "lp_head" dict "Svc" "eb" "Prefix" .Prefix "Label" "EventBridge" "NewURL" (printf "%s/eb/create-bus" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/eb/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}{{if eq .Name "default"}} <span class="badge type" style="font-size:9px">default</span>{{end}}</span><span class="sb">{{.Rules}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/eb/{{pathesc .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}{{if eq .Name "default"}} <span class="badge type" style="font-size:9px">default</span>{{end}}</span><span class="sb">{{.Rules}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "eb" "Prefix" $.Prefix}}
     {{end}}
 {{template "lp_foot" .}}
@@ -16,7 +16,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title" role="heading" aria-level="1">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a>{{if ne .Bus "default"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/delete-bus" hx-confirm="Delete event bus “{{.Bus}}”? Its rules must be deleted first.">{{icon "trash"}} Delete</button>{{end}}</div></div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{pathesc .Bus}}/create-rule">{{icon "plus"}} Create rule</a>{{if ne .Bus "default"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/delete-bus" hx-confirm="Delete event bus “{{.Bus}}”? Its rules must be deleted first.">{{icon "trash"}} Delete</button>{{end}}</div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .BusARN}}</div>
       {{/* Tabs, as every other detail page has. All six panels used to render
            at once, two columns deep, and they are never the same height: an
@@ -27,9 +27,9 @@
            Rules keeps Test event beside it because the two interact — typing an
            event paints live match verdicts in the rules list. */}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "rules" "Label" "Rules" "Icon" "list" "URL" (printf "%s/eb/%s" .Prefix .Bus))
-        (dict "Key" "archives" "Label" "Archives" "Icon" "database" "URL" (printf "%s/eb/%s?tab=archives" .Prefix .Bus))
-        (dict "Key" "trace" "Label" "Trace" "Icon" "route" "URL" (printf "%s/eb/%s?tab=trace" .Prefix .Bus)))}}
+        (dict "Key" "rules" "Label" "Rules" "Icon" "list" "URL" (printf "%s/eb/%s" .Prefix (pathesc .Bus)))
+        (dict "Key" "archives" "Label" "Archives" "Icon" "database" "URL" (printf "%s/eb/%s?tab=archives" .Prefix (pathesc .Bus)))
+        (dict "Key" "trace" "Label" "Trace" "Icon" "route" "URL" (printf "%s/eb/%s?tab=trace" .Prefix (pathesc .Bus))))}}
     </div>
     <div class="det-b">
     {{if eq .Tab "rules"}}
@@ -38,7 +38,7 @@
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Test event</h2></div><div style="padding:14px 16px">
         {{/* As you type, the rules panel shows live match verdicts (the sibling
              div re-posts the form to /match, debounced). Publish sends it for real. */}}
-        <form id="eb-event-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML">
+        <form id="eb-event-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/test-event" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML">
           <div class="fgrid" style="margin-bottom:10px"><div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div><div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div></div>
           <div class="field"><label>Detail <span class="dim">JSON</span></label><textarea name="detail" data-editor="json" rows="4" placeholder='{"orderId":"A-1042"}'></textarea></div>
           <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -46,7 +46,7 @@
             <button class="btn" type="submit">{{icon "send"}} Publish event</button>
           </div>
         </form>
-        <div hx-post="{{.Prefix}}/eb/{{.Bus}}/match" hx-include="#eb-event-form" hx-trigger="input from:#eb-event-form delay:350ms" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML"></div>
+        <div hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/match" hx-include="#eb-event-form" hx-trigger="input from:#eb-event-form delay:350ms" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML"></div>
         <p class="mini-note">Publishing delivers to every matching rule's targets immediately.</p>
       </div></div>
     </div>
@@ -75,15 +75,15 @@
     <span class="dim" style="font-size:11.5px">every matching event is captured</span></div>
     {{if .Archives}}<table class="tbl"><thead><tr><th>Archive</th><th>Events</th><th class="right">Actions</th></tr></thead><tbody>{{range .Archives}}
       <tr><td class="mono eb-arc-name"><button type="button" class="linkish"
-             hx-get="{{$.Prefix}}/eb/{{$.Bus}}/archive/{{.Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
+             hx-get="{{$.Prefix}}/eb/{{pathesc $.Bus}}/archive/{{pathesc .Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
              title="Show its event pattern — the reason an archive has captured nothing">{{.Name}}</button></td>
         <td class="dim">{{.Events}}{{if .Retention}} · {{.Retention}}d{{end}}</td>
         <td class="right"><div class="row-actions" style="justify-content:flex-end">
-          <button class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/replay" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" title="Replay every captured event back through this bus">{{icon "rotate"}} Replay</button>
-          <button class="icon-btn sm danger" title="Delete archive" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/delete-archive" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" hx-confirm="Delete archive “{{.Name}}” and its captured events?">{{icon "trash"}}</button>
+          <button class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/eb/{{pathesc $.Bus}}/replay" hx-vals='{"name":"{{jsonstr .Name}}"}' hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" title="Replay every captured event back through this bus">{{icon "rotate"}} Replay</button>
+          <button class="icon-btn sm danger" title="Delete archive" hx-post="{{$.Prefix}}/eb/{{pathesc $.Bus}}/delete-archive" hx-vals='{"name":"{{jsonstr .Name}}"}' hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" hx-confirm="Delete archive “{{.Name}}” and its captured events?">{{icon "trash"}}</button>
         </div></td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No archives — create one to capture this bus's events for replay.</p></div>{{end}}
-    <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/create-archive" hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+    <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-archive" hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
       <input class="input" name="name" placeholder="orders-archive" required autocomplete="off" style="flex:1">
       <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Archive</button>
     </form>
@@ -98,7 +98,7 @@
   <div id="eb-replays" class="panel" hx-swap-oob="true"><div class="panel-h"><h2>{{icon "rotate"}} Replays <span class="badge">{{len .Replays}}</span></h2></div>
     {{if .Replays}}<table class="tbl"><thead><tr><th>Replay</th><th>State</th><th class="right">Started</th></tr></thead><tbody>{{range .Replays}}
       <tr><td class="mono trunc eb-rep-name" title="{{.Name}}"><button type="button" class="linkish"
-             hx-get="{{$.Prefix}}/eb/{{$.Bus}}/replay/{{.Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
+             hx-get="{{$.Prefix}}/eb/{{pathesc $.Bus}}/replay/{{pathesc .Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
              title="Show its window and state reason — why a COMPLETED replay delivered nothing">{{.Name}}</button></td>
         <td><span class="badge {{if eq .State "COMPLETED"}}state-on{{else}}zero{{end}}">{{.State}}</span></td>
         <td class="right dim" style="font-size:11px" title="{{zoned .Started}}">{{ago .Started}}</td></tr>
@@ -118,11 +118,11 @@
 <div class="eb-trace">
       <div class="sec-title">Trace a target back</div>
       <div class="panel">
-        <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
           <input class="input mono" name="target" placeholder="arn:aws:sqs:{{region}}:{{account}}:orders" required autocomplete="off">
           <button class="btn btn-outline btn-sm" type="submit">Which rules fire into this?</button>
         </form>
-        <form class="tag-row-form" hx-get="{{.Prefix}}/eb/{{.Bus}}/detail" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML">
+        <form class="tag-row-form" hx-get="{{.Prefix}}/eb/{{pathesc .Bus}}/detail" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML">
           <span class="dim send-hint">The bus's own record, including its resource policy</span>
           <button class="btn btn-ghost btn-sm" type="submit">Describe this bus</button>
         </form>
@@ -136,13 +136,13 @@
   {{if .Verdicts}}<span class="dim" style="font-size:11.5px">{{.Hits}} of {{len .Rules}} match this event</span>{{else if .MatchNote}}<span class="dim" style="font-size:11.5px">{{.MatchNote}}</span>{{end}}</div>
   {{if .Rules}}<table class="tbl"><thead><tr><th>Rule</th><th>Match</th><th class="right">{{if .Verdicts}}Verdict{{else}}State{{end}}</th></tr></thead><tbody>{{range .Rules}}
     <tr {{if $.Verdicts}}{{if eq (index $.Verdicts .Name) "match"}}class="rule-hit"{{end}}{{end}}>
-      <td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
+      <td><a class="cell-name" href="{{$.Prefix}}/eb/{{pathesc $.Bus}}/rule/{{pathesc .Name}}">{{icon "route"}} {{.Name}}</a></td>
       <td class="mono dim trunc" style="font-size:11px;max-width:220px" {{if not .Schedule}}title="{{.Pattern}}"{{end}}>{{if .Schedule}}{{.Schedule}}{{else}}{{patternPreview .Pattern}}{{end}}</td>
       <td class="right">
         {{if $.Verdicts}}{{$v := index $.Verdicts .Name}}<span class="badge {{if eq $v "match"}}state-on{{else if eq $v "no match"}}state-off{{else}}zero{{end}}">{{$v}}</span>
         {{else}}<span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span>{{end}}
       </td></tr>
-  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No rules yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{$.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
+  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No rules yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{pathesc $.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
 </div></div>
 {{end}}
 
@@ -152,11 +152,11 @@
     <div class="det-h">
       <div class="det-title" role="heading" aria-level="1">{{awsIcon "eb"}} {{.Rule.Name}} <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
         <div class="acts">
-          <button class="btn btn-outline" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/toggle" title="{{if eq .Rule.State "ENABLED"}}Stop this rule matching events{{else}}Resume matching events{{end}}">{{if eq .Rule.State "ENABLED"}}{{icon "x"}} Disable{{else}}{{icon "play"}} Enable{{end}}</button>
-          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button>
+          <button class="btn btn-outline" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rule/{{pathesc .Rule.Name}}/toggle" title="{{if eq .Rule.State "ENABLED"}}Stop this rule matching events{{else}}Resume matching events{{end}}">{{if eq .Rule.State "ENABLED"}}{{icon "x"}} Disable{{else}}{{icon "play"}} Enable{{end}}</button>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rule/{{pathesc .Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button>
         </div>
       </div>
-      <nav class="det-sub" aria-label="Breadcrumb"><a href="{{.Prefix}}/eb/{{.Bus}}" style="color:var(--accent)">{{.Bus}}</a> bus</nav>
+      <nav class="det-sub" aria-label="Breadcrumb"><a href="{{.Prefix}}/eb/{{pathesc .Bus}}" style="color:var(--accent)">{{.Bus}}</a> bus</nav>
       <div class="chips" style="margin-top:6px">{{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}</div>
       <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "eb" "Self" .Rule.Name}}</div>
     </div>
@@ -176,11 +176,11 @@
   {{if .Rule.Targets}}<table class="tbl"><thead><tr><th>ARN</th><th style="width:36px"></th></tr></thead><tbody>{{range .Rule.Targets}}
     <tr>{{/* sns.html writes the rule down: the endpoint's NAME as a service-coloured
          link, never a truncated ARN. EventBridge was the surface breaking it. */}}
-      <td title="{{.ARN}}">{{with resolve .ARN}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
+      <td title="{{.ARN}}">{{with resolve .ARN}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{pathesc $.Bus}}/rule/{{pathesc $.Rule.Name}}/remove-target" hx-vals='{"id":"{{jsonstr .ID}}"}' hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
-  <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+  <form hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rule/{{pathesc .Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
     <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:{{region}}:{{account}}:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .Destinations}}<option value="{{.ARN}}">API destination · {{.Name}}</option>{{end}}</select></div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>
@@ -199,7 +199,7 @@
     {{if .Reason}}<p class="mini-note">{{.Reason}}</p>{{end}}
     {{/* Editable, because the alternative to fixing a wrong pattern is deleting
          the archive — which discards everything it has already captured. */}}
-    <form hx-post="{{.Prefix}}/eb/{{.Bus}}/archive/{{.A.Name}}/update" hx-target="#eb-archive-detail" hx-select="" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/archive/{{pathesc .A.Name}}/update" hx-target="#eb-archive-detail" hx-select="" hx-swap="outerHTML">
       <div class="field"><label>Event pattern <span class="dim">what this archive captures</span></label>
         {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" .A.Pattern "Rows" 4 "UID" (printf "arch-%s" .A.Name) "Test" true}}</div>
       <div class="field"><label>Retention <span class="dim">days</span></label>
@@ -230,7 +230,7 @@
   <div class="panel">
     <div class="panel-h"><h2>Rules firing into this target</h2><span class="dim">{{len .Names}}</span></div>
     <table class="tbl"><tbody>
-      {{range .Names}}<tr><td><a href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.}}">{{.}}</a></td></tr>{{end}}
+      {{range .Names}}<tr><td><a href="{{$.Prefix}}/eb/{{pathesc $.Bus}}/rule/{{pathesc .}}">{{.}}</a></td></tr>{{end}}
     </tbody></table>
   </div>
   {{else}}

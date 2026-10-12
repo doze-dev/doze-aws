@@ -17,7 +17,7 @@ import (
 // GET /lambda/{fn}/logs?rid=&q=&h=
 func (c *Console) lambdaLogs(w http.ResponseWriter, r *http.Request) {
 	name := param(r, "fn")
-	data := c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+name+"/logs")
+	data := c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+seg(name)+"/logs")
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}

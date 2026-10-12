@@ -73,7 +73,7 @@ func (c *Console) sfnRedrive(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sfn/"+machine+"/execution/"+name, "Execution redriven — the states that finished stay finished; the rest run again")
+	c.redirect(w, r, c.prefix+"/sfn/"+seg(machine)+"/execution/"+seg(name), "Execution redriven — the states that finished stay finished; the rest run again")
 }
 
 // sfnHeartbeat is the worker's "still here" for a token with HeartbeatSeconds.

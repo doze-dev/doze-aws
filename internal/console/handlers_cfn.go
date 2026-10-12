@@ -144,7 +144,7 @@ func (c *Console) cfnCreate(w http.ResponseWriter, r *http.Request) {
 			c.fail(w, err)
 			return
 		}
-		c.redirect(w, r, c.prefix+"/cfn/"+name+"?tab=changesets&cs="+cs,
+		c.redirect(w, r, c.prefix+"/cfn/"+seg(name)+"?tab=changesets&cs="+urlQuery(cs),
 			"Change set created — review the diff, then execute it")
 		return
 	}
@@ -170,7 +170,7 @@ func (c *Console) cfnUpdate(w http.ResponseWriter, r *http.Request) {
 			c.fail(w, err)
 			return
 		}
-		c.redirect(w, r, c.prefix+"/cfn/"+name+"?tab=changesets&cs="+cs,
+		c.redirect(w, r, c.prefix+"/cfn/"+seg(name)+"?tab=changesets&cs="+urlQuery(cs),
 			"Change set created — review the diff, then execute it")
 		return
 	}
@@ -179,7 +179,7 @@ func (c *Console) cfnUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/cfn/"+name+"?tab=events", c.stackOutcome(r, name, "Stack update deployed"))
+	c.redirect(w, r, c.prefix+"/cfn/"+seg(name)+"?tab=events", c.stackOutcome(r, name, "Stack update deployed"))
 }
 
 // stackOutcome is what to tell someone after a deploy the API accepted.
@@ -210,9 +210,9 @@ func (c *Console) stackOutcome(r *http.Request, name, ok string) string {
 // stack did not come up, because that is the only page that says why.
 func (c *Console) stackLanding(r *http.Request, name string) string {
 	if st, err := c.be.StackDetail(r.Context(), name); err == nil && st != nil && st.Status != "CREATE_COMPLETE" {
-		return c.prefix + "/cfn/" + name + "?tab=events"
+		return c.prefix + "/cfn/" + seg(name) + "?tab=events"
 	}
-	return c.prefix + "/cfn/" + name
+	return c.prefix + "/cfn/" + seg(name)
 }
 
 func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/cfn/"+stack+"?tab=events", c.stackOutcome(r, stack, "Change set "+cs+" executed"))
+	c.redirect(w, r, c.prefix+"/cfn/"+seg(stack)+"?tab=events", c.stackOutcome(r, stack, "Change set "+cs+" executed"))
 }
 
 func (c *Console) cfnDeleteCS(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,7 @@ func (c *Console) cfnDeleteCS(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/cfn/"+stack+"?tab=changesets", "Change set "+cs+" deleted")
+	c.redirect(w, r, c.prefix+"/cfn/"+seg(stack)+"?tab=changesets", "Change set "+cs+" deleted")
 }
 
 // cfnResource is the single-resource drill-down (DescribeStackResource): the

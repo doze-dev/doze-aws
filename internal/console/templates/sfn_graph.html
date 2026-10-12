@@ -7,7 +7,7 @@
      redraws while the execution is RUNNING and goes quiet after, exactly
      like sfn_history. graph.js keeps the pan and zoom across the redraw. */}}
 {{define "sfn_graph_live"}}
-<div id="sfn-graph" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/graph" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
+<div id="sfn-graph" data-live="{{.Prefix}}/sfn/{{pathesc .Machine}}/execution/{{pathesc .Name}}/graph" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
   {{template "sfn_graph" .}}
 </div>
 {{end}}

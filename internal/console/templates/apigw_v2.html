@@ -9,8 +9,8 @@
     <div class="det-h">
       <div class="det-title" role="heading" aria-level="1">{{awsIcon "apigw"}} {{.API.Name}} <span class="badge" title="HTTP API (apigatewayv2)">HTTP</span>
         <div class="acts">
-          <a class="btn" href="{{.Prefix}}/apigw-http/{{.API.ID}}?tab=invoke">{{icon "send"}} Invoke</a>
-          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/delete" hx-confirm="Delete HTTP API “{{.API.Name}}” and every route, stage and authorizer under it?">{{icon "trash"}} Delete</button>
+          <a class="btn" href="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}?tab=invoke">{{icon "send"}} Invoke</a>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/delete" hx-confirm="Delete HTTP API “{{.API.Name}}” and every route, stage and authorizer under it?">{{icon "trash"}} Delete</button>
         </div>
       </div>
       <div class="chips">
@@ -20,11 +20,11 @@
       </div>
       {{if .API.Description}}<p class="mini-note">{{.API.Description}}</p>{{end}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "routes" "Label" "Routes" "Icon" "route" "URL" (printf "%s/apigw-http/%s" .Prefix .API.ID))
-        (dict "Key" "stages" "Label" "Stages" "Icon" "git-branch" "URL" (printf "%s/apigw-http/%s?tab=stages" .Prefix .API.ID))
-        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw-http/%s?tab=invoke" .Prefix .API.ID))
-        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/apigw-http/%s?tab=settings" .Prefix .API.ID))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/apigw-http/%s?tab=tags" .Prefix .API.ID)))}}
+        (dict "Key" "routes" "Label" "Routes" "Icon" "route" "URL" (printf "%s/apigw-http/%s" .Prefix (pathesc .API.ID)))
+        (dict "Key" "stages" "Label" "Stages" "Icon" "git-branch" "URL" (printf "%s/apigw-http/%s?tab=stages" .Prefix (pathesc .API.ID)))
+        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw-http/%s?tab=invoke" .Prefix (pathesc .API.ID)))
+        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/apigw-http/%s?tab=settings" .Prefix (pathesc .API.ID)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/apigw-http/%s?tab=tags" .Prefix (pathesc .API.ID))))}}
     </div>
     <div class="det-b">
       {{if eq .Tab "invoke"}}
@@ -54,10 +54,10 @@
       <tr>
         <td><span class="chip mono">{{.Method}}</span></td>
         <td class="mono sub">{{.Path}}</td>
-        <td class="sub">{{if .Lambda}}{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{.Lambda}}">{{.Lambda}}</a>{{else if .Target}}<span class="mono">{{.Type}}</span> {{.Target}}{{else}}<span class="dim">no integration</span>{{end}}</td>
+        <td class="sub">{{if .Lambda}}{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{pathesc .Lambda}}">{{.Lambda}}</a>{{else if .Target}}<span class="mono">{{.Type}}</span> {{.Target}}{{else}}<span class="dim">no integration</span>{{end}}</td>
         <td class="mono sub">{{if .Lambda}}{{.PayloadFormat}}{{else}}<span class="dim">—</span>{{end}}</td>
         <td class="sub">{{if eq .AuthType "CUSTOM"}}<span class="chip" title="authorizer {{.AuthID}}">Lambda authorizer</span>{{else}}<span class="dim">{{.AuthType}}</span>{{end}}</td>
-        <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete route {{.Key}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-route" hx-vals='{"route":"{{.ID}}"}' hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML" hx-confirm="Delete route “{{.Key}}”? Its integration goes with it when nothing else uses it.">{{icon "trash"}}</button></div></td>
+        <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete route {{.Key}}" hx-post="{{$.Prefix}}/apigw-http/{{pathesc $.API.ID}}/delete-route" hx-vals='{"route":"{{jsonstr .ID}}"}' hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML" hx-confirm="Delete route “{{.Key}}”? Its integration goes with it when nothing else uses it.">{{icon "trash"}}</button></div></td>
       </tr>
     {{else}}
       <tr><td colspan="6" class="mini-note">No routes. Add one below — <span class="mono">$default</span> alone catches every request.</td></tr>
@@ -67,7 +67,7 @@
 
   <div class="sec-title">Add route</div>
   <div class="panel"><div class="form-b" x-data="{kind:'lambda'}">
-    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML">
       <div class="fgrid">
         <div class="field"><label>Method</label>
           <select class="input mono" name="method"><option>ANY</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
@@ -92,7 +92,7 @@
 {{define "apigw_http_stages"}}
 <div class="split">
   <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create stage</h2></div><div class="form-b">
-    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/create-stage">
+    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-stage">
       <div class="fgrid">
         <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="$default" spellcheck="false"></div>
         <div class="field"><label>Auto-deploy</label><select class="input" name="auto_deploy"><option value="on">on — every route change is live</option><option value="off">off — deploy by hand</option></select></div>
@@ -103,7 +103,7 @@
   </div></div>
   <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Deploy</h2></div><div class="form-b">
     {{if .Stages}}
-    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/deploy">
+    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/deploy">
       <div class="field"><label>Stage</label><select class="input mono" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
       <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Deploy now</button></div>
     </form>
@@ -121,8 +121,8 @@
       <td class="mono sub trunc">{{template "copychip" dict "Value" .InvokeURL}}</td>
       <td class="sub">{{if .AutoDeploy}}<span class="badge state-on">on</span>{{else}}<span class="dim">off</span>{{end}}</td>
       <td class="mono sub">{{if .DeploymentID}}{{.DeploymentID}}{{else}}<span class="dim">none</span>{{end}}</td>
-      <td class="sub">{{if .LogGroup}}<a href="{{$.Prefix}}/logs/group?name={{.LogGroup}}">{{.LogGroup}}</a>{{else}}<span class="dim">off</span>{{end}}</td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-stage" hx-vals='{"name":"{{.Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s.">{{icon "trash"}}</button></div></td>
+      <td class="sub">{{if .LogGroup}}<a href="{{$.Prefix}}/logs/group?name={{urlquery .LogGroup}}">{{.LogGroup}}</a>{{else}}<span class="dim">off</span>{{end}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{pathesc $.API.ID}}/delete-stage" hx-vals='{"name":"{{jsonstr .Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
     <tr><td colspan="6" class="mini-note">No stages. Until one exists the routes are only a definition.</td></tr>
@@ -133,7 +133,7 @@
 
 {{define "apigw_http_invoke"}}
 {{if .Stages}}
-<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
+<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field w-stage"><label>Stage</label>
       <select class="input" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
@@ -154,7 +154,7 @@
 
 {{define "apigw_http_settings"}}
 <div class="panel form-sec"><div class="panel-h"><h2>{{icon "settings"}} API settings and CORS</h2></div><div class="form-b">
-  <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/update">
+  <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/update">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input" name="name" value="{{.API.Name}}" required></div>
       <div class="field"><label>Description</label><input class="input" name="description" value="{{.API.Description}}"></div>
@@ -191,11 +191,11 @@
   {{range .Authorizers}}
     <tr>
       <td class="mono sub">{{.Name}}</td>
-      <td class="sub">{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{.Lambda}}">{{.Lambda}}</a></td>
+      <td class="sub">{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{pathesc .Lambda}}">{{.Lambda}}</a></td>
       <td class="mono sub">{{join .IdentitySource ", "}}</td>
       <td class="mono sub">{{.PayloadFormat}}{{if .SimpleResponses}} · simple{{end}}</td>
       <td class="mono sub">{{.TTL}}s</td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete authorizer {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-confirm="Delete authorizer “{{.Name}}”? Routes that name it are refused first.">{{icon "trash"}}</button></div></td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete authorizer {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{pathesc $.API.ID}}/delete-authorizer" hx-vals='{"id":"{{jsonstr .ID}}"}' hx-confirm="Delete authorizer “{{.Name}}”? Routes that name it are refused first.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
     <tr><td colspan="6" class="mini-note">No authorizers. A route with none is open.</td></tr>
@@ -203,7 +203,7 @@
   </tbody>
 </table></div>
 <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Add authorizer</h2></div><div class="form-b">
-  <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/create-authorizer">
+  <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-authorizer">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="gate" required spellcheck="false"></div>
       <div class="field"><label>Function</label><select class="input mono" name="lambda" required><option value="">— pick a function —</option>{{range .Functions}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>

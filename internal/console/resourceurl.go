@@ -1,6 +1,8 @@
 package console
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 )
@@ -23,6 +25,32 @@ type resourceRef struct {
 	// its bus. The wiring graph keys nodes on it, which is what stops two buses
 	// with a rule of the same name collapsing into one node.
 	Key string
+}
+
+// seg is a name written as one segment of a console path. A name is not a
+// path: an alarm may be called "cpu/high #1?", an event bus "team/orders", and
+// written bare each of "/", "#" and "?" ends the segment early. The router hands
+// the segment back unescaped (restroute.Param), so every path the console
+// builds from a name goes through here and every handler reads the name it
+// was given. A query value goes through urlQuery instead.
+func seg(name string) string { return url.PathEscape(name) }
+
+// pathEsc is seg for a template: {{pathesc .Name}} in a path, {{urlquery .Name}}
+// after the "?". It takes any value so an id that is a number needs no
+// conversion first.
+func pathEsc(v any) string { return seg(fmt.Sprint(v)) }
+
+// jsonStr is a value written inside a JSON string in an attribute:
+// hx-vals='{"key":"{{jsonstr .Key}}"}'. html/template escapes the attribute for
+// HTML and knows nothing of the JSON within it, so a key with a quote or a
+// backslash in it would otherwise end the string early and htmx would send
+// nothing.
+func jsonStr(v any) string {
+	b, err := json.Marshal(fmt.Sprint(v))
+	if err != nil {
+		return ""
+	}
+	return string(b[1 : len(b)-1])
 }
 
 // OK reports whether the ref points somewhere.
@@ -92,7 +120,7 @@ func resourceURL(svc, id string) resourceRef {
 		// classify hands the wire "bucket/key", and dropping the key would land
 		// you in the bucket root when the call was three folders down.
 		bucket, key, _ := strings.Cut(id, "/")
-		ref.Name, ref.Path = bucket, "/s3/"+bucket
+		ref.Name, ref.Path = bucket, "/s3/"+seg(bucket)
 		if dir := keyDir(key); dir != "" {
 			ref.Path += "?prefix=" + url.QueryEscape(dir)
 		}
@@ -101,51 +129,51 @@ func resourceURL(svc, id string) resourceRef {
 		}
 	case "sqs":
 		n := lastSegment(id)
-		ref.Name, ref.Path = n, "/sqs/"+n
+		ref.Name, ref.Path = n, "/sqs/"+seg(n)
 	case "sns":
 		// A subscription ARN is the topic ARN plus a uuid; the topic is what has
 		// a page. Cut the uuid BEFORE lastSegment — that helper splits on ":"
 		// as well as "/", so calling it first eats the topic and keeps the uuid.
 		n, _, _ := strings.Cut(id, ":")
 		n = lastSegment(n)
-		ref.Name, ref.Path = n, "/sns/"+n
+		ref.Name, ref.Path = n, "/sns/"+seg(n)
 	case "lambda":
 		// function:name, function:name:version, or a bare name.
 		n := strings.TrimPrefix(id, "function:")
 		if i := strings.Index(n, ":"); i > 0 {
 			n = n[:i]
 		}
-		ref.Name, ref.Path = n, "/lambda/"+n
+		ref.Name, ref.Path = n, "/lambda/"+seg(n)
 	case "ddb":
 		// table/orders, or table/orders/stream/2026… — the table owns the page.
 		n := strings.TrimPrefix(id, "table/")
 		n, _, _ = strings.Cut(n, "/")
-		ref.Name, ref.Path = n, "/ddb/"+n
+		ref.Name, ref.Path = n, "/ddb/"+seg(n)
 	case "kinesis":
 		n := strings.TrimPrefix(id, "stream/")
 		n, _, _ = strings.Cut(n, "/")
-		ref.Name, ref.Path = n, "/kinesis/"+n
+		ref.Name, ref.Path = n, "/kinesis/"+seg(n)
 	case "sfn":
 		// stateMachine:name, or execution:machine:name — colon-separated, the
 		// machine owns the first page and the execution the second.
 		if rest, ok := strings.CutPrefix(id, "stateMachine:"); ok {
-			ref.Name, ref.Path = rest, "/sfn/"+rest
+			ref.Name, ref.Path = rest, "/sfn/"+seg(rest)
 		} else if rest, ok := strings.CutPrefix(id, "execution:"); ok {
 			machine, exec, _ := strings.Cut(rest, ":")
-			ref.Name, ref.Path = exec, "/sfn/"+machine+"/execution/"+exec
+			ref.Name, ref.Path = exec, "/sfn/"+seg(machine)+"/execution/"+seg(exec)
 			ref.Key = machine + "/" + exec
 		} else if strings.HasPrefix(id, "activity:") {
 			ref.Name = strings.TrimPrefix(id, "activity:")
 			return ref // activities have no page
 		} else {
-			ref.Name, ref.Path = id, "/sfn/"+id
+			ref.Name, ref.Path = id, "/sfn/"+seg(id)
 		}
 	case "cw":
 		// alarm:name, or dashboard/name. Only alarms have a page; a dashboard
 		// is stored and returned but nothing renders it locally, so its name is
 		// returned without a link rather than pointing at a page that lies.
 		if rest, ok := strings.CutPrefix(id, "alarm:"); ok {
-			ref.Name, ref.Path = rest, "/cw/alarm/"+rest
+			ref.Name, ref.Path = rest, "/cw/alarm/"+seg(rest)
 		} else if rest, ok := strings.CutPrefix(id, "dashboard/"); ok {
 			ref.Name = rest
 			return ref
@@ -157,7 +185,7 @@ func resourceURL(svc, id string) resourceRef {
 			// topic or a Lambda function — and that is not an alarm name.
 			return resourceFromARN(id)
 		} else {
-			ref.Name, ref.Path = id, "/cw/alarm/"+id
+			ref.Name, ref.Path = id, "/cw/alarm/"+seg(id)
 		}
 	case "logs":
 		// log-group:/app/api:* — the trailing :* is how CloudWatch Logs reports
@@ -183,10 +211,10 @@ func resourceURL(svc, id string) resourceRef {
 		id = strings.TrimPrefix(id, "event-bus/")
 		id = strings.TrimPrefix(id, "rule/")
 		if bus, rule, ok := strings.Cut(id, "/"); ok {
-			ref.Name, ref.Path = rule, "/eb/"+bus+"/rule/"+rule
+			ref.Name, ref.Path = rule, "/eb/"+seg(bus)+"/rule/"+seg(rule)
 			ref.Key = bus + "/" + rule
 		} else {
-			ref.Name, ref.Path, ref.Key = id, "/eb/"+id, "bus/"+id
+			ref.Name, ref.Path, ref.Key = id, "/eb/"+seg(id), "bus/"+id
 		}
 	case "kms":
 		// An alias needs a lookup to become a key id, which this cannot do
@@ -196,7 +224,7 @@ func resourceURL(svc, id string) resourceRef {
 			return ref
 		}
 		n := strings.TrimPrefix(id, "key/")
-		ref.Name, ref.Path = n, "/kms/"+n
+		ref.Name, ref.Path = n, "/kms/"+seg(n)
 	case "sm":
 		// secret:prod/db-AbCdEf — Secrets Manager appends six random characters.
 		// Only an ARN carries the suffix; a bare name ending in six
@@ -216,17 +244,17 @@ func resourceURL(svc, id string) resourceRef {
 		// stack/my-stack/uuid
 		n := strings.TrimPrefix(id, "stack/")
 		n, _, _ = strings.Cut(n, "/")
-		ref.Name, ref.Path = n, "/cfn/"+n
+		ref.Name, ref.Path = n, "/cfn/"+seg(n)
 	case "apigw":
 		// An execute-api ARN leads with the api id; the rest is stage and path.
 		// An HTTP API's own ARN is /apis/<id>, and its page is its own.
 		if strings.HasPrefix(id, "/apis/") {
 			n, _, _ := strings.Cut(strings.TrimPrefix(id, "/apis/"), "/")
-			ref.Name, ref.Path = n, "/apigw-http/"+n
+			ref.Name, ref.Path = n, "/apigw-http/"+seg(n)
 			break
 		}
 		n, _, _ := strings.Cut(strings.TrimPrefix(id, "/restapis/"), "/")
-		ref.Name, ref.Path = n, "/apigw/"+n
+		ref.Name, ref.Path = n, "/apigw/"+seg(n)
 	case "iam":
 		kind, name, ok := strings.Cut(id, "/")
 		if !ok || name == "" {
@@ -236,7 +264,7 @@ func resourceURL(svc, id string) resourceRef {
 		// addressed by ARN and does not.
 		switch kind {
 		case "user", "role", "group":
-			ref.Name, ref.Path = lastSegment(name), "/iam/"+kind+"/"+lastSegment(name)
+			ref.Name, ref.Path = lastSegment(name), "/iam/"+seg(kind)+"/"+seg(lastSegment(name))
 		default:
 			ref.Name = lastSegment(name)
 		}

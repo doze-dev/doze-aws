@@ -1,7 +1,7 @@
 {{define "sns_lp"}}
 {{template "lp_head" dict "Svc" "sns" "Prefix" .Prefix "Label" "SNS" "NewURL" (printf "%s/sns/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sns/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Subs}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sns/{{pathesc .Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Subs}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "sns" "Prefix" $.Prefix}}
     {{end}}
 {{template "lp_foot" .}}
@@ -16,7 +16,7 @@
   {{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Topic)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sns"}} {{.Topic}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{.Topic}}/delete-topic" hx-confirm="Delete topic “{{.Topic}}”?">{{icon "trash"}} Delete</button></div></div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sns"}} {{.Topic}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/delete-topic" hx-confirm="Delete topic “{{.Topic}}”?">{{icon "trash"}} Delete</button></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
       {{/* The summary strip: the facts you check a topic against, above the
            tabs and visible on all of them. Confirmed / pending is the pair that
@@ -42,10 +42,10 @@
            tab) and is right on its own terms: tags are edited on their own
            schedule, and they were competing with the thing you came for. */}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "subs" "Label" "Subscriptions" "Icon" "link" "CtID" (printf "tabct-sns-%s-subs" (slug .Topic)) "Ct" (len .Subs) "URL" (printf "%s/sns/%s" .Prefix .Topic))
-        (dict "Key" "publish" "Label" "Publish" "Icon" "send" "URL" (printf "%s/sns/%s?tab=publish" .Prefix .Topic))
-        (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=details" .Prefix .Topic))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sns/%s?tab=tags" .Prefix .Topic)))}}
+        (dict "Key" "subs" "Label" "Subscriptions" "Icon" "link" "CtID" (printf "tabct-sns-%s-subs" (slug .Topic)) "Ct" (len .Subs) "URL" (printf "%s/sns/%s" .Prefix (pathesc .Topic)))
+        (dict "Key" "publish" "Label" "Publish" "Icon" "send" "URL" (printf "%s/sns/%s?tab=publish" .Prefix (pathesc .Topic)))
+        (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=details" .Prefix (pathesc .Topic)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sns/%s?tab=tags" .Prefix (pathesc .Topic))))}}
     </div>
 
     {{if eq .Tab "details"}}
@@ -68,7 +68,7 @@
       <div class="sec-title">Attributes you can set
         <span class="tier tier-c" title="DisplayName and DeliveryPolicy are stored and returned; Policy is the access policy below">stored</span></div>
       <div class="panel">
-        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/attribute">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/attribute">
           <select class="input" name="name" title="Attribute" aria-label="Attribute">
             <option>DisplayName</option><option>Policy</option><option>DeliveryPolicy</option>
           </select>
@@ -82,7 +82,7 @@
         {{if .Perms}}
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Sid</th><th>Principal</th><th>Action</th><th></th></tr></thead><tbody>
           {{range .Perms}}<tr><td class="mono">{{.Label}}</td><td class="mono">{{.Account}}</td><td class="mono">{{.Action}}</td>
-            <td class="right"><form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? Its grant on this topic is removed." hx-vals='{"label":"{{.Label}}"}'>
+            <td class="right"><form hx-post="{{$.Prefix}}/sns/{{pathesc $.Topic}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? Its grant on this topic is removed." hx-vals='{"label":"{{jsonstr .Label}}"}'>
               <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></td></tr>{{end}}
         </tbody></table></div>
         {{end}}
@@ -91,7 +91,7 @@
           principal (S3 notifying this topic) needs a statement of its own. Set the Policy
           attribute above to write the whole document.
         </div>
-        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/permission">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/permission">
           <input class="input" name="label" placeholder="Label" aria-label="Label" required autocomplete="off">
           <input class="input" name="account" placeholder="Account ID — this one if blank" aria-label="Account ID" title="Blank grants this account ({{account}})" autocomplete="off">
           <select class="input" name="action" title="Action" aria-label="Action">
@@ -104,7 +104,7 @@
       <div class="sec-title">Data protection policy
         <span class="tier tier-c" title="Round-tripped verbatim and never applied to a message">stored, never applied</span></div>
       <div class="panel">
-        <form class="form-b" hx-post="{{.Prefix}}/sns/{{.Topic}}/data-protection">
+        <form class="form-b" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/data-protection">
           <div class="field"><textarea name="policy" data-editor="json" rows="4"
             placeholder='{"Name":"redact","Statement":[]}'>{{.DataPolicy}}</textarea>
             <span class="hint">stored and handed back; nothing is redacted locally however this reads</span></div>
@@ -128,7 +128,7 @@
           <thead><tr><th>Topic</th><th>Protocol</th><th>Endpoint</th></tr></thead>
           <tbody>{{range .AllSubs}}
             <tr{{if eq .Topic $.Topic}} class="on"{{end}}>
-              <td class="mono sub"><a href="{{$.Prefix}}/sns/{{.Topic}}">{{.Topic}}</a></td>
+              <td class="mono sub"><a href="{{$.Prefix}}/sns/{{pathesc .Topic}}">{{.Topic}}</a></td>
               <td><span class="chip">{{.Protocol}}</span></td>
               <td class="mono dim sub trunc">{{.Endpoint}}</td>
             </tr>{{end}}
@@ -161,7 +161,7 @@
         <div class="panel-h"><h2>{{icon "send"}} Publish message</h2>
           <span class="dim">fans out to {{len .Subs}} subscriber{{if ne (len .Subs) 1}}s{{end}}</span></div>
         <div class="form-b">
-        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="" hx-swap="outerHTML">
+        <form hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/publish" hx-target="#sns-receipt" hx-select="" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
           {{template "cli" (printf "sns publish --topic-arn arn:aws:sns:%s:%s:%s --message $message [--subject $subject]" region account .Topic)}}
@@ -243,7 +243,7 @@
       A subscription stays pending until the token SNS posted to the endpoint is
       handed back. Until then it is listed and receives nothing.
     </div>
-    <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/confirm" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
+    <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/confirm" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
       <input class="input mono" name="token" placeholder="Confirmation token" required autocomplete="off">
       <button class="btn btn-outline btn-sm" type="submit">Confirm</button>
     </form>
@@ -265,11 +265,11 @@
           <span class="sub-arn mono trunc dim" title="{{.Endpoint}}">{{.Endpoint}}</span>
           <button class="copy-btn" data-copy="{{.Endpoint}}" title="Copy endpoint ARN">{{icon "copy"}}</button>
           {{if not .Pending}}<button type="button" class="icon-btn sm gear" title="Delivery settings" @click="open=!open">{{icon "settings"}}</button>{{end}}
-          <button class="icon-btn sm danger" title="Unsubscribe {{.Name}}" hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" hx-confirm="Unsubscribe “{{.Name}}” from this topic?">{{icon "trash"}}</button>
+          <button class="icon-btn sm danger" title="Unsubscribe {{.Name}}" hx-post="{{$.Prefix}}/sns/{{pathesc $.Topic}}/unsubscribe" hx-vals='{"arn":"{{jsonstr .SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" hx-confirm="Unsubscribe “{{.Name}}” from this topic?">{{icon "trash"}}</button>
         </div>
         {{if not .Pending}}
         <div class="sub-cfg" x-show="open" x-cloak x-effect="if(open)$nextTick(()=>dozeEditor.refresh($root))">
-          <form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-filter" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
+          <form hx-post="{{$.Prefix}}/sns/{{pathesc $.Topic}}/sub-filter" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
             <input type="hidden" name="arn" value="{{.SubARN}}">
             <div class="field"><label>Filter policy <span class="dim">empty clears it; same pattern language as EventBridge</span></label>
             {{template "pattern_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .FilterPolicy "Rows" 5 "UID" (printf "snsf-%s" .SubARN) "Test" true}}</div>
@@ -278,7 +278,7 @@
           {{if ne .Proto "lambda"}}
           <div class="raw-toggle">
             <div><div class="opt-l">Raw message delivery</div><div class="opt-d">Deliver the bare message, not the SNS JSON envelope</div></div>
-            <label class="switch"><input aria-label="Raw message delivery" type="checkbox" name="raw" {{if .RawDelivery}}checked{{end}} hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-raw" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+            <label class="switch"><input aria-label="Raw message delivery" type="checkbox" name="raw" {{if .RawDelivery}}checked{{end}} hx-post="{{$.Prefix}}/sns/{{pathesc $.Topic}}/sub-raw" hx-vals='{"arn":"{{jsonstr .SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
           </div>
           {{end}}
         </div>
@@ -286,7 +286,7 @@
       </div>
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No subscribers — publishes go nowhere. Add one below.</p></div>{{end}}
-    <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){$el.reset();adv=false}">
+    <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{pathesc .Topic}}/subscribe" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){$el.reset();adv=false}">
       <div class="sub-add">
         <select aria-label="Protocol" class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
         <span x-show="proto==='sqs'" style="flex:1"><select aria-label="Subscription endpoint" class="input" title="Subscription endpoint" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:{{region}}:{{account}}:{{.Name}}">{{.Name}}</option>{{end}}</select></span>

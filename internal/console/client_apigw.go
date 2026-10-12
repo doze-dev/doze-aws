@@ -237,7 +237,7 @@ func integrationTarget(typ, uri string) (target, svc, href string) {
 			if j := strings.Index(name, "/"); j >= 0 {
 				name = name[:j]
 			}
-			return name, "lambda", "/lambda/" + name
+			return name, "lambda", "/lambda/" + seg(name)
 		}
 	}
 	if typ == "HTTP" || typ == "HTTP_PROXY" {
