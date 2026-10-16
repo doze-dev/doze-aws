@@ -340,7 +340,7 @@ return p.join(" ");};</script>
 
 {{/* ri = one rail item. Svc → AWS icon + live count; Glyph → Lucide (surfaces). */}}
 {{define "ri"}}
-<a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}{{if .Plain}} ri-plain{{end}}">
+<a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}{{if .Plain}} ri-plain{{end}}" aria-label="{{.Name}}">
   {{/* A service keeps its AWS icon in both rails: the labelled rail's names and
        the marks-only rail's icons are the same row. The wire and Connect are not
        services, so they are plain text when labelled, as the design draws them,

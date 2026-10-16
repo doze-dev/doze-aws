@@ -290,3 +290,20 @@ func TestTheRailDrawsTheDotsInTheMarkup(t *testing.T) {
 		t.Errorf("the SQS row has no warn dot after a DLQ filled:\n%.300s", page)
 	}
 }
+
+// The marks-only rail hides each item's name, so a link's accessible name has
+// to come from the link itself: axe's link-name rule flagged every rail link
+// on every page while the name lived only in a span that display:none removes.
+func TestEveryRailLinkHasAnAccessibleName(t *testing.T) {
+	c, _, _ := chromeConsole(t, iam.ModeSoft, awsident.Default())
+	body := req(t, c, "GET", "/_console/sqs", nil).Body.String()
+	links := regexp.MustCompile(`(?s)<a [^>]*class="ri[ "][^>]*>`).FindAllString(body, -1)
+	if len(links) < 15 {
+		t.Fatalf("found %d rail links; the check is not looking at the rail", len(links))
+	}
+	for _, l := range links {
+		if !strings.Contains(l, `aria-label="`) {
+			t.Errorf("a rail link has no aria-label (its name is hidden on the marks-only rail): %s", l)
+		}
+	}
+}
