@@ -290,6 +290,165 @@ test.describe('command palette', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('#palette')).toBeHidden();
   });
+
+  // The Palette board (plan/design/boards/Palette.dc.html), drawn at 1440 by
+  // 900: a dialog 700 wide with the query and a count of matches on one line,
+  // the results under captions ("Go to", "Create"), the matched letters
+  // underlined, the selected row carrying its ⏎, and a footer with the sentence
+  // about an ARN and the legend of keys.
+  test('is the board’s dialog: 700 wide, a count, captions, the match underlined, a footer legend', async ({
+    page,
+    request,
+    uniqueName,
+    openPalette,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const queue = await createQueue(request, uniqueName('zqpal'));
+    await page.goto('sqs');
+    await openPalette();
+    // Not yet a name: the first letters of one, so a create can offer itself.
+    const typed = queue.slice(0, -1);
+    await page.locator('#pal-q').fill(typed);
+
+    // Layout boxes, not the painted ones: the dialog pops in over 140ms.
+    const box = await page.locator('.palette').evaluate((e) => ({ w: e.offsetWidth, x: e.offsetLeft, y: e.offsetTop }));
+    expect(box).toEqual({ w: 700, x: 370, y: 120 });
+
+    // The label the board's input carries, for a reader who cannot see it.
+    await expect(page.locator('#palette label', { hasText: 'Jump or act' })).toHaveCount(1);
+
+    // One resource and the create that takes its name: two matches.
+    await expect(page.locator('#pal-count')).toHaveText('2 matches');
+    await expect(page.locator('.pal-cap')).toHaveText(['Go to', 'Create']);
+    const row = page.locator('.pal-item', { hasText: 'queue' }).first();
+    await expect(row.locator('.pal-name')).toContainText(queue);
+    // What was typed is what is underlined, and no more of the name.
+    await expect(row.locator('.pal-hit')).toHaveText(typed);
+    await expect(row.locator('.pal-hit')).toHaveCSS('text-decoration-line', 'underline');
+    // The selected row names its key; the others do not.
+    await expect(page.locator('.pal-item.sel .k')).toHaveText('⏎');
+    await expect(page.locator('.pal-item .k')).toHaveCount(1);
+
+    // The footer: the sentence the page had no advertisement for, and the legend.
+    const foot = page.locator('.pal-foot');
+    await expect(foot).toContainText('Paste an ARN or a queue URL and it goes straight to the resource.');
+    await expect(foot.locator('.k')).toHaveText(['↑', '↓', '⏎', 'esc']);
+    await expect(foot).toContainText('move');
+    await expect(foot).toContainText('close');
+  });
+
+  test('says how many match, one or none', async ({ page, request, uniqueName, openPalette }) => {
+    await page.goto('');
+    await openPalette();
+    await page.locator('#pal-q').fill('Parameter Store');
+    await expect(page.locator('#pal-count')).toHaveText('1 match');
+    await page.locator('#pal-q').fill('zzzzzz nothing is called this zzzzzz');
+    await expect(page.locator('#pal-count')).toHaveText('0 matches');
+    await expect(page.locator('.pal-empty')).toBeVisible();
+    // Nothing typed: no count to give.
+    await page.locator('#pal-q').fill('');
+    await expect(page.locator('#pal-count')).toHaveText('');
+  });
+
+  test('underlines the letters of a loose match, and only those', async ({ page, openPalette }) => {
+    await page.goto('');
+    await openPalette();
+    // Seven letters that are in "Parameter Store" in this order and not together.
+    await page.locator('#pal-q').fill('pmtrstr');
+    const row = page.locator('.pal-item', { hasText: 'Parameter Store' });
+    await expect(row).toBeVisible();
+    const hit = await row.locator('.pal-hit').allTextContents();
+    expect(hit.join('').toLowerCase()).toBe('pmtrstr');
+    expect(hit.length).toBeGreaterThan(1); // separate runs, not one block
+  });
+
+  // "create queue harbour-x" offers a create that carries the name, and follows
+  // it to the create page with the name already in the field.
+  test('a typed create offers the create with the name typed, and Enter opens it filled in', async ({ page, uniqueName, openPalette }) => {
+    const name = uniqueName('zqtyped');
+    await page.goto('');
+    await openPalette();
+    await page.locator('#pal-q').fill(`create queue ${name}`);
+    await expect(page.locator('.pal-cap')).toHaveText(['Create']);
+    const item = page.locator('.pal-item');
+    await expect(item).toHaveCount(1);
+    await expect(item).toContainText(`New queue called ${name}`);
+    await expect(item.locator('.mono')).toHaveText(name);
+    await expect(item).toHaveAttribute('href', new RegExp(`/sqs/create\\?name=${name}$`));
+    await expect(page.locator('#pal-count')).toHaveText('1 match');
+    await page.keyboard.press('Enter');
+    await page.waitForURL(new RegExp(`/sqs/create\\?name=${name}$`));
+    await expect(page.locator('input[name=name]')).toHaveValue(name);
+  });
+
+  test('a name that matches a queue offers a new queue of that name, one key away from the match', async ({
+    page,
+    request,
+    uniqueName,
+    openPalette,
+  }) => {
+    const queue = await createQueue(request, uniqueName('zqnear'));
+    const typed = queue.slice(0, -1); // not a queue yet: a prefix of one
+    await page.goto('');
+    await openPalette();
+    await page.locator('#pal-q').fill(typed);
+    await expect(page.locator('.pal-cap')).toHaveText(['Go to', 'Create']);
+    await expect(page.locator('#pal-count')).toHaveText('2 matches');
+    const make = page.locator('.pal-item', { hasText: 'New queue called' });
+    await expect(make).toHaveCount(1);
+    await expect(make.locator('.mono')).toHaveText(typed);
+    // The keys cross the caption: down once from the queue is the create.
+    await expect(page.locator('.pal-item.sel')).toContainText(queue);
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('.pal-item.sel')).toContainText('New queue called');
+    await expect(page.locator('.pal-item.sel .k')).toHaveText('⏎');
+    await page.keyboard.press('ArrowUp');
+    await expect(page.locator('.pal-item.sel')).toContainText(queue);
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await page.waitForURL(new RegExp(`/sqs/create\\?name=${typed}$`));
+    await expect(page.locator('input[name=name]')).toHaveValue(typed);
+  });
+
+  test('offers no create for a name that is already there, or for a thing that does not exist', async ({
+    page,
+    request,
+    uniqueName,
+    openPalette,
+  }) => {
+    const queue = await createQueue(request, uniqueName('zqhave'));
+    await page.goto('');
+    await openPalette();
+    // The whole name of a queue that exists: going there is the one thing to do.
+    await page.locator('#pal-q').fill(queue);
+    await expect(page.locator('.pal-item', { hasText: 'New queue called' })).toHaveCount(0);
+    await expect(page.locator('.pal-cap')).toHaveText(['Go to']);
+    // A noun the console does not make.
+    await page.locator('#pal-q').fill('create gizmo zqzq');
+    await expect(page.locator('.pal-item')).toHaveCount(0);
+    await expect(page.locator('.pal-empty')).toBeVisible();
+    // The plain verb still finds the create, with no name to carry.
+    await page.locator('#pal-q').fill('create queue');
+    await expect(page.locator('.pal-item', { hasText: 'Create queue' })).toBeVisible();
+    await expect(page.locator('.pal-cap', { hasText: 'Create' })).toBeVisible();
+  });
+
+  test('each typed create goes to its own service’s form', async ({ page, uniqueName, openPalette }) => {
+    const name = uniqueName('zqmany');
+    for (const [typed, path] of [
+      [`create bucket ${name}`, `s3/create`],
+      [`new topic ${name}`, `sns/create`],
+      [`create state machine ${name}`, `sfn/create`],
+      [`create log group ${name}`, `logs/create`],
+    ]) {
+      await page.goto('');
+      await openPalette();
+      await page.locator('#pal-q').fill(typed);
+      await page.keyboard.press('Enter');
+      await page.waitForURL(new RegExp(`/${path}\\?name=${name}$`));
+      await expect(page.locator('input[name=name]')).toHaveValue(name);
+    }
+  });
 });
 
 test.describe('styled confirm + toasts', () => {
@@ -620,6 +779,7 @@ async function readBar(page: Page) {
 const capsOf = async (page: Page) => (await readBar(page)).flatMap((i) => i.caps);
 
 const PALETTE_KEY = process.platform === 'darwin' ? 'Meta+k' : 'Control+k';
+const SUBMIT_KEY = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter';
 
 /** What pressing each key must do, per page kind. Keyed `kind:cap`. */
 type Drive = (page: Page, env: Record<string, string>) => Promise<void>;
@@ -676,6 +836,30 @@ const DRIVERS: Record<string, Drive> = {
     await page.waitForURL(new RegExp(`/${env.svc}$`));
   },
   'create:⌘K': async (page) => {
+    await page.keyboard.press(PALETTE_KEY);
+    await expect(page.locator('#palette')).toBeVisible();
+  },
+
+  // ---- a create page with the Create board's bar (every service but SQS) ----
+  'make:⌘⏎': async (page, env) => {
+    // From the field, and from nowhere in particular: the page is for making one thing.
+    const name = env.made;
+    await page.locator('input[name=name]').fill(name);
+    await page.keyboard.press(SUBMIT_KEY);
+    await page.waitForURL(new RegExp(`/${env.svc}/${name}`));
+  },
+  'make:tab': async (page) => {
+    const first = page.locator('input[name=name]');
+    await first.focus();
+    await page.keyboard.press('Tab');
+    await expect(first).not.toBeFocused();
+  },
+  'make:esc': async (page, env) => {
+    await page.locator('input[name=name]').fill('never-made');
+    await page.keyboard.press('Escape');
+    await page.waitForURL(new RegExp(`/${env.svc}$`));
+  },
+  'make:⌘K': async (page) => {
     await page.keyboard.press(PALETTE_KEY);
     await expect(page.locator('#palette')).toBeVisible();
   },
@@ -737,9 +921,11 @@ const DRIVERS: Record<string, Drive> = {
 };
 
 /** The kinds of page the bar changes between, and the keys each names. */
-const KINDS: Record<string, { url: string; caps: string[] }> = {
+const KINDS: Record<string, { url: string; caps: string[]; svc?: string }> = {
   list: { url: 'sqs', caps: ['j', 'k', '⏎', '/', 'c', '⌘K'] },
+  // Sqs-03-Create draws tab, esc, ⌘K; the Create board draws ⌘⏎ create first.
   create: { url: 'sqs/create', caps: ['tab', 'esc', '⌘K'] },
+  make: { url: 's3/create', caps: ['⌘⏎', 'tab', 'esc', '⌘K'], svc: 's3' },
   wire: { url: 'traffic', caps: ['j', 'k', '⏎', '/', '⌘K'] },
   inspect: { url: 'traffic', caps: ['j', 'k', 'c', '→', 'esc'] },
 };
@@ -762,10 +948,19 @@ test.describe('the key bar', () => {
       { caps: ['c'], label: 'new queue' },
       { caps: ['⌘K'], label: 'jump or act' },
     ]);
+    // Sqs-03-Create's bar...
     await page.goto('sqs/create');
     expect(await readBar(page)).toEqual([
       { caps: ['tab'], label: 'next field' },
       { caps: ['esc'], label: 'cancel' },
+      { caps: ['⌘K'], label: 'jump or act' },
+    ]);
+    // ...and the Create board's, on every other service's create page.
+    await page.goto('s3/create');
+    expect(await readBar(page)).toEqual([
+      { caps: ['⌘⏎'], label: 'create' },
+      { caps: ['tab'], label: 'next field' },
+      { caps: ['esc'], label: 'cancel, nothing made' },
       { caps: ['⌘K'], label: 'jump or act' },
     ]);
   });
@@ -798,7 +993,7 @@ test.describe('the key bar', () => {
   for (const [kind, spec] of Object.entries(KINDS)) {
     test(`every key the ${kind} page names does what it says`, async ({ page, request, context, uniqueName }) => {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
-      const env: Record<string, string> = { svc: 'sqs' };
+      const env: Record<string, string> = { svc: spec.svc ?? 'sqs', made: uniqueName('e2e-keys-made') };
       const q = await createQueue(request, uniqueName('e2e-keys'));
       await createQueue(request, uniqueName('e2e-keys'));
       env.queue = q;

@@ -6,11 +6,30 @@ import (
 	"net/url"
 )
 
+// createNameParam is the query parameter that carries a name into a create
+// page. The palette writes it when a name was typed ("create queue harbour-x"
+// goes to /sqs/create?name=harbour-x), every create page reads it into the
+// field that names the thing, and the palette's own data says it is called
+// this, so the two cannot name it differently.
+const createNameParam = "name"
+
+// prefillOf is the name a create page was asked to open with: what the address
+// carries, bounded (a name is at most a few hundred characters; the longest any
+// service takes is 512) and otherwise left exactly as typed. The template
+// escapes it where it lands.
+func prefillOf(r *http.Request) string {
+	n := r.URL.Query().Get(createNameParam)
+	if len(n) > 512 {
+		n = n[:512]
+	}
+	return n
+}
+
 // createPage renders a full-page create form inside the workbench shell, with
 // the service's own list pane still visible beside it.
 func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data := map[string]any{"Svc": svc, "Title": "Create"}
+		data := map[string]any{"Svc": svc, "Title": "Create", "Prefill": prefillOf(r)}
 		switch svc {
 		case "kinesis":
 			streams, _ := c.be.ListStreams(r.Context())
@@ -71,7 +90,7 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 // ebRuleCreatePage is scoped to a bus.
 func (c *Console) ebRuleCreatePage(w http.ResponseWriter, r *http.Request) {
 	buses, _ := c.be.ListBuses(r.Context())
-	c.render(w, r, "eb_rule_create", map[string]any{"Bus": param(r, "bus"), "Svc": "eb", "List": buses, "Title": "Create rule"})
+	c.render(w, r, "eb_rule_create", map[string]any{"Bus": param(r, "bus"), "Svc": "eb", "List": buses, "Title": "Create rule", "Prefill": prefillOf(r)})
 }
 
 // apiResources feeds the command palette.
@@ -171,6 +190,11 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 			add("iam", pr.Name, "/iam/"+seg(pr.Kind)+"/"+seg(pr.Name))
 		}
 	}
+	if groups, err := c.be.ListLogGroups(ctx); err == nil {
+		for _, g := range groups {
+			add("logs", g.Name, "/logs/group?name="+url.QueryEscape(g.Name))
+		}
+	}
 	if alarms, err := c.be.ListAlarms(ctx); err == nil {
 		for _, a := range alarms {
 			add("cw", a.Name, "/cw/alarm/"+seg(a.Name))
@@ -216,6 +240,12 @@ func (c *Console) apiPalette(w http.ResponseWriter, r *http.Request) {
 		N string `json:"n"`           // label
 		U string `json:"u"`           // url
 		K string `json:"k,omitempty"` // kind
+		// W and P are on a create only: what it makes ("queue"), and the query
+		// parameter that carries a typed name into its page. With them the
+		// palette can offer "New queue called harbour-x" for whatever the
+		// catalogue says can be made, with no list of its own to drift.
+		W string `json:"w,omitempty"`
+		P string `json:"p,omitempty"`
 	}
 	out := struct {
 		Nav   []item            `json:"nav"`
@@ -234,7 +264,7 @@ func (c *Console) apiPalette(w http.ResponseWriter, r *http.Request) {
 		out.Nav = append(out.Nav, item{S: e.Key, N: e.Label, U: c.prefix + "/" + e.Key, K: "service"})
 		out.Kinds[e.Key] = e.Noun
 		if e.CreatePath != "" {
-			out.Acts = append(out.Acts, item{S: e.Key, N: e.CreateLabel, U: c.prefix + e.CreatePath, K: "create"})
+			out.Acts = append(out.Acts, item{S: e.Key, N: e.CreateLabel, U: c.prefix + e.CreatePath, K: "create", W: e.Makes(), P: createNameParam})
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")

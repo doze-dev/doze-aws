@@ -329,3 +329,98 @@ test.describe('the list pane header and the key bar', () => {
     });
   }
 });
+
+// The create page's frame (boards Create, Sqs-03-Create; plan/03-shell-fidelity.md
+// S10, decision D4): the form on the left, the call it makes on the right, open;
+// the actions as a plain row under the form; the name the palette carried already
+// in the field; and no ghost row in the list pane (no service's create board
+// draws one, and Sqs-03 shows the typed name with none).
+test.describe('the create page frame', () => {
+  test('the call the form makes is open at the right, as the Create board draws it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('s3/create');
+    const call = page.locator('.detail .cli');
+    await expect(call).toBeVisible();
+    await expect(call.locator('.cli-head')).toContainText('The call this makes');
+    await expect(call.locator('.cli-head')).toContainText('It changes as you fill the form');
+    // Open without being asked, and nothing to open it with.
+    await expect(call.locator('.cli-out pre')).toContainText('s3api create-bucket --bucket');
+    await expect(call.locator('.cli-btn')).toBeHidden();
+    await expect(call.locator('.cli-note')).toContainText('Made here, kept here');
+    await expect(call.locator('.cli-note')).toContainText('template.yaml');
+
+    // At the right of the form, by the width the board gives it, and level with the first card.
+    const form = (await page.locator('.detail .form-sec').first().boundingBox())!;
+    const cb = (await call.boundingBox())!;
+    expect(cb.x).toBeGreaterThanOrEqual(form.x + form.width);
+    expect(Math.round(cb.width)).toBeGreaterThanOrEqual(360);
+    expect(Math.round(cb.width)).toBeLessThanOrEqual(440);
+    expect(Math.abs(cb.y - form.y)).toBeLessThanOrEqual(12);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1440);
+
+    // It follows the form.
+    await page.locator('input[name=name]').fill('harbour-labels');
+    await expect(call.locator('.cli-out pre')).toContainText('--bucket harbour-labels');
+  });
+
+  test('"Copy the command" copies what is shown', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('s3/create');
+    await page.locator('input[name=name]').fill('harbour-copy');
+    await page.locator('.detail .cli').getByRole('button', { name: 'Copy the command' }).click();
+    const shown = await page.locator('.detail .cli .cli-out pre').innerText();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
+  });
+
+  test('the actions are a plain row under the form: Cancel, then Create', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('s3/create');
+    const row = page.locator('.detail .form-actions');
+    await expect(row).toBeVisible();
+    await expect(row.locator('a.btn')).toHaveText('Cancel');
+    await expect(row.locator('button[type=submit]')).toHaveText('Create bucket');
+    const [c, s] = [(await row.locator('a.btn').boundingBox())!, (await row.locator('button[type=submit]').boundingBox())!];
+    expect(c.x).toBeLessThan(s.x);
+    expect(Math.abs(c.y - s.y)).toBeLessThanOrEqual(2);
+    expect(await row.evaluate((e) => getComputedStyle(e).position)).not.toBe('sticky');
+    // Left, under the cards: not a footer bar across the pane.
+    const card = (await page.locator('.detail .form-sec').first().boundingBox())!;
+    expect(Math.abs(c.x - card.x)).toBeLessThanOrEqual(2);
+    const rb = (await row.boundingBox())!;
+    expect(rb.y).toBeGreaterThanOrEqual(card.y + card.height);
+  });
+
+  test('a name in the address is in the field, and in the call', async ({ page }) => {
+    await page.goto('s3/create?name=harbour-from-the-palette');
+    await expect(page.locator('input[name=name]')).toHaveValue('harbour-from-the-palette');
+    await expect(page.locator('.detail .cli .cli-out pre')).toContainText('--bucket harbour-from-the-palette');
+    await page.goto('sqs/create?name=harbour-from-the-palette');
+    await expect(page.locator('input[name=name]')).toHaveValue('harbour-from-the-palette');
+    // The dead-letter queue named from it, as the Alpine state would have it typed.
+    await expect(page.locator('.dlq-mode.on')).toContainText('harbour-from-the-palette-dlq');
+  });
+
+  test('typing a name draws no ghost row in the list pane: Sqs-03 and the service boards show none', async ({ page }) => {
+    for (const url of ['sqs/create', 's3/create']) {
+      await page.goto(url);
+      await page.locator('input[name=name]').fill('harbour-not-yet');
+      await expect(page.locator('.listpane .lp-ghost')).toHaveCount(0);
+      await expect(page.locator('.listpane')).not.toContainText('harbour-not-yet');
+    }
+  });
+
+  test('SQS keeps its life of one message and adds the call under it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('sqs/create');
+    const side = page.locator('.q-create-side');
+    await expect(side.locator('.life')).toBeVisible();
+    const call = side.locator('.cli');
+    await expect(call).toBeVisible();
+    await expect(call.locator('.cli-head')).toContainText('The call this makes');
+    const [l, c] = [(await side.locator('.life').boundingBox())!, (await call.boundingBox())!];
+    expect(c.y).toBeGreaterThan(l.y + l.height);
+    // Once: the life panel is not drawn twice, nor the call.
+    await expect(page.locator('.cli')).toHaveCount(1);
+    await expect(page.locator('.life')).toHaveCount(1);
+  });
+});

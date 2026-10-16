@@ -53,7 +53,9 @@ var cliOmits = map[string]map[string]string{
 }
 
 var (
-	cliCall      = regexp.MustCompile(`\{\{template "cli" (?:\(printf )?"((?:[^"\\]|\\.)*)"`)
+	// "cli" is the toggle; "cli_panel" is the same command drawn as the create
+	// page's panel (D4). Both are held to their form.
+	cliCall      = regexp.MustCompile(`\{\{template "cli(?:_panel)?" (?:\(printf )?"((?:[^"\\]|\\.)*)"`)
 	cliField     = regexp.MustCompile(`\$([A-Za-z_][\w-]*)`)
 	formSpan     = regexp.MustCompile(`(?s)<form\b.*?</form>`)
 	builderField = regexp.MustCompile(`"Field" "([A-Za-z_][\w-]*)"`)

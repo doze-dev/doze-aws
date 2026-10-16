@@ -295,12 +295,21 @@ return p.join(" ");};</script>
   <!-- command palette (vanilla — survives every swap since it's outside #workspace) -->
   <div class="overlay palette-overlay" id="palette" role="dialog" aria-modal="true" aria-label="Jump or act" hidden>
     <div class="palette anim">
+      {{/* The Palette board: the query and, at its right, how many things match;
+           the results under their captions; and a foot that says what the box
+           also takes (an ARN or a queue URL, resolved by /api/resolve) and
+           which keys drive it. The label is the board's, for a reader who
+           cannot see the placeholder. */}}
       <div class="pal-input">
         {{icon "search"}}
-        <input id="pal-q" placeholder="Search resources, services, actions…" spellcheck="false" autocomplete="off">
-        <span class="kbd">esc</span>
+        <label class="pal-q"><span class="sr-only">Jump or act</span><input id="pal-q" placeholder="Search resources, services, actions…" spellcheck="false" autocomplete="off"></label>
+        <span class="pal-count" id="pal-count" aria-live="polite"></span>
       </div>
       <div class="pal-list" id="pal-list"></div>
+      <div class="pal-foot">
+        <span class="pal-tip">Paste an ARN or a queue URL and it goes straight to the resource.</span>
+        <span class="pal-legend"><span class="k">↑</span><span class="k">↓</span>move <span class="k sep">⏎</span>go <span class="k sep">esc</span>close</span>
+      </div>
     </div>
   </div>
 

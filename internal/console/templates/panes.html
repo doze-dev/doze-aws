@@ -289,6 +289,28 @@
 </div>
 {{end}}
 
+{{/* The create page's panel (boards Create, decision D4): the same command as
+     the toggle above, drawn as the Create board's right-hand card instead of
+     behind a button. The board draws the HTTP request and "Copy as curl"; the
+     console's idiom is the aws CLI line, which has a test that holds it to the
+     form (cli_preview_test.go), so the panel shows that and "Copy the command".
+
+     It is open and has no toggle: the page is the place the call is made. The
+     dot is the same template string, and the panel reads the form it sits in,
+     so it goes inside the <form>, as a direct child where the page lays the
+     form out in two columns (app.css .form-page). The note at the foot is the
+     Create board's "Made here, kept here", true of everything the console makes
+     (docs/cli.md: a ./template.yaml beside where you start doze-aws is applied
+     at boot). */}}
+{{define "cli_panel"}}
+<div class="cli cli-panel" role="group" aria-label="The call this makes" x-data="cliPreview({{printf "%q" .}}, true)">
+  <div class="cli-head"><span class="cli-cap">The call this makes</span><span class="cli-sub">It changes as you fill the form. This is the aws CLI call the form maps to.</span></div>
+  <div class="cli-out"><pre x-text="cmd"></pre></div>
+  <div class="cli-acts"><button type="button" class="btn btn-outline btn-sm" @click="copyCmd()">Copy the command</button></div>
+  <div class="cli-note"><b>Made here, kept here</b><span>What you make here exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.</span></div>
+</div>
+{{end}}
+
 {{/* The fidelity Info affordance: what of this service is REAL here. The
      ledger records functional vs cosmetic vs stub per operation — a table
      real AWS cannot offer, because real AWS never has to answer "is this

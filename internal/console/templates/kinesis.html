@@ -545,7 +545,7 @@
           <form novalidate hx-post="{{.Prefix}}/kinesis/create">
             <div class="field" style="margin-bottom:12px">
               <label>Stream name</label>
-              <input class="input" name="name" placeholder="telemetry" required autofocus autocomplete="off">
+              <input class="input" name="name" value="{{.Prefill}}" placeholder="telemetry" required autofocus autocomplete="off">
             </div>
             <div class="field">
               <label>Shards</label>

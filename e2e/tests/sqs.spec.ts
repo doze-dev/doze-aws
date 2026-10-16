@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/console';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createFunction, createQueue, postForm } from '../fixtures/api';
-import { ACCOUNT_ID, ORIGIN } from '../playwright.config';
+import { ACCOUNT_ID, ORIGIN, REGION } from '../playwright.config';
 
 // SQS console coverage: create (standard + FIFO, with/without an
 // auto-created DLQ), the composer (attributes, FIFO group/dedup), the live
@@ -795,6 +795,69 @@ test.describe('create form', () => {
     await expect(preview).toHaveText('orders-dlq.fifo');
     await fifoToggle.click();
     await expect(preview).toHaveText('orders-dlq');
+  });
+
+  // D4: the panel at the right shows the call the form makes, open, built from
+  // the form's own fields (the arguments, not a second description of them), and
+  // the command it shows makes the queue the form would.
+  test('the call this makes follows the form field by field', async ({ page }) => {
+    await page.goto('sqs/create');
+    const pre = page.locator('.q-create-side .cli-out pre');
+    await expect(pre).toBeVisible();
+    await page.locator('input[name=name]').fill('harbour-returns');
+    // A new dead-letter queue is the form's default, so the redrive policy is in it.
+    const arn = `arn:aws:sqs:${REGION}:${ACCOUNT_ID}:harbour-returns-dlq`;
+    await expect(pre).toContainText('sqs create-queue --queue-name harbour-returns --attributes');
+    await expect(pre).toContainText(`"RedrivePolicy":"{\\"deadLetterTargetArn\\":\\"${arn}\\",\\"maxReceiveCount\\":\\"3\\"}"`);
+
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
+    await expect(pre).toHaveText(new RegExp(`sqs create-queue --queue-name harbour-returns$`));
+
+    await page.locator('input[name=visibility]').fill('60');
+    await page.locator('input[name=retention]').fill('86400');
+    await page.locator('input[name=delay]').fill('5');
+    await expect(pre).toContainText(`--attributes '{"VisibilityTimeout":"60","MessageRetentionPeriod":"86400","DelaySeconds":"5"}'`);
+    // A delay of 0 is the default and is not sent, as the form does not send it.
+    await page.locator('input[name=delay]').fill('0');
+    await expect(pre).not.toContainText('DelaySeconds');
+
+    // A dead-letter queue that exists, and the receive count.
+    await page.locator('.dlq-mode', { hasText: 'Use an existing queue' }).click();
+    await page.locator('input[name=max_receive]').fill('5');
+    await expect(pre).not.toContainText('RedrivePolicy'); // none picked yet
+  });
+
+  test('a FIFO queue’s call carries the suffix and its own attributes, and tags are tags', async ({ page }) => {
+    await page.goto('sqs/create');
+    const pre = page.locator('.q-create-side .cli-out pre');
+    await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
+    await page.locator('input[name=name]').fill('harbour-depot');
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
+    await page.locator('.q-seg', { has: page.locator('input[name=content_dedup]') }).click();
+    await expect(pre).toContainText(`--queue-name harbour-depot.fifo --attributes '{"FifoQueue":"true","ContentBasedDeduplication":"true"}'`);
+    // Advanced is open on a FIFO queue (Sqs-04): its settings are at hand.
+    await page.locator('select[name=dedup_scope]').selectOption('messageGroup');
+    await page.locator('select[name=throughput_limit]').selectOption('perMessageGroupId');
+    await expect(pre).toContainText('"DeduplicationScope":"messageGroup","FifoThroughputLimit":"perMessageGroupId"');
+    await page.getByRole('button', { name: 'Add tag' }).click();
+    await page.locator('input[name=tag_key]').fill('team');
+    await page.locator('input[name=tag_val]').fill('depot');
+    await expect(pre).toContainText('--tags team=depot');
+    // Back to standard: the FIFO-only settings are not sent, so they are not shown.
+    await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
+    await expect(pre).toContainText('--queue-name harbour-depot ');
+    await expect(pre).not.toContainText('FifoQueue');
+    await expect(pre).not.toContainText('DeduplicationScope');
+  });
+
+  test('the dead-letter queue made alongside is said to be made first', async ({ page }) => {
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill('harbour-returns');
+    const note = page.locator('.q-create-side .cli-also');
+    await expect(note).toContainText('harbour-returns-dlq');
+    await expect(note).toContainText('first');
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
+    await expect(note).toBeHidden();
   });
 
   test('the access policy hint says it is evaluated (SQS-2)', async ({ page }) => {

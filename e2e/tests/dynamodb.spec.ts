@@ -458,12 +458,10 @@ test.describe('create form command preview', () => {
   // every attribute an index keys on among the definitions: builder.js builds
   // both from the form's index rows (%ddb-attrs, %ddb-indexes).
   //
-  // Read from the page: the preview the form itself shows.
+  // Read from the page: the preview the form itself shows. It is the Create
+  // board's panel (D4), open and following the form, with no button to press.
   async function preview(page: Page): Promise<string> {
-    const cli = page.locator('form[hx-post$="/ddb/create"] .cli');
-    const out = cli.locator('.cli-out');
-    if (await out.isVisible()) await cli.locator('.cli-btn').click(); // close, so opening rebuilds it
-    await cli.locator('.cli-btn').click();
+    const out = page.locator('form[hx-post$="/ddb/create"] .cli-panel .cli-out');
     await expect(out).toBeVisible();
     return (await out.locator('pre').innerText()).replace(/\s+/g, ' ');
   }

@@ -540,7 +540,7 @@
 
             <div class="field" style="margin-bottom:12px">
               <label x-text="kind==='slr' ? 'AWS service' : 'Name'"></label>
-              <input class="input" name="name" required autofocus autocomplete="off"
+              <input class="input" name="name" value="{{.Prefill}}" required autofocus autocomplete="off"
                      :placeholder="kind==='user' ? 'app-user' : kind==='role' ? 'lambda-exec' : kind==='policy' ? 's3-read' : kind==='group' ? 'developers' : kind==='profile' ? 'web-servers' : 'autoscaling.amazonaws.com'">
             </div>
             <p class="mini-note" x-show="kind==='group'" x-cloak>A group holds users; policies attached to it apply to every member.</p>

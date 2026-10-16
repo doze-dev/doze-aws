@@ -362,6 +362,9 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		// paste anywhere under --account-id, and several of these sites are
 		// copy-as-CLI snippets and form values rather than placeholders.
 		"account": id.Account,
+		// arn is a resource's ARN under the instance's identity (awsident), so a
+		// form that names a resource by ARN builds it the way the console does.
+		"arn": id.ARN,
 		// setting is a service's record of one setting (internal/settings), which
 		// the kit's setting_field reads its bounds, unit and default from.
 		"setting": func(svc, name string) settings.Setting {
@@ -422,8 +425,11 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"plural":     pluralFor,
 		"listKeys":   listKeys,
 		"createKeys": func() string { return createKeys },
-		"itemFor":    itemFor,
-		"resolveIn":  resourceURL,
+		// SQS's create page is drawn by its own boards (Sqs-03, Sqs-04): its bar
+		// is theirs, without the ⌘⏎ the generic Create board adds.
+		"sqsCreateKeys": func() string { return sqsCreateKeys },
+		"itemFor":       itemFor,
+		"resolveIn":     resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},

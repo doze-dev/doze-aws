@@ -708,19 +708,72 @@
     for (var j = 0; j < hay.length && i < q.length; j++) if (hay[j] === q[i]) i++;
     return i === q.length;
   }
-  function palFiltered() {
-    var q = palQ.value.toLowerCase().trim();
-    if (!q) return palItems.slice(0, 10);
-    // Searching the service key too means typing "sqs" finds the queues.
-    var exact = [], fuzzy = [];
-    palItems.forEach(function (it) {
-      if (it.q) { if (it.q.toLowerCase() === q) exact.unshift(it); return; }
-      var hay = (it.n + " " + (it.k || "") + " " + (it.s || "")).toLowerCase();
-      if (hay.indexOf(q) >= 0) exact.push(it);
-      else if (subseq(hay, q)) fuzzy.push(it);
-    });
-    return exact.concat(fuzzy).slice(0, 10);
+  // The results are two sections, as the Palette board draws them: "Go to"
+  // (where things are: your recent pages, the resources, the services and
+  // surfaces) and "Create" (what can be made). Arrow keys walk them as one list,
+  // in the order they are drawn; the captions are not rows.
+  function isMake(it) { return it.k === "create"; }
+  function actFor(svc) {
+    return (CAT.acts || []).filter(function (a) { return a.s === svc && a.w; })[0];
   }
+  // A create with the typed name on it. The address is the create page's own,
+  // with the name in the parameter the catalogue says carries it, so the form
+  // opens already holding what was typed.
+  function typedCreate(a, name) {
+    return { s: a.s, w: a.w, name: name, k: "create", typed: true,
+             u: a.u + (a.u.indexOf("?") < 0 ? "?" : "&") + (a.p || "name") + "=" + encodeURIComponent(name) };
+  }
+  // "create queue harbour-x": a verb, a noun the catalogue says can be made, and
+  // a name. Nothing else is a typed create, so "create gizmo x" offers nothing.
+  function typedFromVerb(raw) {
+    var m = /^(?:create|new|make|add|store)\s+(.+)$/i.exec(raw.trim());
+    if (!m) return null;
+    var rest = m[1].trim(), low = rest.toLowerCase();
+    var acts = (CAT.acts || []).filter(function (a) { return a.w; })
+      .sort(function (a, b) { return b.w.length - a.w.length; });
+    for (var i = 0; i < acts.length; i++) {
+      var w = acts[i].w.toLowerCase();
+      if (low.indexOf(w + " ") !== 0) continue;
+      var name = rest.slice(w.length).trim();
+      if (name && !/\s/.test(name)) return typedCreate(acts[i], name);
+    }
+    return null;
+  }
+  // The board's other case: a single word that is not (yet) anything, typed
+  // while a thing of one kind matches it ("checkout" finds queues), offers a new
+  // one of that kind with the word for its name. Not offered for a name that is
+  // already there, for a service or a page, or for an ARN or a URL.
+  function typedFromMatch(raw, top) {
+    var name = raw.trim();
+    if (!top || !top.s || !/^\S{2,}$/.test(name) || name.indexOf("arn:") === 0 || name.indexOf("://") >= 0) return null;
+    if (top.k === "service" || top.k === "surface" || isMake(top)) return null;
+    var a = actFor(top.s);
+    if (!a) return null;
+    var taken = palItems.some(function (it) { return !isMake(it) && it.k !== "service" && it.k !== "surface" && it.n === name; });
+    return taken ? null : typedCreate(a, name);
+  }
+  function palMatch(q) {
+    // Searching the service key too means typing "sqs" finds the queues.
+    var ex = [], fz = [], mex = [], mfz = [];
+    palItems.forEach(function (it) {
+      if (it.q) { if (it.q.toLowerCase() === q) ex.unshift(it); return; }
+      var hay = (it.n + " " + (it.k || "") + " " + (it.s || "")).toLowerCase();
+      var make = isMake(it);
+      if (hay.indexOf(q) >= 0) (make ? mex : ex).push(it);
+      else if (subseq(hay, q)) (make ? mfz : fz).push(it);
+    });
+    var typed = typedFromVerb(palQ.value) || typedFromMatch(palQ.value, ex[0]);
+    return { go: ex.concat(fz), make: (typed ? [typed] : []).concat(mex, mfz) };
+  }
+  // palView is what is shown: ten rows at most, "Go to" first, and the count
+  // of everything that matched.
+  function palView() {
+    var q = palQ.value.toLowerCase().trim();
+    var m = q ? palMatch(q) : { go: palItems.filter(function (it) { return !isMake(it); }), make: palItems.filter(isMake) };
+    var mk = m.make.slice(0, Math.max(3, 10 - m.go.length)), go = m.go.slice(0, 10 - mk.length);
+    return { q: q, go: go, make: mk, items: go.concat(mk), total: m.go.length + m.make.length };
+  }
+  function palFiltered() { return palView().items; }
 
   // An ARN pasted out of a stack trace resolves to its page. The parse lives in
   // Go — it is the same table every link in the console is built from, and a
@@ -746,21 +799,103 @@
   function renderPal() {
     palRefs();
     if (!palList) return;
-    var items = palFiltered();
+    var v = palView(), items = v.items;
     if (palSel >= items.length) palSel = Math.max(0, items.length - 1);
     palList.innerHTML = "";
+    // The count the board draws beside the query: everything that matched, and
+    // how many of those are shown when there are more than the ten rows.
+    var count = document.getElementById("pal-count");
+    if (count) {
+      count.textContent = !v.q ? "" :
+        (items.length < v.total ? items.length + " of " + v.total : v.total) + " " + (v.total === 1 ? "match" : "matches");
+    }
     if (!items.length) { palList.innerHTML = '<div class="pal-empty">Nothing matches</div>'; return; }
-    items.forEach(function (it, i) {
-      var a = document.createElement("a");
-      a.className = "pal-item" + (i === palSel ? " sel" : "");
-      a.href = it.u;
-      a.innerHTML = (it.s ? '<img class="aws-ic sm" src="' + PREFIX + '/static/aws/' + it.s + '.svg">' : '<span class="pal-dot"></span>') +
-        '<span class="pal-name"></span><span class="pal-kind"></span>';
-      a.querySelector(".pal-name").textContent = it.n;
-      a.querySelector(".pal-kind").textContent = it.k;
-      a.onmouseenter = function () { palSel = i; renderPal(); };
-      palList.appendChild(a);
+    var at = 0;
+    function section(label, rows) {
+      if (!rows.length) return;
+      var cap = document.createElement("div");
+      cap.className = "pal-cap";
+      cap.textContent = label;
+      palList.appendChild(cap);
+      rows.forEach(function (it) {
+        var i = at++, a = document.createElement("a");
+        a.className = "pal-item" + (i === palSel ? " sel" : "");
+        a.href = it.u;
+        if (it.s) {
+          var img = document.createElement("img");
+          img.className = "aws-ic sm"; img.alt = ""; img.src = PREFIX + "/static/aws/" + it.s + ".svg";
+          a.appendChild(img);
+        } else {
+          var dot = document.createElement("span");
+          dot.className = "pal-dot";
+          a.appendChild(dot);
+        }
+        var nm = document.createElement("span");
+        nm.className = "pal-name";
+        if (it.typed) {
+          nm.appendChild(document.createTextNode("New " + it.w + " called "));
+          var typed = document.createElement("span");
+          typed.className = "mono"; typed.textContent = it.name;
+          nm.appendChild(typed);
+        } else {
+          paintName(nm, it.n, v.q);
+        }
+        a.appendChild(nm);
+        if (!it.typed) {
+          var kind = document.createElement("span");
+          kind.className = "pal-kind"; kind.textContent = it.k;
+          a.appendChild(kind);
+        }
+        a.onmouseenter = function () { palSel = i; paintSel(); };
+        palList.appendChild(a);
+      });
+    }
+    section("Go to", v.go);
+    section("Create", v.make);
+    paintSel();
+  }
+  // The row under the cursor names its key (the board's ⏎); the others do not.
+  function paintSel() {
+    palRefs();
+    if (!palList) return;
+    var rows = palList.querySelectorAll(".pal-item");
+    for (var i = 0; i < rows.length; i++) {
+      var on = i === palSel, k = rows[i].querySelector(".k");
+      rows[i].classList.toggle("sel", on);
+      if (on && !k) {
+        k = document.createElement("span");
+        k.className = "k"; k.textContent = "⏎";
+        rows[i].appendChild(k);
+        rows[i].scrollIntoView({ block: "nearest" });
+      } else if (!on && k) k.remove();
+    }
+  }
+  // A name with what was typed underlined in it, as the board draws it: the
+  // substring where there is one, else the letters, in order, where the loose
+  // match found them. A match that lies in the kind or the service and not in
+  // the name underlines nothing.
+  function paintName(el, text, q) {
+    var low = text.toLowerCase(), runs = [], at = q ? low.indexOf(q) : -1;
+    if (at >= 0) runs.push([at, at + q.length]);
+    else if (q) {
+      var j = 0;
+      for (var i = 0; i < low.length && j < q.length; i++) {
+        if (low[i] !== q[j]) continue;
+        j++;
+        var last = runs[runs.length - 1];
+        if (last && last[1] === i) last[1] = i + 1; else runs.push([i, i + 1]);
+      }
+      if (j !== q.length) runs = [];
+    }
+    var pos = 0;
+    runs.forEach(function (r) {
+      if (r[0] > pos) el.appendChild(document.createTextNode(text.slice(pos, r[0])));
+      var hit = document.createElement("span");
+      hit.className = "pal-hit"; hit.textContent = text.slice(r[0], r[1]);
+      el.appendChild(hit);
+      pos = r[1];
     });
+    if (pos < text.length) el.appendChild(document.createTextNode(text.slice(pos)));
   }
   function closePalette() {
     palRefs();
@@ -791,6 +926,7 @@
     "→": function () { return wireFollow(); },
     "esc": function () { return wireClose() || cancelPage(); },
     "⌘K": function () { openPalette(); return true; },
+    "⌘⏎": function () { return submitCreate(); },
     "tab": function () { return false; /* the browser's own: the next field */ }
   };
   // What a keydown is called on a bar. ⌘K is matched before this table.
@@ -896,6 +1032,17 @@
     if (link) link.click(); else history.back();
     return true;
   }
+  // ⌘⏎ on a create page makes the thing: the form the focus is in, else the
+  // page's (a create page has one). Not a page that is not a create page.
+  function submitCreate() {
+    var page = document.querySelector("#workspace [data-esc-back]");
+    if (!page) return false;
+    var at = document.activeElement, form = at && at.closest ? at.closest("form") : null;
+    if (!form || !page.contains(form)) form = page.querySelector("form");
+    if (!form) return false;
+    form.requestSubmit();
+    return true;
+  }
   // A dialog, drawer or palette on top has its own Escape; the page behind must
   // not also leave.
   function overlayOpen() {
@@ -993,8 +1140,8 @@
     if (inPal) {
       var items = palFiltered();
       if (e.key === "Escape") { closePalette(); e.preventDefault(); }
-      else if (e.key === "ArrowDown") { palSel = Math.min(palSel + 1, items.length - 1); renderPal(); e.preventDefault(); }
-      else if (e.key === "ArrowUp") { palSel = Math.max(palSel - 1, 0); renderPal(); e.preventDefault(); }
+      else if (e.key === "ArrowDown") { palSel = Math.min(palSel + 1, items.length - 1); paintSel(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { palSel = Math.max(palSel - 1, 0); paintSel(); e.preventDefault(); }
       else if (e.key === "Enter") { var it = items[palSel]; if (it) location.href = it.u; e.preventDefault(); }
       return;
     }
@@ -1004,6 +1151,10 @@
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       var form = document.activeElement.closest ? document.activeElement.closest("form") : null;
       if (form && form.querySelector("textarea, .CodeMirror")) { e.preventDefault(); form.requestSubmit(); return; }
+      // And on a create page, from any field or none: the page is for making one
+      // thing, and the key bar says ⌘⏎ makes it (board Create). A dialog on top
+      // has the key first.
+      if (!overlayOpen() && submitCreate()) { e.preventDefault(); return; }
     }
     // Esc in the filter clears it and hands the keys back to the list.
     if (e.key === "Escape" && document.activeElement.matches && document.activeElement.matches(".listpane .filter input")) {

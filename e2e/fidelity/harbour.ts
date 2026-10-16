@@ -106,6 +106,15 @@ export async function seedHarbour(i: Inst, warn: (s: string) => void): Promise<v
       body: JSON.stringify({ EventSourceArn: A(MAIN), FunctionName: 'harbour-order-validator', Enabled: false, BatchSize: 10 }),
     });
     if (!r.ok) warn(`seed: event source mapping -> ${r.status}`);
+    // The Palette board's third match for "checkout": a log group, so the board's
+    // "4 matches" (three places to go and the create) is the page's too.
+    r = await fetch(`${server.origin}/_console/logs/create`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ name: '/harbour/checkout' }),
+    });
+    if (r.status >= 400) warn(`seed: log group -> ${r.status}`);
   } catch (e) {
     warn(`seed: neighbours skipped: ${e}`);
   }

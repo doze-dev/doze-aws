@@ -12,6 +12,8 @@ package console
 //
 // One list, read by all of them, so that cannot happen again.
 
+import "strings"
+
 type svcEntry struct {
 	Key   string // console key: colour, icon, URL segment
 	Label string // what the rail and the palette call it
@@ -86,6 +88,14 @@ func catalogOf(key string) (svcEntry, bool) {
 		}
 	}
 	return svcEntry{}, false
+}
+
+// Makes is what the service's create makes, in the words its button uses: the
+// label without its verb ("Create event bus" makes an "event bus", "Store
+// secret" a "secret"). Empty when the service has no create.
+func (e svcEntry) Makes() string {
+	_, noun, _ := strings.Cut(e.CreateLabel, " ")
+	return noun
 }
 
 // nounFor is what one of a service's resources is called, for a palette result's

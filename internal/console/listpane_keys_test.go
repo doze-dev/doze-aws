@@ -137,8 +137,8 @@ func TestEachPageDeclaresTheKeysItAnswersTo(t *testing.T) {
 		{"/_console/s3", "j k=bucket|⏎=open|/=filter|c=new bucket|⌘K=jump or act"},
 		{"/_console/eb", "j k=bus|⏎=open|/=filter|c=new bus|⌘K=jump or act"},
 		{"/_console/iam", "j k=principal|⏎=open|/=filter|c=new principal|⌘K=jump or act"},
-		{"/_console/sqs/create", "tab=next field|esc=cancel|⌘K=jump or act"},
-		{"/_console/s3/create", "tab=next field|esc=cancel|⌘K=jump or act"},
+		{"/_console/sqs/create", sqsCreateKeys},
+		{"/_console/s3/create", otherCreateKeys},
 	}
 	for _, c := range cases {
 		page := req(t, h, "GET", c.path, nil).Body.String()
@@ -181,8 +181,12 @@ func TestEveryCreatePageSaysEscapeCancels(t *testing.T) {
 		if !strings.Contains(page, "data-esc-back") {
 			t.Errorf("%s: the create page does not say Escape cancels (data-esc-back)", svc)
 		}
+		want := otherCreateKeys
+		if svc == "sqs" {
+			want = sqsCreateKeys
+		}
 		got := declaredKeys(page)
-		if len(got) == 0 || got[len(got)-1] != "tab=next field|esc=cancel|⌘K=jump or act" {
+		if len(got) == 0 || got[len(got)-1] != want {
 			t.Errorf("%s: the create page declares %q", svc, got)
 		}
 	}
@@ -215,7 +219,7 @@ func TestEveryKeyAPageNamesIsOneTheScriptBinds(t *testing.T) {
 	if bound["?"] {
 		t.Errorf("shell.js binds ?, which no board draws a sheet for (D10)")
 	}
-	pages := []string{"/_console/", "/_console/connect", "/_console/nowhere", "/_console/iam", "/_console/iam/create"}
+	pages := []string{"/_console/", "/_console/connect", "/_console/nowhere", "/_console/iam", "/_console/iam/create", "/_console/sqs/create", "/_console/s3/create"}
 	for svc := range boardHeadings {
 		pages = append(pages, "/_console/"+svc)
 	}

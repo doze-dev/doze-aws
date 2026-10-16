@@ -379,7 +379,7 @@ a { color: inherit; text-decoration: none; }
   background: var(--card); border-top: 1px solid var(--border);
   color: var(--muted-foreground); font-size: var(--text-sm); white-space: nowrap; overflow: hidden;
 }
-.keys .k {
+.keys .k, .pal-foot .k, .pal-item .k {
   display: inline-block; min-width: 18px; padding: 0 5px; margin-right: 6px;
   border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius);
   background: var(--well); color: var(--foreground);
@@ -871,17 +871,36 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 }
 
 /* ---------- command palette ---------- */
-.palette-overlay { padding-top: 14vh; align-items: start; }
-.palette { width: 100%; max-width: 560px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.pal-input { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
-.pal-input .ic { color: var(--muted-foreground); }
-.pal-input input { flex: 1; border: 0; background: transparent; outline: none; font: inherit; font-size: 14px; color: var(--foreground); }
-.pal-list { max-height: 340px; overflow-y: auto; padding: 6px; }
-.pal-item { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
-.pal-item.sel { background: var(--muted); }
-.pal-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pal-kind { margin-left: auto; font-size: 11px; color: var(--muted-foreground); flex: 0 0 auto; }
+.palette-overlay { padding-top: 120px; align-items: start; }
+/* The Palette board: 700 wide, 120 from the top, the query and its count on one
+   line, results under captions, a foot that says what else the box takes and
+   which keys drive it. */
+.palette {
+  width: 100%; max-width: 700px; background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22); overflow: hidden;
+}
+.pal-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.pal-input .ic { flex: none; color: var(--muted-foreground); }
+.pal-q { flex: 1; min-width: 0; display: flex; }
+.pal-input input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 14px; color: var(--foreground); }
+.pal-input input:focus-visible { box-shadow: none; } /* the dialog is the focus; the board draws no ring on its query */
+.pal-count { flex: none; font-size: 12px; color: var(--muted-foreground); }
+.pal-list { max-height: 360px; overflow-y: auto; padding: 6px 0 4px; }
+.pal-cap { padding: 10px 16px 2px; font-size: 10px; line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-caps); color: var(--muted-foreground); }
+.pal-cap:first-child { padding-top: 6px; }
+.pal-item { display: flex; align-items: center; gap: 8px; padding: 5px 16px; font-size: 13px; line-height: 20px; color: inherit; text-decoration: none; cursor: pointer; }
+.pal-item.sel { background: var(--sel); }
+.pal-item .aws-ic.sm { width: 18px; height: 18px; border-radius: var(--radius); }
+.pal-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-item.sel .pal-name { font-weight: 600; }
+.pal-hit { text-decoration: underline; text-underline-offset: 2px; }
+.pal-kind { flex: none; font-size: 12px; color: var(--muted-foreground); }
+.pal-item .k { margin: 0 0 0 auto; }
 .pal-empty { padding: 22px; text-align: center; color: var(--muted-foreground); font-size: 13px; }
+.pal-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--well); font-size: 12px; color: var(--muted-foreground); }
+.pal-tip { min-width: 0; }
+.pal-legend { flex: none; white-space: nowrap; }
+.pal-legend .k.sep { margin-left: 10px; }
 
 /* ---------- full-page create forms ---------- */
 /* Create pages sit directly inside .detail (no det-h/det-b), so they carry
@@ -896,9 +915,29 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 .field.stack { margin-top: 10px; }
 .empty.flat { border: 0; }
 .form-sec { margin-bottom: 14px; }
+/* The actions under the form (boards Create, every service's Create): a plain
+   row, Cancel then the verb, not a bar across the pane. */
+.form-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+/* A create page that shows the call it makes is two columns (board Create): the
+   cards on the left, the call at the right, sticky while the form scrolls. Narrow,
+   the call is the last thing in the form. The grid's rows are the form's children
+   and the call spans them all; the last row is flexible, so the call's height
+   lands on it and never stretches a card above it (a spanning item adds to
+   flexible tracks only). */
+.form-page:has(.cli-panel) { max-width: none; padding: 18px 28px 24px; }
+.form-page form:has(> .cli-panel) { display: flex; flex-direction: column; }
+.form-page form:has(> .cli-panel) > .form-actions { order: 8; margin-bottom: 14px; }
+.form-page form:has(> .cli-panel) > .cli-panel { order: 9; }
+@container pane (min-width: 880px) {
+  .form-page form:has(> .cli-panel) {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); column-gap: 16px;
+    grid-template-rows: repeat(16, auto) 1fr; align-items: start;
+  }
+  .form-page form:has(> .cli-panel) > * { grid-column: 1; }
+  .form-page form:has(> .cli-panel) > .cli-panel { grid-column: 2; grid-row: 1 / 18; position: sticky; top: 0; margin: 0; }
+}
 .form-b { padding: 14px 16px; }
 .form-b .opt-row:first-child { padding-top: 4px; }
-.form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 6px 0 40px; }
 .htmx-indicator { opacity: 0; transition: opacity .15s; font-size: 12px; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
 
@@ -2099,6 +2138,29 @@ a.lo-card:hover { border-color: var(--accent); }
 .cli-out { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }
 .cli-out pre { flex: 1; min-width: 0; margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; background: color-mix(in srgb, var(--muted) 40%, transparent); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
 
+/* The create page's call panel (boards Create, S3-02-Create; decision D4): the
+   Create board's right-hand card. A header with the eyebrow and one sentence, the
+   command as the board's .code block, "Copy the command", and the callout "Made
+   here, kept here". Open, with no toggle: it is the toggle's command drawn as a
+   panel (templates/panes.html cli_panel). */
+.cli-panel { margin: 0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.cli-head { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 10px; border-bottom: 1px solid var(--line2); }
+.cli-cap { font-size: 10px; line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-caps); color: var(--muted-foreground); }
+.cli-sub { font-size: 12px; line-height: 18px; color: var(--muted-foreground); }
+.cli-panel > :not(.cli-head) { margin: 12px 16px 0; }
+.cli-panel > :last-child { margin-bottom: 14px; }
+.cli-panel .cli-out { display: block; }
+.cli-panel .cli-out pre {
+  margin: 0; padding: 10px 12px; font-family: var(--mono); font-size: 12px; line-height: 19px; white-space: pre-wrap; word-break: normal; overflow-wrap: anywhere;
+  background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius);
+}
+.cli-acts { display: flex; gap: 8px; }
+.cli-note { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.cli-note b { font-weight: 600; }
+.cli-note span { font-size: 12px; line-height: 18px; color: var(--muted-foreground); }
+/* SQS: the dead-letter queue made alongside is a call of its own (create.html). */
+.cli-also { margin: 0; }
+
 /* The fidelity Info button: quiet in the pane header, next to the count. */
 .info-btn { display: inline-flex; align-items: center; border: 0; background: none; color: var(--muted-foreground); cursor: pointer; padding: 2px; }
 .info-btn:hover { color: var(--foreground); }
@@ -2620,7 +2682,10 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
   .q-create-cols { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
   .is-fifo .q-create-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 520px); }
   .q-create-side { padding-top: 52px; }
-  .q-create form:not(.is-fifo) .q-create-side { position: sticky; top: 0; }
+  /* Sticky, and no taller than the window (less the top bar and the key bar): the
+     life of one message and the call it makes are more than a short window holds,
+     and a sticky column taller than the window cannot be scrolled to its end. */
+  .q-create form:not(.is-fifo) .q-create-side { position: sticky; top: 0; max-height: calc(100vh - 72px); overflow-y: auto; }
 }
 .q-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .q-create-side { gap: 10px; }
@@ -2658,6 +2723,8 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .q-create .q-advbody { padding-top: 0; }
 .q-create .q-advbody > * + * { margin-top: 0; }
 .q-create .life { margin: 0; }
+/* The title and the line under it are one block (Sqs-03: 24 and 18 px, nothing between); the paragraph's own margins were pushing the first card 24px down. */
+.q-create .q-h1 + .q-note { margin: 0; }
 .q-create .life-list { gap: 10px; padding-top: 4px; }
 .q-create .life-list li { grid-template-columns: 7px minmax(0, 1fr); gap: 8px; line-height: 20px; }
 .q-create .life-list li > .q-dot, .q-create .life-steps li > .q-dot { margin-top: 7px; }

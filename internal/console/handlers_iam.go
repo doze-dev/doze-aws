@@ -185,7 +185,7 @@ func (c *Console) iamCreatePage(w http.ResponseWriter, r *http.Request) {
 	principals, policies, navGroups, navProfiles := c.iamNav(r)
 	c.render(w, r, "iam_create", map[string]any{
 		"Principals": principals, "Policies": policies, "NavGroups": navGroups, "NavProfiles": navProfiles,
-		"Kind": r.URL.Query().Get("kind"), "Title": "Create · IAM",
+		"Kind": r.URL.Query().Get("kind"), "Title": "Create · IAM", "Prefill": prefillOf(r),
 		"DefaultTrust": defaultTrust, "StarterPolicy": starterPolicy,
 		"SeenActions": c.seenActions(r),
 	})

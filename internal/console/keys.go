@@ -21,9 +21,17 @@ import "strings"
 // keyPalette is the one key every page answers to.
 const keyPalette = "⌘K=jump or act"
 
-// createKeys is the set of every create page (board Sqs-03-Create). Escape
-// leaves the form: the page carries data-esc-back beside it.
-const createKeys = "tab=next field|esc=cancel|" + keyPalette
+// sqsCreateKeys is the SQS create page's set (boards Sqs-03-Create and
+// Sqs-04-Create-FIFO). Escape leaves the form: the page carries data-esc-back
+// beside it.
+const sqsCreateKeys = "tab=next field|esc=cancel|" + keyPalette
+
+// createKeys is every other create page's set, as the Create board draws it:
+// ⌘⏎ makes the thing, tab moves on, esc leaves with nothing made. ⌘K stays at
+// the end, the one key every page answers to (the board is silent on it).
+// ⌘⏎ is bound on every create page (shell.js submitCreate), not only on a form
+// that holds an editor.
+const createKeys = "⌘⏎=create|tab=next field|esc=cancel, nothing made|" + keyPalette
 
 // pluralFor is the heading of a service's list pane. A key the catalogue does
 // not know gets the key back, which is at least not blank.

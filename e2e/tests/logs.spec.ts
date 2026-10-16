@@ -188,8 +188,8 @@ test.describe('create form command preview', () => {
   test('shows the retention call only when a retention is chosen', async ({ page, uniqueName }) => {
     await page.goto('logs/create');
     await page.locator('input[name=name]').fill(uniqueName('/e2e/preview'));
-    await page.locator('.cli-btn').click();
-    const pre = page.locator('.cli-out pre');
+    // Open already: the create page shows the call it makes (D4).
+    const pre = page.locator('.cli-panel .cli-out pre');
     await expect(pre).toContainText('logs create-log-group --log-group-name');
     await expect(pre).not.toContainText('put-retention-policy');
 

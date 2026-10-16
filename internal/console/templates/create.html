@@ -5,18 +5,18 @@
 {{define "s3_create"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create bucket</div>
-    <p class="det-sub" style="margin-bottom:18px">Buckets hold objects. Names are 3–63 lowercase characters.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create bucket</div>
+    <p class="det-sub fp-sub">Buckets hold objects. Names are 3–63 lowercase characters.</p>
     <form novalidate hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label>
-        <div class="ex-grid"><input class="input" style="flex:1" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
+        <div class="ex-grid"><input class="input" style="flex:1" name="name" value="{{.Prefill}}" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
         <button type="button" class="btn btn-outline" hx-post="{{.Prefix}}/s3/check-name" hx-include="closest form" hx-target="#s3-name-out" hx-select="" hx-swap="innerHTML">Check availability</button></div>
         <div id="s3-name-out"></div></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Options</h2></div><div class="form-b">
         <div class="opt-row"><div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object</div></div><label class="switch"><input aria-label="Versioning" type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="opt-row"><div><div class="opt-l">Object lock</div><div class="opt-d">Retention and legal holds; implies versioning</div></div><label class="switch"><input aria-label="Object lock" type="checkbox" name="object_lock"><span class="track"></span><span class="thumb"></span></label></div>
       </div></div>
-      {{template "cli" "s3api create-bucket --bucket $name [$object_lock>--object-lock-enabled-for-bucket]\ns3api put-bucket-versioning --bucket $name --versioning-configuration Status=$versioning>Enabled"}}
+      {{template "cli_panel" "s3api create-bucket --bucket $name [$object_lock>--object-lock-enabled-for-bucket]\ns3api put-bucket-versioning --bucket $name --versioning-configuration Status=$versioning>Enabled"}}
       {{template "form_actions" dict "Cancel" (printf "%s/s3" .Prefix) "Submit" "Create bucket"}}
     </form>
   </div></section>
@@ -32,9 +32,9 @@
      refuse reaches the service and is not stopped by the browser first. */}}
 {{define "sqs_create"}}{{template "shell_top" .}}
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "" "Creating" true)}}
-  <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page q-create">
-    <form novalidate data-err-slot="#sqs-create-err" hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin"
-          x-data="{fifo:false, dlq:'new', name:'', refused:null}" :class="fifo && 'is-fifo'"
+  <section class="detail" data-keys="{{sqsCreateKeys}}" data-esc-back><div class="form-page q-create">
+    <form novalidate data-err-slot="#sqs-create-err" data-arn-base="{{arn "sqs" ""}}" hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin"
+          x-data="{fifo:false, dlq:'new', name:'', refused:null}" x-init="name = $el.elements.name.value" :class="fifo && 'is-fifo'"
           @doze:refused="refused=$event.detail" @doze:cleared="refused=null">
       <div class="q-create-cols">
       <div class="q-col" data-col="left">
@@ -46,7 +46,7 @@
         <div class="q-card q-pad q-stack">
           <h2 class="q-h2">General</h2>
           <div class="field"><label>Queue name</label>
-            <input class="input mono" name="name" x-model="name" data-param="queue name|QueueName|A queue already exists|FIFO queue names" placeholder="orders" autocomplete="off" autofocus>
+            <input class="input mono" name="name" value="{{.Prefill}}" x-model="name" data-param="queue name|QueueName|A queue already exists|FIFO queue names" placeholder="orders" autocomplete="off" autofocus>
             <span class="hint">Letters, digits, hyphens and underscores, up to 80. A FIFO queue's name ends in .fifo<span x-show="fifo && name && !/\.fifo$/.test(name)" x-cloak>; this form adds it when it is left off</span>.</span></div>
           <div class="q-opt"><div><b>FIFO queue</b><span class="q-note" x-text="fifo ? 'Messages are delivered in the order sent, within a message group.' : 'Strict ordering per message group; the name gets a .fifo suffix.'">Strict ordering per message group; the name gets a .fifo suffix.</span></div>
             <label class="q-seg"><input type="checkbox" class="sr-only" aria-label="FIFO queue" name="fifo" x-model="fifo"><span :class="!fifo && 'on'">off</span><span :class="fifo && 'on'">on</span></label></div>
@@ -141,6 +141,14 @@
             <li><span class="q-dot warn"></span><span class="q-note">So one stuck message holds back only its own group. A dead-letter queue lets it out of the way.</span></li>
           </ul>
         </div>
+        {{/* The call this makes (D4), after the board's own cards: on a standard
+             queue the life of one message and then the call, on a FIFO queue
+             Advanced and how a group behaves (which sqsCreateLayout puts before
+             .q-group) and then the call, with the buttons last. The settings are
+             the CreateQueue attributes; the dead-letter queue made alongside is
+             a call of its own, made first, which this form adds around it. */}}
+        {{template "cli_panel" "sqs create-queue --queue-name %sqs-name($name,$fifo) [--attributes %sqs-attrs($name,$fifo,$content_dedup,$visibility,$delay,$retention,$dlq_mode,$dlq,$max_receive,$receive_wait,$max_bytes,$dedup_scope,$throughput_limit,$sse,$kms_key,$policy)] [--tags %sqs-tags($tag_key,$tag_val)]"}}
+        <span class="q-note cli-also" x-show="dlq==='new'" x-cloak>The console makes <span class="mono" x-text="(name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')"></span> first, as a call of its own, so the queue in the command has something to name. Run both to get the same pair.</span>
       </aside>
       </div>
     </form>
@@ -150,10 +158,10 @@
 {{define "ddb_create"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page" x-data="{sk:false, gsis:[], ttl:false}">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create table</div>
-    <p class="det-sub" style="margin-bottom:18px">On-demand capacity. Add secondary indexes and TTL here — or later via the SDK.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create table</div>
+    <p class="det-sub fp-sub">On-demand capacity. Add secondary indexes and TTL here — or later via the SDK.</p>
     <form novalidate hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
-      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Table name</label><input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus></div></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Table name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Primary key</h2></div><div class="form-b">
         <div class="fgrid"><div class="field"><label>Partition key</label><input class="input" name="hash_key" placeholder="pk" required></div><div class="field"><label>Type</label><select class="input" name="hash_type"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select></div></div>
         <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">Sort key</div><div class="opt-d">A second key dimension for ordered items</div></div><label class="switch"><input aria-label="Sort key" type="checkbox" x-model="sk"><span class="track"></span><span class="thumb"></span></label></div>
@@ -189,7 +197,7 @@
         <div class="opt-row" style="margin-top:0"><div><div class="opt-l">Auto-expire items</div><div class="opt-d">Items are deleted once the epoch-seconds value in the named attribute passes</div></div><label class="switch"><input aria-label="Auto-expire items" type="checkbox" x-model="ttl"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="field" x-show="ttl" x-cloak style="margin-top:10px;max-width:280px"><label>TTL attribute</label><input class="input" name="ttl_attr" placeholder="expiresAt" :required="ttl" :disabled="!ttl"></div>
       </div></div>
-      {{template "cli" "dynamodb create-table --table-name $name --attribute-definitions %ddb-attrs($hash_key,$hash_type,$range_key,$range_type,$gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type) --key-schema AttributeName=$hash_key,KeyType=HASH [AttributeName=$range_key,KeyType=RANGE] [--global-secondary-indexes %ddb-indexes($gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)] --billing-mode PAY_PER_REQUEST\ndynamodb update-time-to-live --table-name $name --time-to-live-specification Enabled=true,AttributeName=$ttl_attr"}}
+      {{template "cli_panel" "dynamodb create-table --table-name $name --attribute-definitions %ddb-attrs($hash_key,$hash_type,$range_key,$range_type,$gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type) --key-schema AttributeName=$hash_key,KeyType=HASH [AttributeName=$range_key,KeyType=RANGE] [--global-secondary-indexes %ddb-indexes($gsi_name,$gsi_hash,$gsi_hash_type,$gsi_range,$gsi_range_type)] --billing-mode PAY_PER_REQUEST\ndynamodb update-time-to-live --table-name $name --time-to-live-specification Enabled=true,AttributeName=$ttl_attr"}}
       {{template "form_actions" dict "Cancel" (printf "%s/ddb" .Prefix) "Submit" "Create table"}}
     </form>
   </div></section>
@@ -198,25 +206,25 @@
 {{define "sns_create"}}{{template "shell_top" .}}
   {{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create topic</div><p class="det-sub" style="margin-bottom:18px">Publish once, deliver to every subscription.</p>
-    <form novalidate hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Topic name</label><input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli" "sns create-topic --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}</form>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create topic</div><p class="det-sub fp-sub">Publish once, deliver to every subscription.</p>
+    <form novalidate hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Topic name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli_panel" "sns create-topic --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
 {{define "eb_bus_create"}}{{template "shell_top" .}}
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create event bus</div><p class="det-sub" style="margin-bottom:18px">Rules on a custom bus only match events sent to that bus.</p>
-    <form novalidate hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bus name</label><input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}</form>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create event bus</div><p class="det-sub fp-sub">Rules on a custom bus only match events sent to that bus.</p>
+    <form novalidate hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bus name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli_panel" "events create-event-bus --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
 {{define "eb_rule_create"}}{{template "shell_top" .}}
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create rule</div><p class="det-sub fp-sub">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
     <form novalidate hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-rule" hx-indicator="#submit-spin">
-      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Match</h2></div><div class="form-b">
         <div class="field" style="margin-bottom:12px"><label>Event pattern</label>
         {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" "" "Rows" 7 "UID" "rule-create" "Test" true}}</div>
@@ -224,12 +232,13 @@
              used to offer the field on every bus and let the API refuse it. */}}
         {{if eq .Bus "default"}}
         <div class="field"><label>Schedule <span class="dim">optional</span></label><input class="input" name="schedule" placeholder="rate(5 minutes)"><span class="hint">rate(1 minute), rate(5 minutes), or cron(0 12 * * ? *) — the unit is singular only for 1</span></div>
-        {{template "cli" "events put-rule --name $name [--event-pattern $pattern] [--schedule-expression $schedule]"}}
         {{else}}
         <div class="field"><label>Schedule</label><span class="hint">Scheduled rules run on the default bus only, as on AWS. <a href="{{.Prefix}}/eb/default/create-rule">Create one there</a>.</span></div>
-        {{template "cli" (printf "events put-rule --event-bus-name %s --name $name --event-pattern $pattern" .Bus)}}
         {{end}}
       </div></div>
+      {{/* The call sits beside the cards, not inside one (the page lays the form out in two columns). */}}
+      {{if eq .Bus "default"}}{{template "cli_panel" "events put-rule --name $name [--event-pattern $pattern] [--schedule-expression $schedule]"}}
+      {{else}}{{template "cli_panel" (printf "events put-rule --event-bus-name %s --name $name --event-pattern $pattern" .Bus)}}{{end}}
       {{template "form_actions" dict "Cancel" (printf "%s/eb/%s" .Prefix (pathesc .Bus)) "Submit" "Create rule"}}
     </form>
   </div></section>
@@ -238,14 +247,14 @@
 {{define "kms_create"}}{{template "shell_top" .}}
   {{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create key</div><p class="det-sub" style="margin-bottom:18px">Symmetric keys encrypt/decrypt; RSA/ECC sign/verify; HMAC generate MACs.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create key</div><p class="det-sub fp-sub">Symmetric keys encrypt/decrypt; RSA/ECC sign/verify; HMAC generate MACs.</p>
     <form novalidate hx-post="{{.Prefix}}/kms/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>Key type</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Key spec</label><select class="input" name="spec"><option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option><option value="RSA_2048">RSA_2048</option><option value="RSA_3072">RSA_3072</option><option value="RSA_4096">RSA_4096</option><option value="ECC_NIST_P256">ECC_NIST_P256</option><option value="ECC_NIST_P384">ECC_NIST_P384</option><option value="HMAC_256">HMAC_256</option></select></div>
         <div class="field"><label>Usage</label><select class="input" name="usage"><option value="">Default for spec</option><option value="ENCRYPT_DECRYPT">ENCRYPT_DECRYPT</option><option value="SIGN_VERIFY">SIGN_VERIFY</option><option value="GENERATE_VERIFY_MAC">GENERATE_VERIFY_MAC</option></select></div>
       </div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Identification</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Alias <span class="dim">optional</span></label><input class="input" name="alias" placeholder="app-data" pattern="[a-zA-Z0-9/_\-]{1,250}" autofocus></div>
+        <div class="field"><label>Alias <span class="dim">optional</span></label><input class="input" name="alias" value="{{.Prefill}}" placeholder="app-data" pattern="[a-zA-Z0-9/_\-]{1,250}" autofocus></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="App data encryption"></div>
       </div></div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/kms" .Prefix) "Submit" "Create key"}}
@@ -256,14 +265,14 @@
 {{define "ssm_create"}}{{template "shell_top" .}}
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create parameter</div><p class="det-sub" style="margin-bottom:18px">Path-style names like <span class="mono">/app/db/host</span> group related config.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create parameter</div><p class="det-sub fp-sub">Path-style names like <span class="mono">/app/db/host</span> group related config.</p>
     <form novalidate hx-post="{{.Prefix}}/ssm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/db/host" required autocomplete="off" autofocus></div>
+        <div class="field"><label>Name</label><input class="input mono" name="name" value="{{.Prefill}}" placeholder="/app/db/host" required autocomplete="off" autofocus></div>
         <div class="field"><label>Type</label><select class="input" name="type"><option value="String">String</option><option value="SecureString">SecureString — encrypted</option><option value="StringList">StringList</option></select></div>
       </div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Value</h2></div><div class="form-b"><textarea name="value" data-editor rows="10" required placeholder="localhost:5432" spellcheck="false"></textarea></div></div>
-      {{template "cli" "ssm put-parameter --name $name --type $type --value $value"}}
+      {{template "cli_panel" "ssm put-parameter --name $name --type $type --value $value"}}
       {{template "form_actions" dict "Cancel" (printf "%s/ssm" .Prefix) "Submit" "Create parameter"}}
     </form>
   </div></section>
@@ -272,14 +281,14 @@
 {{define "sm_create"}}{{template "shell_top" .}}
   {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Store a new secret</div><p class="det-sub" style="margin-bottom:18px">Encrypted at rest. JSON key/value is conventional; any string works.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Store a new secret</div><p class="det-sub fp-sub">Encrypted at rest. JSON key/value is conventional; any string works.</p>
     <form novalidate hx-post="{{.Prefix}}/sm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Secret name</label><input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
+        <div class="field"><label>Secret name</label><input class="input mono" name="name" value="{{.Prefill}}" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="Database credentials"></div>
       </div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Secret value</h2><button type="button" class="btn btn-outline btn-sm" onclick="dozeGenPassword(this,'{{.Prefix}}')">{{icon "key"}} Generate password</button></div><div class="form-b"><textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin"&#10;}'>{&#10;  "username": "",&#10;  "password": ""&#10;}</textarea></div></div>
-      {{template "cli" "secretsmanager create-secret --name $name --secret-string $value [--description $description]"}}
+      {{template "cli_panel" "secretsmanager create-secret --name $name --secret-string $value [--description $description]"}}
       {{template "form_actions" dict "Cancel" (printf "%s/sm" .Prefix) "Submit" "Store secret"}}
     </form>
   </div></section>
@@ -292,7 +301,7 @@
     <p class="det-sub fp-sub">Write the workflow in the States Language; Validate runs the same analyser CreateStateMachine does, so what passes here deploys.</p>
     <form novalidate hx-post="{{.Prefix}}/sfn/create" hx-indicator="#submit-spin" data-err-slot="#sfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Name</label><input class="input" name="name" placeholder="order-flow" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus></div>
+        <div class="field"><label>Name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="order-flow" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus></div>
         <div class="field stack"><label>Type</label>
           <select class="input" name="type"><option value="STANDARD">STANDARD — durable, every step in the history</option><option value="EXPRESS">EXPRESS — runs synchronously from the Start tab; no execution history</option></select></div>
         <div class="field stack"><label>Role ARN <span class="dim">the API requires one; nothing evaluates it locally</span></label><input class="input mono" name="role" value="arn:aws:iam::{{account}}:role/stepfunctions" required autocomplete="off" spellcheck="false"></div>
@@ -323,28 +332,33 @@
         <div id="sfn-validate-out"></div>
         {{if .Functions}}<p class="mini-note">Functions in this stack a Task can call: {{range $i, $f := .Functions}}{{if $i}}, {{end}}<span class="mono" title="{{$f.ARN}}">{{$f.Name}}</span>{{end}}. A Task's <span class="mono">Resource</span> is the function ARN, or <span class="mono">arn:aws:states:::lambda:invoke</span> with <span class="mono">Parameters.FunctionName</span>.</p>{{end}}
       </div></div>
-      {{template "cli" "stepfunctions create-state-machine --name $name --definition $definition --role-arn $role --type $type"}}
+      {{template "cli_panel" "stepfunctions create-state-machine --name $name --definition $definition --role-arn $role --type $type"}}
       {{template "form_actions" dict "Cancel" (printf "%s/sfn" .Prefix) "Submit" "Create state machine"}}
     </form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
+{{/* The form's actions as the boards draw them (Create, S3-02-Create, every
+     service's Create board): a plain row under the last card, Cancel and then
+     the verb, left-aligned with the cards. It was a sticky bar across the pane;
+     no board draws one. ⌘⏎ makes the thing and esc cancels (the key bar says
+     so), so a long form needs no bar to keep the button in reach. */}}
 {{define "form_actions"}}
-<div class="det-foot" style="margin-top:6px;border:1px solid var(--border);border-radius:var(--radius);position:sticky;bottom:12px">
-  <span id="submit-spin" class="dim htmx-indicator" style="margin-right:auto">Working…</span>
+<div class="form-actions">
   <a class="btn btn-outline" href="{{.Cancel}}">Cancel</a>
   <button type="submit" class="btn">{{.Submit}}</button>
+  <span id="submit-spin" class="dim htmx-indicator">Working…</span>
 </div>
 {{end}}
 
 {{define "cfn_create"}}{{template "shell_top" .}}
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create stack</div>
-    <p class="det-sub" style="margin-bottom:18px">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create stack</div>
+    <p class="det-sub fp-sub">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
     <form novalidate hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}" data-err-slot="#cfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Stack name</label><input class="input" name="name" placeholder="my-stack" required pattern="[a-zA-Z][a-zA-Z0-9\-]{0,127}" autocomplete="off" autofocus></div>
+        <div class="field"><label>Stack name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="my-stack" required pattern="[a-zA-Z][a-zA-Z0-9\-]{0,127}" autocomplete="off" autofocus></div>
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Template</h2>
         {{/* Validate runs the emulator's real parser (ValidateTemplate); Load
@@ -375,8 +389,8 @@
         <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">The stack materialises in REVIEW_IN_PROGRESS; nothing deploys until you execute the reviewed diff</div></div><label class="switch"><input aria-label="Create a change set instead" type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="field" x-show="review" x-cloak style="margin-top:10px"><label>Change set name</label><input class="input mono" name="changeset" value="console-review" pattern="[a-zA-Z][a-zA-Z0-9\-]*" spellcheck="false"></div>
       </div></div>
-      <template x-if="!review">{{template "cli" "cloudformation create-stack --stack-name $name --template-body $template"}}</template>
-      <template x-if="review">{{template "cli" "cloudformation create-change-set --stack-name $name --change-set-name $changeset --change-set-type CREATE --template-body $template"}}</template>
+      <template x-if="!review">{{template "cli_panel" "cloudformation create-stack --stack-name $name --template-body $template"}}</template>
+      <template x-if="review">{{template "cli_panel" "cloudformation create-change-set --stack-name $name --change-set-name $changeset --change-set-type CREATE --template-body $template"}}</template>
       {{template "form_actions" dict "Cancel" (printf "%s/cfn" .Prefix) "Submit" "Create stack"}}
     </form>
   </div></section>
@@ -385,20 +399,20 @@
 {{define "apigw_create"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
-    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create API</div>
-    <p class="det-sub" style="margin-bottom:18px">A REST API is a resource tree with methods and integrations, deployed to a stage. An HTTP API is routes by key, answering at <span class="mono">$default</span> as soon as a route exists.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create API</div>
+    <p class="det-sub fp-sub">A REST API is a resource tree with methods and integrations, deployed to a stage. An HTTP API is routes by key, answering at <span class="mono">$default</span> as soon as a route exists.</p>
     <form novalidate hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin" x-data="{proto:'REST'}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Kind</label>
           <div class="opt-row"><label><input type="radio" name="protocol" value="REST" x-model="proto"> REST API <span class="dim">(apigateway v1)</span></label></div>
           <div class="opt-row"><label><input type="radio" name="protocol" value="HTTP" x-model="proto"> HTTP API <span class="dim">(apigatewayv2)</span></label></div>
         </div>
-        <div class="field"><label>API name</label><input class="input" name="name" placeholder="orders-api" required autocomplete="off" autofocus></div>
+        <div class="field"><label>API name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="orders-api" required autocomplete="off" autofocus></div>
         <div class="field" style="margin-top:8px" x-show="proto==='REST'"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what this API fronts"></div>
         <div class="opt-row" x-show="proto==='HTTP'" x-cloak><label><input type="checkbox" name="cors"> Allow CORS from every origin <span class="dim">— what a browser app on another port needs</span></label></div>
       </div></div>
-      <template x-if="proto==='REST'">{{template "cli" "apigateway create-rest-api --name $name [--description $description]"}}</template>
-      <template x-if="proto==='HTTP'">{{template "cli" "apigatewayv2 create-api --name $name --protocol-type HTTP [$cors>--cors-configuration 'AllowOrigins=*,AllowMethods=*,AllowHeaders=*']"}}</template>
+      <template x-if="proto==='REST'">{{template "cli_panel" "apigateway create-rest-api --name $name [--description $description]"}}</template>
+      <template x-if="proto==='HTTP'">{{template "cli_panel" "apigatewayv2 create-api --name $name --protocol-type HTTP [$cors>--cors-configuration 'AllowOrigins=*,AllowMethods=*,AllowHeaders=*']"}}</template>
       {{template "form_actions" dict "Cancel" (printf "%s/apigw" .Prefix) "Submit" "Create API"}}
     </form>
   </div></section>
@@ -410,10 +424,10 @@
     <div class="det-title fp-title" role="heading" aria-level="1">Create log group</div><p class="det-sub fp-sub">A function makes its own group (<span class="mono">/aws/lambda/&lt;name&gt;</span>) the first time it prints. Create one here for an application that writes with PutLogEvents, or to set retention before a function exists.</p>
     <form novalidate hx-post="{{.Prefix}}/logs/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/api" required autocomplete="off" autofocus spellcheck="false"></div>
+        <div class="field"><label>Name</label><input class="input mono" name="name" value="{{.Prefill}}" placeholder="/app/api" required autocomplete="off" autofocus spellcheck="false"></div>
         <div class="field"><label>Retention <span class="dim">the values AWS accepts</span></label><select class="input" name="days"><option value="">default (a day)</option>{{range $d := list 1 3 5 7 14 30 60 90 120 150 180 365}}<option value="{{$d}}">{{$d}} days</option>{{end}}</select></div>
       </div></div></div>
-      {{template "cli" "logs create-log-group --log-group-name $name\nlogs put-retention-policy --log-group-name $name --retention-in-days $days"}}
+      {{template "cli_panel" "logs create-log-group --log-group-name $name\nlogs put-retention-policy --log-group-name $name --retention-in-days $days"}}
       {{template "form_actions" dict "Cancel" (printf "%s/logs" .Prefix) "Submit" "Create log group"}}
     </form>
   </div></section>
@@ -431,7 +445,7 @@
     <form novalidate hx-post="{{.Prefix}}/cw/create-alarm" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="fgrid">
-          <div class="field"><label>Alarm name</label><input class="input" name="name" placeholder="too-many-errors" required autocomplete="off" autofocus></div>
+          <div class="field"><label>Alarm name</label><input class="input" name="name" value="{{.Prefill}}" placeholder="too-many-errors" required autocomplete="off" autofocus></div>
           <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="the API is erroring"></div>
         </div>
         <div class="field"><label>Metric</label><select class="input mono" name="metric" required>
@@ -470,7 +484,7 @@
           {{range .Topics}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
         </select></div>
       </div></div>
-      {{template "cli" "cloudwatch put-metric-alarm --alarm-name $name --namespace $metric@data-ns --metric-name $metric@data-name [--dimensions $metric@data-dims] $statistic@data-flag $statistic --comparison-operator $operator --threshold $threshold --period $period --evaluation-periods $evaluation --treat-missing-data $missing [--alarm-description $description] [--alarm-actions $topic]"}}
+      {{template "cli_panel" "cloudwatch put-metric-alarm --alarm-name $name --namespace $metric@data-ns --metric-name $metric@data-name [--dimensions $metric@data-dims] $statistic@data-flag $statistic --comparison-operator $operator --threshold $threshold --period $period --evaluation-periods $evaluation --treat-missing-data $missing [--alarm-description $description] [--alarm-actions $topic]"}}
       {{template "form_actions" dict "Cancel" (printf "%s/cw" .Prefix) "Submit" "Create alarm"}}
     </form>
     {{else}}

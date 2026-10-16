@@ -165,6 +165,61 @@
      console's own call for the same form, so the previewed command makes what
      submitting makes. */
   var cliDocs = {
+    /* SQS's create form (handlers.go sqsCreateQueue, client_s3x.go
+       CreateQueueFull): the name as the form sends it, the one --attributes
+       document, and --tags. Each builder is given the form as its second
+       argument; the queue ARN's stem (everything before the queue name) is the
+       form's data-arn-base, so a dead-letter queue is named as the form names it. */
+    "sqs-name": function (c) {
+      var n = firstOf(c[0]);
+      if (!n) return [];
+      return [firstOf(c[1]) && !/\.fifo$/.test(n) ? n + ".fifo" : n];
+    },
+    /* Columns: name, fifo, content_dedup, visibility, delay, retention,
+       dlq_mode, dlq, max_receive, receive_wait, max_bytes, dedup_scope,
+       throughput_limit, sse, kms_key, policy. The order of the keys is the
+       order the handler sets them in, and the same things are left out: a delay
+       or a receive wait of 0 is the default and is not sent, the FIFO settings
+       are not sent for a standard queue, and a dead-letter queue that is not
+       chosen (or not yet named) is no redrive policy. */
+    "sqs-attrs": function (c, form) {
+      var name = firstOf(c[0]), fifo = !!firstOf(c[1]), a = {};
+      if (fifo) {
+        a.FifoQueue = "true";
+        if (firstOf(c[2])) a.ContentBasedDeduplication = "true";
+      }
+      if (firstOf(c[3])) a.VisibilityTimeout = firstOf(c[3]);
+      if (firstOf(c[5])) a.MessageRetentionPeriod = firstOf(c[5]);
+      if (firstOf(c[4]) && firstOf(c[4]) !== "0") a.DelaySeconds = firstOf(c[4]);
+      var mode = firstOf(c[6]), target = "";
+      if (mode === "new" && name) target = name.replace(/\.fifo$/, "") + "-dlq" + (fifo ? ".fifo" : "");
+      else if (mode === "existing") target = firstOf(c[7]);
+      if (target) {
+        a.RedrivePolicy = JSON.stringify({
+          deadLetterTargetArn: ((form && form.getAttribute("data-arn-base")) || "") + target,
+          maxReceiveCount: firstOf(c[8]) || "3",
+        });
+      }
+      if (firstOf(c[9]) && firstOf(c[9]) !== "0") a.ReceiveMessageWaitTimeSeconds = firstOf(c[9]);
+      if (firstOf(c[10])) a.MaximumMessageSize = firstOf(c[10]);
+      if (firstOf(c[15])) a.Policy = firstOf(c[15]);
+      if (firstOf(c[14])) a.KmsMasterKeyId = firstOf(c[14]);
+      if (firstOf(c[13])) a.SqsManagedSseEnabled = "true";
+      if (fifo) {
+        if (firstOf(c[11])) a.DeduplicationScope = firstOf(c[11]);
+        if (firstOf(c[12])) a.FifoThroughputLimit = firstOf(c[12]);
+      }
+      return Object.keys(a).length ? [JSON.stringify(a)] : [];
+    },
+    /* --tags takes the shorthand map: Key=Value,Key=Value. A row with no key is skipped. */
+    "sqs-tags": function (c) {
+      var out = [];
+      (c[0] || []).forEach(function (k, i) {
+        k = (k || "").trim();
+        if (k) out.push(k + "=" + ((c[1] && c[1][i]) || ""));
+      });
+      return out.length ? [out.join(",")] : [];
+    },
     /* DynamoDB's --attribute-definitions: every attribute a key schema names,
        the table's and each index's, once, in name order (client_ddb.go's
        CreateTable). Columns: hash key, its type, sort key, its type, then the
@@ -190,6 +245,15 @@
       return rows.length ? [JSON.stringify(rows)] : [];
     },
   };
+  /* A repeating control's first value that says anything, trimmed: a radio
+     group has one chosen member, a disabled select has none. */
+  function firstOf(col) {
+    for (var i = 0; i < (col || []).length; i++) {
+      var v = col[i] == null ? "" : String(col[i]).trim();
+      if (v) return v;
+    }
+    return "";
+  }
   /* The index rows the create form sends: a row with no name or no partition
      key is skipped, as ddbCreateTable and CreateTable skip it. */
   function ddbIndexRows(c) {
@@ -206,9 +270,12 @@
     return out;
   }
 
-  window.cliPreview = function (tmpl) {
+  /* cliPreview(tmpl, open): the preview behind a "cli" button starts closed; the
+     create page's panel (cli_panel) starts open, and draws the command at once,
+     from whatever the form already holds (a name the address carried). */
+  window.cliPreview = function (tmpl, open) {
     return {
-      open: false, cmd: "",
+      open: !!open, cmd: "",
       q: function (v) {
         // Bare only when the shell cannot read it as anything else: no glob
         // (*), and not a leading - or = that the CLI or zsh would take for an
@@ -247,6 +314,8 @@
           return !el.disabled;
         }).map(function (el) {
           if (el.type === "checkbox") return el.checked ? (el.value || "true") : "";
+          /* a radio group is one control: only the chosen one has a value */
+          if (el.type === "radio") return el.checked ? el.value : "";
           return el.__cm ? el.__cm.getValue() : el.value;
         });
       },
@@ -254,7 +323,7 @@
         var self = this;
         str = str.replace(/@@D(\d+)@@/g, function (m, i) {
           var d = state.docs[+i], build = cliDocs[d.name];
-          var words = build ? build(d.fields.map(function (f) { return self.fieldVals(form, f); })) : [];
+          var words = build ? build(d.fields.map(function (f) { return self.fieldVals(form, f); }), form) : [];
           if (!words.length) { state.empty = true; return ""; }
           return words.map(function (w) {
             state.vals.push(self.q(w));
@@ -314,7 +383,14 @@
       },
       init: function () {
         var self = this, form = this.$el.closest("form");
-        if (form) form.addEventListener("input", function () { if (self.open) self.refresh(); });
+        if (form) {
+          form.addEventListener("input", function () { if (self.open) self.refresh(); });
+          /* a toggle or a menu another script changes fires change and not input */
+          form.addEventListener("change", function () { if (self.open) self.refresh(); });
+        }
+        /* After the form's own controls have taken their values (x-model sets
+           them as the tree initialises), so the first draw is not of blanks. */
+        if (this.open) this.$nextTick(function () { self.refresh(); });
       },
     };
   };
