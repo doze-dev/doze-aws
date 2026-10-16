@@ -235,8 +235,14 @@ test.describe('it threw', () => {
     await expect(row.locator('.st')).toHaveText('200');
 
     // The inspector says what the function threw.
-    await row.locator('.rowopen').click();
+    // The feed re-renders while it polls, and a click that lands in the middle
+    // of a swap opens nothing: click until the inspector is up (the pattern the
+    // other wire specs use).
     const drawer = page.locator('#t-drawer-inner');
+    await expect(async () => {
+      await row.locator('.rowopen').click({ timeout: 2000 });
+      await expect(drawer.locator('.td-threw')).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15000 });
     await expect(drawer.locator('.td-threw')).toContainText('It threw');
     await expect(drawer.locator('.td-threw')).toContainText(why);
 

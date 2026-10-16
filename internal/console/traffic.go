@@ -290,9 +290,9 @@ func (rec *Recorder) Get(seq int64) (TrafficEntry, bool) {
 		if e.Seq == seq {
 			return e, true
 		}
-		if e.Seq < seq {
-			break
-		}
+		// No early exit on a lower number: the ring is in the order calls
+		// FINISHED, and a slow call is numbered when it starts, so it sits after
+		// calls with higher numbers. Five hundred entries is a cheap scan.
 	}
 	return TrafficEntry{}, false
 }
@@ -321,7 +321,7 @@ func (rec *Recorder) Entries(sinceSeq int64) []TrafficEntry {
 		idx := (rec.head - 1 - i + trafficCap) % trafficCap
 		e := rec.buf[idx]
 		if e.Seq <= sinceSeq {
-			break
+			continue // not break: see Get, the ring is in finishing order
 		}
 		out = append(out, e)
 	}
