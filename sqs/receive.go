@@ -351,13 +351,18 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 		return errInvalid(fmt.Sprintf("Value %d for parameter VisibilityTimeout is invalid. Reason: Must be between 0 and 43200.", timeout))
 	}
 	gone := errInvalid("Value " + handle + " for parameter ReceiptHandle is invalid. Reason: Message does not exist or is not available for visibility timeout change.")
+	// model: ChangeMessageVisibility's errors name MessageNotInflight. A message
+	// that was deleted, purged or moved is not in flight; a handle that is not
+	// the message's current one is the gone case below.
+	notInflight := &apiError{Code: "AWS.SimpleQueueService.MessageNotInflight", Status: 400, SenderFault: true,
+		Message: "Value " + handle + " for parameter ReceiptHandle is invalid. Reason: The message referred to is not in flight."}
 	mb := tx.Bucket(msgBucket(queue))
 	if mb == nil {
-		return gone
+		return notInflight
 	}
 	raw := mb.Get(seqKey)
 	if raw == nil {
-		return gone // deleted, purged or moved
+		return notInflight // deleted, purged or moved
 	}
 	var m message
 	if err := json.Unmarshal(raw, &m); err != nil {

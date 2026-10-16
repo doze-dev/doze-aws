@@ -52,7 +52,7 @@ func TestDisplayedTimesGoThroughOneFormatter(t *testing.T) {
 // view models carry today.
 var (
 	agoCall   = regexp.MustCompile(`\{\{ago ([^}]+)\}\}`)
-	timeField = regexp.MustCompile(`\{\{((?:\$|\.)[A-Za-z.$]*\.?(?:Created|Updated|Modified|Changed|Started|Stopped|When|Time|Clock|LastEvent|DeletedAt|LastModified|LastRotated|Arrived|SentAt|RedriveDate))\}\}`)
+	timeField = regexp.MustCompile(`\{\{((?:\$|\.)[A-Za-z.$]*\.?(?:Created|Updated|Modified|Changed|Started|Stopped|When|Time|Clock|LastEvent|DeletedAt|LastModified|LastRotated|Arrived|SentAt|RedriveDate|LastUsed|Expiration|Until|Initiated))\}\}`)
 )
 
 // enclosingTag returns the opening tag of the element the text at idx sits in:

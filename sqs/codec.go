@@ -232,8 +232,8 @@ func (p params) sendBatchEntries() []sendEntry {
 		for i := 1; ; i++ {
 			base := "SendMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if id == "" {
-				break
+			if !p.hasFormPrefix(base) {
+				break // an entry with an empty Id is an entry (and an invalid one), not the end
 			}
 			e := sendEntry{
 				ID:      id,
@@ -280,7 +280,7 @@ func (p params) deleteBatchEntries() []delEntry {
 		for i := 1; ; i++ {
 			base := "DeleteMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if id == "" {
+			if !p.hasFormPrefix(base) {
 				break
 			}
 			out = append(out, delEntry{ID: id, ReceiptHandle: p.form.Get(base + "ReceiptHandle")})
@@ -313,7 +313,7 @@ func (p params) visibilityBatchEntries() []visEntry {
 		for i := 1; ; i++ {
 			base := "ChangeMessageVisibilityBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if id == "" {
+			if !p.hasFormPrefix(base) {
 				break
 			}
 			timeout, _ := strconv.Atoi(p.form.Get(base + "VisibilityTimeout"))
@@ -417,7 +417,13 @@ func jsonErrorType(code string) string {
 	case "AWS.SimpleQueueService.EmptyBatchRequest",
 		"AWS.SimpleQueueService.TooManyEntriesInBatchRequest",
 		"AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
-		"AWS.SimpleQueueService.InvalidBatchEntryId":
+		"AWS.SimpleQueueService.InvalidBatchEntryId",
+		"AWS.SimpleQueueService.BatchRequestTooLong",
+		"AWS.SimpleQueueService.MessageNotInflight",
+		"AWS.SimpleQueueService.UnsupportedOperation":
+		// The shape's own name, which is what errors.As(&types.MessageNotInflight{})
+		// matches on; every error the model gives an AWS.SimpleQueueService.* Query
+		// code needs its entry here or the JSON wire answers the Query code.
 		return strings.TrimPrefix(code, "AWS.SimpleQueueService.")
 	default:
 		return code

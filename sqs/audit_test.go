@@ -7,9 +7,11 @@ package sqs
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -296,5 +298,150 @@ func TestAStopMidMoveLeavesTheRestWhereItWas(t *testing.T) {
 	// And a new task can be started: the stopped one does not hold the queue.
 	if code, body := jsonBody(t, ts.URL, "StartMessageMoveTask", `{"SourceArn":"arn:aws:sqs:us-east-1:000000000000:stop-dlq"}`); code != 200 {
 		t.Errorf("a new move after the restart answered %d: %s", code, body)
+	}
+}
+
+// model: CreateQueue "returns the URL of the existing queue if the exact same
+// names and values are given". A value the model gives a default for reads
+// back as that default, so asking again with or without it is the same ask:
+// the SQS-40 default of 10 made a re-created RedrivePolicy a conflict with
+// itself, and the model's "Default: 300" for KmsDataKeyReusePeriodSeconds the
+// same.
+func TestRecreatingAQueueWithDefaultedValuesIsTheSameAsk(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"again-dlq"}`)
+	rp := `{"QueueName":"again","Attributes":{"RedrivePolicy":"{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:000000000000:again-dlq\"}","KmsDataKeyReusePeriodSeconds":"300"}}`
+	jsonCall(t, ts.URL, "CreateQueue", rp)
+	if code, body := jsonBody(t, ts.URL, "CreateQueue", rp); code != 200 {
+		t.Errorf("JSON: the same CreateQueue twice answered %d: %s", code, body)
+	}
+	if code, body := formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"again"},
+		"Attribute.1.Name": {"RedrivePolicy"}, "Attribute.1.Value": {`{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:000000000000:again-dlq","maxReceiveCount":10}`}}); code != 200 {
+		t.Errorf("Query: the explicit default spelled out answered %d: %s", code, body)
+	}
+	// And a genuinely different value is still a conflict.
+	if code, body := jsonBody(t, ts.URL, "CreateQueue", `{"QueueName":"again","Attributes":{"RedrivePolicy":"{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:000000000000:again-dlq\",\"maxReceiveCount\":3}"}}`); code != 400 || codeOf(body) != "QueueNameExists" && codeOf(body) != "QueueAlreadyExists" {
+		t.Errorf("a different maxReceiveCount answered %d %s, want the conflict", code, codeOf(body))
+	}
+}
+
+// model: GetQueueAttributes' errors name InvalidAttributeName; a name that is
+// not an attribute is that, not the generic validation error.
+func TestAnUnknownAttributeNameIsInvalidAttributeName(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"names"}`)
+	q := ts.URL + "/000000000000/names"
+	if code, body := jsonBody(t, ts.URL, "GetQueueAttributes", `{"QueueUrl":"`+q+`","AttributeNames":["All","Bogus"]}`); code != 400 || codeOf(body) != "InvalidAttributeName" {
+		t.Errorf("JSON: %d %s, want 400 InvalidAttributeName: %s", code, codeOf(body), body)
+	}
+	if code, body := formPost(t, ts.URL, url.Values{"Action": {"GetQueueAttributes"}, "QueueUrl": {q}, "AttributeName.1": {"Bogus"}}); code != 400 || codeOf(body) != "InvalidAttributeName" {
+		t.Errorf("Query: %d %s, want 400 InvalidAttributeName: %s", code, codeOf(body), body)
+	}
+}
+
+// model: RedrivePolicy is an attribute, and a value it cannot read is
+// InvalidAttributeValue like every other refusal of one.
+func TestAMalformedRedrivePolicyIsInvalidAttributeValue(t *testing.T) {
+	ts := testServer(t)
+	for _, v := range []string{`{`, `[]`, `"x"`} {
+		body, _ := json.Marshal(map[string]any{"QueueName": "rp", "Attributes": map[string]string{"RedrivePolicy": v}})
+		if code, out := jsonBody(t, ts.URL, "CreateQueue", string(body)); code != 400 || codeOf(out) != "InvalidAttributeValue" {
+			t.Errorf("RedrivePolicy %q: %d %s, want 400 InvalidAttributeValue", v, code, codeOf(out))
+		}
+	}
+}
+
+// model: ChangeMessageVisibility's errors name MessageNotInflight, for a
+// message that is not in flight; a message that was deleted is not.
+func TestChangingTheVisibilityOfADeletedMessageIsMessageNotInflight(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"gone"}`)
+	q := ts.URL + "/000000000000/gone"
+	jsonCall(t, ts.URL, "SendMessage", `{"QueueUrl":"`+q+`","MessageBody":"x"}`)
+	got := jsonCall(t, ts.URL, "ReceiveMessage", `{"QueueUrl":"`+q+`"}`)
+	m := regexp.MustCompile(`"ReceiptHandle":"([^"]+)"`).FindStringSubmatch(got)
+	if m == nil {
+		t.Fatal("nothing received")
+	}
+	jsonCall(t, ts.URL, "DeleteMessage", `{"QueueUrl":"`+q+`","ReceiptHandle":"`+m[1]+`"}`)
+	if code, body := jsonBody(t, ts.URL, "ChangeMessageVisibility", `{"QueueUrl":"`+q+`","ReceiptHandle":"`+m[1]+`","VisibilityTimeout":5}`); code != 400 || codeOf(body) != "MessageNotInflight" {
+		t.Errorf("JSON: %d %s, want 400 MessageNotInflight", code, codeOf(body))
+	}
+	if code, body := formPost(t, ts.URL, url.Values{"Action": {"ChangeMessageVisibility"}, "QueueUrl": {q}, "ReceiptHandle": {m[1]}, "VisibilityTimeout": {"5"}}); code != 400 || !strings.Contains(body, "MessageNotInflight") {
+		t.Errorf("Query: %d %s, want MessageNotInflight", code, codeOf(body))
+	}
+}
+
+// model: SendMessageBatchRequestEntry.Id is required and "InvalidBatchEntryId"
+// is the code for an id that is not a legal one; on the Query wire an entry
+// with an empty Id is an entry, not the end of the list.
+func TestAnEmptyBatchEntryIdIsInvalidBatchEntryIdOnBothWires(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"eid"}`)
+	q := ts.URL + "/000000000000/eid"
+	if code, body := jsonBody(t, ts.URL, "SendMessageBatch", `{"QueueUrl":"`+q+`","Entries":[{"Id":"","MessageBody":"x"}]}`); code != 400 || !strings.Contains(body, "InvalidBatchEntryId") {
+		t.Errorf("JSON: %d %s", code, body)
+	}
+	if code, body := formPost(t, ts.URL, url.Values{"Action": {"SendMessageBatch"}, "QueueUrl": {q},
+		"SendMessageBatchRequestEntry.1.Id": {""}, "SendMessageBatchRequestEntry.1.MessageBody": {"x"}}); code != 400 || !strings.Contains(body, "InvalidBatchEntryId") {
+		t.Errorf("Query: %d %s", code, body)
+	}
+}
+
+// Every error shape the model gives an AWS.SimpleQueueService.* Query code is
+// answered under its shape's own name on the JSON wire, which is what an SDK's
+// errors.As matches on. Read from the model: no hand list to go stale.
+func TestEveryQueryCodeHasItsShapeNameOnTheJSONWire(t *testing.T) {
+	raw, err := os.ReadFile("../.audit-models/sqs.json")
+	if err != nil {
+		t.Skipf("no vendored model: %v", err)
+	}
+	var m struct {
+		Shapes map[string]struct {
+			Traits map[string]json.RawMessage `json:"traits"`
+		} `json:"shapes"`
+	}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for id, sh := range m.Shapes {
+		q, ok := sh.Traits["aws.protocols#awsQueryError"]
+		if !ok {
+			continue
+		}
+		var e struct{ Code string }
+		if json.Unmarshal(q, &e) != nil || !strings.HasPrefix(e.Code, "AWS.SimpleQueueService.") {
+			continue
+		}
+		shape := id[strings.Index(id, "#")+1:]
+		if got := jsonErrorType(e.Code); got != shape {
+			t.Errorf("Query code %s is answered as %q on the JSON wire, the model's shape is %q", e.Code, got, shape)
+		}
+		checked++
+	}
+	if checked < 8 {
+		t.Errorf("only %d error shapes checked; the test is not reading the model", checked)
+	}
+}
+
+// model: the batch results' Successful and Failed, and
+// ListDeadLetterSourceQueues' queueUrls, are required members: on the JSON wire
+// an empty list is [] and not an absent member.
+func TestRequiredListsAreAlwaysThereOnTheJSONWire(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"req"}`)
+	q := ts.URL + "/000000000000/req"
+	got := jsonCall(t, ts.URL, "SendMessageBatch", `{"QueueUrl":"`+q+`","Entries":[{"Id":"a","MessageBody":"x"}]}`)
+	if !strings.Contains(got, `"Failed":[]`) {
+		t.Errorf("SendMessageBatch with nothing failed has no Failed list: %s", got)
+	}
+	got = jsonCall(t, ts.URL, "DeleteMessageBatch", `{"QueueUrl":"`+q+`","Entries":[{"Id":"a","ReceiptHandle":"not-a-handle"}]}`)
+	if !strings.Contains(got, `"Successful":[]`) {
+		t.Errorf("DeleteMessageBatch with nothing deleted has no Successful list: %s", got)
+	}
+	got = jsonCall(t, ts.URL, "ListDeadLetterSourceQueues", `{"QueueUrl":"`+q+`"}`)
+	if !strings.Contains(got, `"queueUrls":[]`) {
+		t.Errorf("ListDeadLetterSourceQueues with no sources has no queueUrls: %s", got)
 	}
 }

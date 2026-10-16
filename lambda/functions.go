@@ -138,7 +138,9 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 	if err := s.store.PutFunction(f); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 201, s.configView(f))
+	// The record just made has no identity yet (the store stamps it on the way
+	// out of a read); without it the response named the default account and Region.
+	writeJSON(w, 201, s.configView(s.store.stamp(f)))
 	return nil
 }
 

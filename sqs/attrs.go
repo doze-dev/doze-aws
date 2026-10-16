@@ -340,6 +340,13 @@ func (s *store) configuredAttrs(q *queue) map[string]string {
 	return out
 }
 
+// attrDefaults are the values the model gives a default for and
+// GetQueueAttributes does not report while the attribute is unset: asking for
+// the default is the same ask as not asking.
+var attrDefaults = map[string]string{
+	"KmsDataKeyReusePeriodSeconds": "300", // model: "Default: 300 seconds"
+}
+
 // sameAttrValue reports whether two spellings of an attribute value mean the
 // same thing. The JSON-valued attributes (RedrivePolicy, Policy) are compared
 // as documents, and a count written "3" equals one written 3 — which is how
@@ -409,7 +416,7 @@ func applyRedrive(q *queue, v string, lookup queueLookup) error {
 		MaxReceiveCount     json.RawMessage `json:"maxReceiveCount"`
 	}
 	if err := json.Unmarshal([]byte(v), &rp); err != nil {
-		return errInvalid("invalid RedrivePolicy: " + err.Error())
+		return errInvalidAttrValue("RedrivePolicy", "the value is not a JSON object: "+err.Error())
 	}
 	if strings.TrimSpace(rp.DeadLetterTargetArn) == "" {
 		return errInvalidAttrValue("RedrivePolicy", "deadLetterTargetArn is required")

@@ -44,7 +44,7 @@ func hListQueueTags(s *store, req *request) (any, *apiError) {
 }
 
 type dlqSourcesResult struct {
-	QueueURLs []string `json:"queueUrls,omitempty" xml:"QueueUrl"`
+	QueueURLs []string `json:"queueUrls" xml:"QueueUrl"`
 	NextToken string   `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
 }
 
@@ -66,6 +66,9 @@ func hListDeadLetterSourceQueues(s *store, req *request) (any, *apiError) {
 	urls := make([]string, 0, len(page))
 	for _, n := range page {
 		urls = append(urls, s.queueURL(req.host, n))
+	}
+	if urls == nil {
+		urls = []string{} // a required member: [] when empty
 	}
 	return dlqSourcesResult{QueueURLs: urls, NextToken: next}, nil
 }

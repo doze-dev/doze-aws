@@ -393,7 +393,7 @@
         {{range .Keys}}
           <tr>
             <td class="mono sub">{{.ID}}</td><td><span class="chip {{if ne .Status "Active"}}bad{{end}}">{{.Status}}</span></td>
-            <td class="dim sub">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
+            <td class="dim sub"{{if .LastUsed}} title="{{zoned .LastUsed}}"{{end}}>{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
             <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
             <td class="right"><div class="cs-acts">
               {{/* Deactivating is the revoke-without-deleting step of a
@@ -789,7 +789,7 @@
 
 {{define "iam_sts_creds"}}
 {{with .C}}
-<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "check"}} Minted</h2><span class="dim sub">expires {{.Expiration}}</span></div>
+<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "check"}} Minted</h2><span class="dim sub" title="{{zoned .Expiration}}">expires {{.Expiration}}</span></div>
 <div class="table-wrap"><table class="tbl kv"><tbody>
   <tr><td>Access key id</td><td>{{template "copychip" dict "Value" .AccessKeyID}}</td></tr>
   <tr><td>Secret</td><td>{{template "copychip" dict "Value" .SecretAccessKey}}</td></tr>

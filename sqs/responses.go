@@ -190,8 +190,8 @@ type batchErr struct {
 }
 
 type sendBatchResult struct {
-	Successful []sendBatchOK `json:"Successful,omitempty" xml:"SendMessageBatchResultEntry"`
-	Failed     []batchErr    `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
+	Successful []sendBatchOK `json:"Successful" xml:"SendMessageBatchResultEntry"`
+	Failed     []batchErr    `json:"Failed" xml:"BatchResultErrorEntry"`
 }
 
 type deleteBatchOK struct {
@@ -199,8 +199,8 @@ type deleteBatchOK struct {
 }
 
 type deleteBatchResult struct {
-	Successful []deleteBatchOK `json:"Successful,omitempty" xml:"DeleteMessageBatchResultEntry"`
-	Failed     []batchErr      `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
+	Successful []deleteBatchOK `json:"Successful" xml:"DeleteMessageBatchResultEntry"`
+	Failed     []batchErr      `json:"Failed" xml:"BatchResultErrorEntry"`
 }
 
 type visBatchOK struct {
@@ -208,8 +208,8 @@ type visBatchOK struct {
 }
 
 type visBatchResult struct {
-	Successful []visBatchOK `json:"Successful,omitempty" xml:"ChangeMessageVisibilityBatchResultEntry"`
-	Failed     []batchErr   `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
+	Successful []visBatchOK `json:"Successful" xml:"ChangeMessageVisibilityBatchResultEntry"`
+	Failed     []batchErr   `json:"Failed" xml:"BatchResultErrorEntry"`
 }
 
 // sortedKeys is generic so one copy serves every value type. It was not, and

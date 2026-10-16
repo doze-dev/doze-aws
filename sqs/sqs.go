@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -165,6 +166,10 @@ func (s *Server) checkOwner(req *request) *apiError {
 	return nil
 }
 
+// unknownAttributeName reads the name out of the enum walk's refusal of an
+// AttributeNames member.
+var unknownAttributeName = regexp.MustCompile(`Value '([^']*)' at '[aA]ttribute[nN]ames`)
+
 // batchEntryPrefix is the Query-protocol name of each batch operation's entries.
 var batchEntryPrefix = map[string]string{
 	"SendMessageBatch":             "SendMessageBatchRequestEntry",
@@ -200,6 +205,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if aerr := modelcheck.ValidateMapAs(req.p.asMap(), constraintTables[req.action], code); aerr != nil {
+		// model: GetQueueAttributes' errors name InvalidAttributeName: a name that
+		// is not an attribute is that, not the generic validation error the
+		// enum walk would give.
+		if m := unknownAttributeName.FindStringSubmatch(aerr.Message); m != nil && req.action == "GetQueueAttributes" {
+			writeError(w, req.json, &apiError{Code: "InvalidAttributeName", Status: 400, SenderFault: true, Message: "Unknown Attribute " + m[1] + "."})
+			return
+		}
 		writeError(w, req.json, &apiError{
 			Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true,
 		})

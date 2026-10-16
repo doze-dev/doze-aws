@@ -199,13 +199,29 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 		}
 		if q, err := s.getQueue(tx, name); err == nil {
 			have := s.configuredAttrs(q)
+			// What the request would read back as, not what was typed: a value
+			// the model gives a default for is the same ask with or without it
+			// (a RedrivePolicy with no maxReceiveCount reads back as 10).
+			cand := &queue{Name: name, FIFO: fifoAttr, VisibilityTimeout: defVisibilityTimeout,
+				RetentionPeriod: defRetentionPeriod, MaxMessageSize: defMaxMessageSize}
+			if err := applyAttrs(cand, attrs, s.lookupIn(tx)); err != nil {
+				return err
+			}
+			want := s.configuredAttrs(cand)
 			keys := make([]string, 0, len(attrs))
 			for k := range attrs {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
 			for _, k := range keys {
-				if !sameAttrValue(have[k], attrs[k]) {
+				w, h := attrs[k], have[k]
+				if v, ok := want[k]; ok {
+					w = v
+				}
+				if h == "" {
+					h = attrDefaults[k]
+				}
+				if !sameAttrValue(h, w) {
 					return errQueueExists(k)
 				}
 			}

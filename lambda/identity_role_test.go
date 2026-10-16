@@ -69,3 +69,95 @@ func TestAFunctionWithoutARoleIsShownOneInItsOwnAccount(t *testing.T) {
 		t.Errorf("FunctionArn = %q, want %q", cfg.FunctionArn, want)
 	}
 }
+
+// The response to CreateFunction is built from the record just made, which was
+// never given the instance's identity, so its FunctionArn and Role carried the
+// default account and us-east-1 while Get and List (which read the stored
+// record back through the store) were right.
+func TestTheCreateResponseCarriesTheConfiguredIdentity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots the service")
+	}
+	id := awsident.Identity{Region: "eu-west-1", AccountID: "111122223333"}
+	s, err := lambda.New(lambda.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Identity: id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	base := newTestServer(t, s)
+	code := t.TempDir()
+	if err := os.WriteFile(filepath.Join(code, "bootstrap"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body, _ := json.Marshal(map[string]any{
+		"FunctionName": "fresh", "Runtime": "provided.al2", "Handler": "bootstrap",
+		"Role": "arn:aws:iam::111122223333:role/r",
+		"Code": map[string]string{"S3Bucket": "_local_", "S3Key": code},
+	})
+	resp, err := http.Post(base+"/2015-03-31/functions", "application/json", strings.NewReader(string(body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 201 {
+		t.Fatalf("CreateFunction: %d %s", resp.StatusCode, out)
+	}
+	var cfg struct{ FunctionArn string }
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	if want := "arn:aws:lambda:eu-west-1:111122223333:function:fresh"; cfg.FunctionArn != want {
+		t.Errorf("the create response's FunctionArn = %q, want %q", cfg.FunctionArn, want)
+	}
+}
+
+// Every response that shows a function names the configured account and Region,
+// not only Get and the create: publishing a version and changing the
+// configuration build their answer from a record too.
+func TestEveryFunctionResponseCarriesTheConfiguredIdentity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots the service")
+	}
+	id := awsident.Identity{Region: "eu-west-1", AccountID: "111122223333"}
+	s, err := lambda.New(lambda.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Identity: id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	base := newTestServer(t, s)
+	code := t.TempDir()
+	if err := os.WriteFile(filepath.Join(code, "bootstrap"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	do := func(method, path, body string) string {
+		req, _ := http.NewRequest(method, base+path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		out, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode >= 300 {
+			t.Fatalf("%s %s: %d %s", method, path, resp.StatusCode, out)
+		}
+		return string(out)
+	}
+	create, _ := json.Marshal(map[string]any{
+		"FunctionName": "every", "Runtime": "provided.al2", "Handler": "bootstrap",
+		"Role": "arn:aws:iam::111122223333:role/r",
+		"Code": map[string]string{"S3Bucket": "_local_", "S3Key": code},
+	})
+	do("POST", "/2015-03-31/functions", string(create))
+	for name, out := range map[string]string{
+		"UpdateFunctionConfiguration": do("PUT", "/2015-03-31/functions/every/configuration", `{"Description":"d"}`),
+		"PublishVersion":              do("POST", "/2015-03-31/functions/every/versions", `{}`),
+		"GetFunction":                 do("GET", "/2015-03-31/functions/every", ""),
+		"ListFunctions":               do("GET", "/2015-03-31/functions", ""),
+	} {
+		if strings.Contains(out, "000000000000") || strings.Contains(out, "us-east-1") {
+			t.Errorf("%s names the default account or Region: %.300s", name, out)
+		}
+	}
+}

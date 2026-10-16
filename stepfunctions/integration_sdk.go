@@ -26,7 +26,10 @@ func (s *Server) sendSQS(ctx context.Context, input []byte) asl.TaskResult {
 	if err := json.Unmarshal(input, &in); err != nil || in.QueueURL == "" {
 		return failResult(asl.ErrTaskFailed, "sqs:sendMessage needs a QueueUrl parameter")
 	}
-	queue := in.QueueURL[strings.LastIndex(in.QueueURL, "/")+1:]
+	queue, ok := queueNameIn(in.QueueURL, s.id.Account())
+	if !ok {
+		return failResult("SQS.QueueDoesNotExist", "The specified queue does not exist: "+in.QueueURL)
+	}
 	body := stringOrJSON(in.MessageBody)
 	attrs := map[string]string{}
 	for k, v := range in.MessageAttributes {
@@ -41,6 +44,30 @@ func (s *Server) sendSQS(ctx context.Context, input []byte) asl.TaskResult {
 		"MD5OfMessageBody": md5,
 	})
 	return asl.TaskResult{Output: out}
+}
+
+// queueNameIn is the name of the queue a URL names in this account. The path is
+// /<account>/<name>, or /<name> alone; a URL with another account, or with more
+// path than that, names no queue here. (Reading only the last segment delivered
+// a task aimed at another account to the queue of the same name in this one.)
+func queueNameIn(url, own string) (string, bool) {
+	path := url
+	if i := strings.Index(path, "://"); i >= 0 {
+		path = path[i+3:]
+		if j := strings.Index(path, "/"); j >= 0 {
+			path = path[j:]
+		} else {
+			path = ""
+		}
+	}
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	switch {
+	case len(parts) == 1 && parts[0] != "":
+		return parts[0], true
+	case len(parts) == 2 && parts[0] == own && parts[1] != "":
+		return parts[1], true
+	}
+	return "", false
 }
 
 func (s *Server) publishSNS(ctx context.Context, input []byte) asl.TaskResult {

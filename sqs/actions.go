@@ -220,7 +220,8 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 		return nil, asAPIError(err)
 	}
 
-	var res sendBatchResult
+	// Both lists are required members: [] when empty, never null or absent.
+	res := sendBatchResult{Successful: []sendBatchOK{}, Failed: []batchErr{}}
 	for i, r := range out {
 		e := entries[i]
 		if r.Err != nil {
@@ -349,7 +350,7 @@ func hDeleteMessageBatch(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	var res deleteBatchResult
+	res := deleteBatchResult{Successful: []deleteBatchOK{}, Failed: []batchErr{}}
 	for i, e := range entries {
 		if errs[i] != nil {
 			ae := asAPIError(errs[i])
@@ -388,7 +389,7 @@ func hChangeMessageVisibilityBatch(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	var res visBatchResult
+	res := visBatchResult{Successful: []visBatchOK{}, Failed: []batchErr{}}
 	for i, e := range entries {
 		if errs[i] != nil {
 			ae := asAPIError(errs[i])

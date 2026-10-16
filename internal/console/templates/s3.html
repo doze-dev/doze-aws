@@ -385,7 +385,7 @@
       <span class="dim" style="font-size:12px">Legal hold {{if .LegalHold}}<span class="badge state-on">ON</span>{{else}}<span class="badge state-off">off</span>{{end}}</span>
       <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/legal-hold" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"{{if not .LegalHold}},"on":"1"{{end}}}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">{{if .LegalHold}}Release{{else}}Hold{{end}}</button>
     </div>
-    {{with .Retention}}<p class="mini-note" style="margin:6px 0 0">Retained under {{.Mode}} until {{.Until}}.</p>{{end}}
+    {{with .Retention}}<p class="mini-note" style="margin:6px 0 0" title="{{zoned .Until}}">Retained under {{.Mode}} until {{.Until}}.</p>{{end}}
     <form novalidate class="ds-row" style="margin-top:6px" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/retention" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">
       <select class="input" name="mode"><option>GOVERNANCE</option><option>COMPLIANCE</option></select>
       <input class="input" name="until" type="date" required>
@@ -438,7 +438,7 @@
       <td class="mono sub">{{.Key}}</td>
       <td class="sub num">{{len .Parts}}{{if .Parts}} · {{humanSize .Size}}{{end}}</td>
       <td class="dim sub mono trunc" style="max-width:200px">{{.UploadID}}</td>
-      <td class="dim sub mono">{{.Initiated}}</td>
+      <td class="dim sub mono" title="{{zoned .Initiated}}">{{.Initiated}}</td>
       <td><div class="cs-acts"><button class="icon-btn sm danger" title="Abort this upload" hx-post="{{$.Prefix}}/s3/{{pathesc $.Bucket}}/abort-upload" hx-vals='{"key":"{{jsonstr .Key}}","upload":"{{jsonstr .UploadID}}"}' hx-target="#s3-mp-uploads" hx-select="" hx-swap="innerHTML" hx-confirm="Abort the upload of {{.Key}}? Its {{len .Parts}} uploaded parts are discarded.">{{icon "trash"}}</button></div></td>
     </tr>
   {{end}}
