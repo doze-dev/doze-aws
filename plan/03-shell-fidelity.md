@@ -1,5 +1,44 @@
 # The shell and the cross-cutting boards, side by side
 
+## Status, 2026-10-16: the shell is built; this file's "Page:" columns are history
+
+The owner decided (2026-10-16) to build the shell to the design: Delete beside
+the name, Plex type and the design's tokens, the design's rule for the rail
+(labelled on the wire, marks-only inside a service) at 56 px with the user's
+choice winning, the boards in `plan/design/`. Built and merged on main, each red
+first and rendered beside its boards:
+
+| Piece | State | Commit |
+|---|---|---|
+| S1 tokens and type (Plex, the design's colours; binary 200 KB smaller) | built | cc406f9 |
+| S2 top bar, S3 rail (instance name, IAM pill, rail by context, status dots) | built; the dot is for 5xx, a denial, an alarm or a dead-letter queue, not a refusal | 797199a, 548a169 |
+| S4 list pane, S5 key bar (named keys all bound; `Esc` closes the inspector) | built | d6cacec |
+| S6 resource header (sentence or strip, Delete beside), neighbours strip, S7 pinned wire dock | built | b7931c7 |
+| S8 refusal/confirm states (novalidate, "Keep it", the card, "it threw") | built | af13645 |
+| S9 palette, S10 create frame ("The call this makes") | built | 71c7177 |
+| S11 name switcher at 1100 px and below, S12 axe sweep both themes, both widths | built | e24b6e7, a2f1d4b |
+| Defects an independent re-audit found in the SQS pages and shared components | being fixed | (this section is updated) |
+
+**Not built, by decision or by schedule:** the ghost row in the list pane while
+creating (the Create board draws one, Sqs-03 does not; off everywhere; the hook
+exists); the compact header (boards 08-21 draw less than the Queue board: the
+page keeps the Queue board's header, neighbours and dock on every tab, per
+Anatomy's rule); the region chip and theme switch (no board draws a selector;
+kept); the wire page's own header row, lanes, "Needs a look" panel and
+inspector tabs (D-a), the first-run wire (D-b), the fidelity dialog (D-c),
+Connect (D-d), the "cannot reach" banner (D-e), the map (D-f): foundation D,
+scheduled after the services. `go tool task console:fidelity -- shell` still
+prints 0 of 13 matching: those boards are mostly the wire page and its
+neighbours.
+
+**How to read the rest of this file.** Sections 2.1 to 2.14 each describe "Page:"
+(what the console did on 2026-10-11) beside "Board:" (the design). The Page
+columns are the pre-rebuild console and read as current if you are not careful:
+for the pieces in the table above they are history, and the Board columns and
+the verdicts' reasons are what the build followed. The build list in section 5
+is the record of what was built and in what order.
+
+
 Written 2026-10-11 at `7cae441`. Fifteen service reviews each compared their
 own boards with the real pages and each found the one thing it could not own:
 the shell around the page differs from every board. Nobody had compared the
