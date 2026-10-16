@@ -206,12 +206,13 @@ scope):
 5. **The shell**: the twelve decisions in [03-shell-fidelity.md](03-shell-fidelity.md);
    the first is the rail's default state, which the design and the page have
    never agreed on and nobody decided in writing.
-6. **Where the design lives.** The corrected boards (about 125 files, every
-   service's stale facts fixed by the reviews and audits) are in a working copy
-   in a session scratch directory, which is not durable, and publishing them to
-   the canvas was refused by the permission check on 2026-10-16. Either allow
-   the publish, or put the boards in the repository (`plan/design/`, about
-   7 MB of HTML), which is also what B14 needs to run as a task.
+6. **Where the design lives. Decided 2026-10-16: in the repository.** The boards
+   are in [`design/`](design/) (369 files, with `con.css` and `canvas.json`;
+   [`design/README.md`](design/README.md) says where they came from). The
+   working copy that held the corrected boards was wiped between sessions, so
+   they were restored from the canvas and the corrections re-applied from the
+   service documents (118 boards). The canvas at claude.ai still has the
+   uncorrected 2026-10-11 version and has not been republished.
 7. **The estimate itself.** About 306 days single-threaded (270 for the services, 36 for the shell)
    against the 113 the plan carried. Some of that is the plan being low; some is that the
    standard is now checked. If the scope is to be cut, the cut belongs here,
