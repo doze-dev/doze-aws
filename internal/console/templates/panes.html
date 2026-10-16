@@ -42,14 +42,24 @@
 {{define "lp_head"}}
 <aside class="listpane" data-keys="{{listKeys .Svc}}">
   <div class="lp-h">
-    <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}</span>
+    <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}{{template "lp_switch" dict "Svc" .Svc}}</span>
     {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
     {{if .NewURL}}<a class="new-link{{if .Creating}} is-current{{end}}" href="{{.NewURL}}"{{if .Creating}} aria-current="page"{{end}}>New</a>{{end}}
   </div>
+  <div class="lp-menu">
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" aria-label="Filter {{plural .Svc}}" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll" x-data>
     {{if .Ghost}}<div class="li on lp-ghost" x-data x-show="$store.ghost.name" x-cloak><span class="nm" x-text="$store.ghost.name"></span><span class="lp-new">new</span></div>{{end}}
 {{end}}
+
+{{/* lp_switch is the pane at 1100 px and below (board Narrow, decision D5): the
+     pane stops being a column and its head becomes a strip over the detail, with
+     the open resource's name as a button ("name ▾") and "1 of 4 queues" beside
+     it. The button opens the rows and the filter as a menu (shell.js, "the list
+     pane as a switcher"), which fills the name and the count from the rows
+     themselves, so no service supplies either. Above 1100 both are hidden and the
+     pane is the column it always was. dict: Svc. */}}
+{{define "lp_switch"}}<button type="button" class="lp-switch" aria-haspopup="true" aria-expanded="false" data-item="{{itemFor .Svc}}" data-all="{{plural .Svc}}">{{awsIcon .Svc}}<span class="lp-sw-name">{{plural .Svc}}</span><span class="lp-caret" aria-hidden="true">▾</span></button><span class="lp-sw-of"></span>{{end}}
 
 {{/* lp_empty is the list pane's half of the answer: what is missing, in two
      lines, because the pane is 232px wide. The long copy and the primary button
@@ -78,6 +88,7 @@
      gone: the key bar at the foot of the page carries it, from data-keys above. */}}
 {{define "lp_foot"}}
     {{template "lp_nofilter" .}}
+  </div>
   </div>
 </aside>
 {{end}}

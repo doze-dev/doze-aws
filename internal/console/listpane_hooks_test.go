@@ -79,3 +79,31 @@ func TestEveryCatalogueEntryHasItsPluralAndItsItem(t *testing.T) {
 		}
 	}
 }
+
+// At 1100 px and below the pane is a switcher (board Narrow, decision D5): its
+// head carries the button and the count it is drawn from, and the rows and the
+// filter sit in one menu wrapper that the column form lays out as if it were not
+// there. The words are the service's own, from the catalogue.
+func TestTheListHeadCarriesTheSwitcher(t *testing.T) {
+	got := lpHeadHTML(t)
+	for _, want := range []string{
+		`class="lp-switch"`, `aria-haspopup="true"`, `aria-expanded="false"`,
+		`data-item="queue"`, `data-all="Queues"`, `<span class="lp-sw-of"></span>`, `<div class="lp-menu">`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the list head lacks %s:\n%s", want, got)
+		}
+	}
+	// The foot closes the scroll area and the menu wrapper both.
+	tmpl, err := template.New("").Funcs(templateFuncs("/_console", awsident.Default())).ParseFS(templateFS, "templates/*.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&b, "lp_foot", map[string]any{"Names": "[]"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(b.String(), "</div>") != strings.Count(b.String(), "<div")+2 {
+		t.Errorf("the foot does not close the scroll area and the menu:\n%s", b.String())
+	}
+}

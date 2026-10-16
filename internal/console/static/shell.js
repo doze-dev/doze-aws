@@ -933,9 +933,17 @@
   var KEYCAP = { j: "j", k: "k", Enter: "⏎", "/": "/", c: "c", ArrowRight: "→", Escape: "esc" };
 
   var cursor = -1;
-  function listRows() { return Array.prototype.slice.call(document.querySelectorAll(".listpane .li[href]")); }
+  // The rows that can be moved over are the ones drawn: a filtered-out row, or
+  // every row while the switcher's menu is shut, is not a place the cursor can be.
+  function listRows() {
+    return Array.prototype.slice.call(document.querySelectorAll(".listpane .li[href]")).filter(isShown);
+  }
   function resetListCursor() { cursor = -1; }
   function moveCursor(d) {
+    // At 1100 and below the rows are a menu. j and k open it, as the pane's own
+    // keys would have moved over a column that is not there.
+    var pane = switcherPane();
+    if (pane && !pane.classList.contains("lp-open")) setSwitcher(pane, true, false);
     var rows = listRows();
     if (!rows.length) return false;
     cursor = Math.min(rows.length - 1, Math.max(0, cursor + d));
@@ -943,6 +951,102 @@
     rows[cursor].scrollIntoView({ block: "nearest" });
     return true;
   }
+
+  // ---------- the list pane as a switcher (1100px and below) ----------
+  // Board Narrow, decision D5 (plan/03-shell-fidelity.md): the pane is not a
+  // column below 1100px. Its head is a strip over the detail with the open
+  // resource's name as a button ("name ▾") and "1 of 4 queues" beside it; the
+  // button opens the filter and the rows as a menu. The name and the count are
+  // read from the rows, so no service supplies either. The keys the menu owns:
+  // / opens it on the filter, j and k open it and move, the arrows move from the
+  // filter, Enter opens the row under the cursor (or the first one drawn),
+  // Escape shuts it. The cursor starts on the open resource.
+  var NARROW = window.matchMedia ? window.matchMedia("(max-width: 1100px)") : { matches: false };
+  function switcherPane() {
+    if (!NARROW.matches) return null;
+    var pane = document.querySelector(".listpane");
+    return pane && pane.querySelector(".lp-switch") ? pane : null;
+  }
+  function openSwitcherPane() { return document.querySelector(".listpane.lp-open"); }
+  function setSwitcher(pane, open, focusFilterBox) {
+    var btn = pane.querySelector(".lp-switch"), input = pane.querySelector(".filter input");
+    pane.classList.toggle("lp-open", open);
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+    pane.querySelectorAll(".li.cursor").forEach(function (r) { r.classList.remove("cursor"); });
+    cursor = -1;
+    if (open) {
+      var at = listRows().indexOf(pane.querySelector(".li.on[href]"));
+      cursor = at;
+      if (at >= 0) { listRows()[at].classList.add("cursor"); listRows()[at].scrollIntoView({ block: "nearest" }); }
+      if (focusFilterBox && input) input.focus();
+    } else if (input) {
+      // A filter left behind would hide rows the next time the menu opens.
+      input.value = "";
+      try { if (window.Alpine) window.Alpine.store("filter").q = ""; } catch (e) {}
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+  function closeSwitcher(refocus) {
+    var pane = openSwitcherPane();
+    if (!pane) return false;
+    var inside = pane.contains(document.activeElement);
+    setSwitcher(pane, false, false);
+    var btn = pane.querySelector(".lp-switch");
+    if (btn && (refocus || inside)) btn.focus();
+    return true;
+  }
+  // The strip's words. Rows that are pages of the service rather than members of
+  // its list (IAM's access log, a service's pseudo row, the ghost of a name being
+  // typed) are not counted.
+  function syncSwitchers() {
+    document.querySelectorAll(".listpane").forEach(function (pane) {
+      var btn = pane.querySelector(".lp-switch"), of = pane.querySelector(".lp-sw-of");
+      if (!btn || !of) return;
+      var rows = Array.prototype.slice.call(pane.querySelectorAll(".lp-scroll .li[href]"));
+      var items = rows.filter(function (r) { return !r.matches(".lp-pseudo, .lp-page, .lp-ghost"); });
+      var on = pane.querySelector(".lp-scroll .li.on[href]");
+      var word = function (r) { var nm = r.querySelector(".nm") || r; return nm.textContent.replace(/\s+/g, " ").trim(); };
+      var item = btn.getAttribute("data-item") || "item";
+      var many = /s$/.test(item) ? item + "es" : item + "s";
+      var n = items.length, label = n + " " + (n === 1 ? item : many);
+      var at = on ? items.indexOf(on) : -1;
+      var name = btn.querySelector(".lp-sw-name"), nameText = on ? word(on) : btn.getAttribute("data-all");
+      if (name && name.textContent !== nameText) name.textContent = nameText;
+      var ofText = at >= 0 ? (at + 1) + " of " + label : label;
+      if (of.textContent !== ofText) of.textContent = ofText;
+    });
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest ? e.target.closest(".lp-switch") : null;
+    if (btn) {
+      var pane = btn.closest(".listpane");
+      setSwitcher(pane, !pane.classList.contains("lp-open"), true);
+      return;
+    }
+    var open = openSwitcherPane();
+    if (!open) return;
+    // A row opens its resource (and the swap shuts the menu); anything outside
+    // the pane shuts it.
+    if (!e.target.closest || !e.target.closest(".listpane") || e.target.closest(".lp-menu a.li")) setSwitcher(open, false, false);
+  });
+  document.addEventListener("input", function (e) {
+    // Typing changes which rows are drawn, so a cursor index would point at another row.
+    if (e.target.matches && e.target.matches(".listpane.lp-open .filter input")) {
+      cursor = -1;
+      document.querySelectorAll(".listpane .li.cursor").forEach(function (r) { r.classList.remove("cursor"); });
+    }
+  });
+  function watchSwitchers() {
+    syncSwitchers();
+    document.querySelectorAll(".listpane .lp-scroll").forEach(function (scroll) {
+      if (scroll.__swObserved) return;
+      scroll.__swObserved = true;
+      new MutationObserver(syncSwitchers).observe(scroll, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+    });
+  }
+  document.addEventListener("DOMContentLoaded", watchSwitchers);
+  document.addEventListener("htmx:after:swap", watchSwitchers);
+  watchSwitchers();
   function openCursorRow() {
     if (cursor < 0) return false;
     var r = listRows()[cursor];
@@ -955,6 +1059,8 @@
     return !!nb;
   }
   function focusFilter() {
+    var sw = switcherPane();
+    if (sw) { setSwitcher(sw, true, true); return true; }
     var f = document.querySelector(".listpane .filter input");
     // The wire has no list pane: its filter is the service select above the rows.
     // (select.js hides the native select behind a button with the same label.)
@@ -1157,6 +1263,20 @@
       if (!overlayOpen() && submitCreate()) { e.preventDefault(); return; }
     }
     // Esc in the filter clears it and hands the keys back to the list.
+    // At 1100 and below Escape shuts the switcher's menu first, wherever the
+    // focus is in it, and gives the page back.
+    if (e.key === "Escape" && !overlayOpen() && closeSwitcher(true)) { e.preventDefault(); return; }
+    // The menu's filter takes the arrows and Enter as well: type, then Enter
+    // opens the first row drawn, or the one under the cursor.
+    if (document.activeElement.matches && document.activeElement.matches(".listpane.lp-open .filter input")) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { moveCursor(e.key === "ArrowDown" ? 1 : -1); e.preventDefault(); return; }
+      if (e.key === "Enter") {
+        if (cursor < 0) moveCursor(1);
+        openCursorRow();
+        e.preventDefault();
+        return;
+      }
+    }
     if (e.key === "Escape" && document.activeElement.matches && document.activeElement.matches(".listpane .filter input")) {
       var fi = document.activeElement;
       clearFilter(fi);

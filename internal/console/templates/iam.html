@@ -4,19 +4,20 @@
 {{define "iam_lp"}}
 <aside class="listpane" data-keys="{{listKeys "iam"}}">
   <div class="lp-h">
-    <span class="l"><span class="lp-name">{{plural "iam"}}</span></span>
+    <span class="l"><span class="lp-name">{{plural "iam"}}</span>{{template "lp_switch" dict "Svc" "iam"}}</span>
     {{template "info_button" dict "Svc" "iam" "Prefix" .Prefix}}
     <a class="new-link{{if .Creating}} is-current{{end}}" href="{{.Prefix}}/iam/create"{{if .Creating}} aria-current="page"{{end}}>New</a>
   </div>
+  <div class="lp-menu">
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll">
-    <a class="li {{if eq .Sel "access"}}on{{end}}" href="{{.Prefix}}/iam">
+    <a class="li lp-page {{if eq .Sel "access"}}on{{end}}" href="{{.Prefix}}/iam">
       <span class="nm">{{icon "activity"}} Access log</span>
     </a>
-    <a class="li {{if eq .Sel "account"}}on{{end}}" href="{{.Prefix}}/iam/account">
+    <a class="li lp-page {{if eq .Sel "account"}}on{{end}}" href="{{.Prefix}}/iam/account">
       <span class="nm">{{icon "settings"}} Account</span>
     </a>
-    <a class="li {{if eq .Sel "sts"}}on{{end}}" href="{{.Prefix}}/iam/sts">
+    <a class="li lp-page {{if eq .Sel "sts"}}on{{end}}" href="{{.Prefix}}/iam/sts">
       <span class="nm">{{icon "key"}} STS credentials</span>
     </a>
     <div class="side-label">Principals</div>
@@ -45,6 +46,7 @@
     {{else}}
     <div class="mini-note" style="padding:6px 12px">None written yet.</div>
     {{end}}
+  </div>
   </div>
 </aside>
 {{end}}

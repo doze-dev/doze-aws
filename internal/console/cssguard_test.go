@@ -25,6 +25,7 @@ func TestTemplateClassesAreStyled(t *testing.T) {
 		"sqs-peek":    "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"sqs-compose": "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"rowck":       "selection hook — the ddb select-all checkbox finds page rows by it",
+		"lp-page":     "counting hook — a list row that is a page of the service (IAM's access log), which the switcher's \"1 of 4\" does not count",
 	}
 
 	css := readAll(t, "static/app.css") + readAll(t, filepath.Join("static", "cm", "codemirror.min.css"))

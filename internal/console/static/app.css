@@ -1067,12 +1067,6 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 :root[data-rail="slim"] .rail { width: 56px; padding: 10px 0; align-items: center; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
 
-/* 900: the list pane stops being a column and becomes a strip. 168px still
-   shows ~20 characters instead of ~28, and hands 64px to the detail pane, which
-   at this width is where every one of them is needed. */
-@media (max-width: 900px) {
-  .listpane { width: 168px; flex: 0 0 168px; }
-}
 .rail .rgroup {
   font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: var(--track-caps); text-transform: uppercase;
   color: var(--muted-foreground); padding: 10px 8px 3px; white-space: nowrap; /* full strength: at 80% the labels failed WCAG AA contrast */
@@ -1166,6 +1160,40 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .lp-h .lp-ct { flex-shrink: 0; font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 .lp-h .lp-ct::before { content: "("; }
 .lp-h .lp-ct::after { content: ")"; }
+/* The switcher: what the pane is at 1100px and below (board Narrow, decision D5).
+   Hidden above that. The menu wrapper is not a box in the column form: its two
+   children (the filter and the rows) lay out in the pane as they always did. */
+.lp-switch, .lp-sw-of { display: none; }
+.lp-menu { display: contents; }
+@media (max-width: 1100px) {
+  /* The pane is a strip over the detail, not a column beside it. The 900px rule
+     that used to make it 168px lost to the 232px rule above (same specificity,
+     later) and never applied; this one applies from 1100 down, so there is a
+     single answer at 1024, 900 and 768. */
+  .panes:has(> .listpane) { flex-direction: column; }
+  .listpane {
+    width: auto; flex: 0 0 auto; border-right: 0; border-bottom: 1px solid var(--border);
+    position: relative; overflow: visible; z-index: 6;
+  }
+  .lp-h { min-height: 44px; padding: 8px 16px; }
+  .lp-h .lp-name, .lp-h .lp-ct { display: none; }
+  .lp-switch {
+    display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: min(100%, 460px); height: 28px; padding: 0 8px;
+    font: inherit; font-weight: 600; color: var(--foreground); background: var(--card);
+    border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+  }
+  .lp-switch:hover, .listpane.lp-open .lp-switch { background: var(--muted); }
+  .lp-switch .lp-sw-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lp-switch .lp-caret { flex: none; color: var(--muted-foreground); font-size: 11px; }
+  .lp-sw-of { display: inline; flex: none; margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--muted-foreground); white-space: nowrap; }
+  /* The rows and the filter are a menu under the strip, over the detail. */
+  .lp-menu {
+    display: none; position: absolute; top: calc(100% + 2px); left: 12px; z-index: 7; width: 340px; max-width: calc(100vw - 24px);
+    max-height: min(60vh, 440px); flex-direction: column; padding-top: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, .18);
+  }
+  .listpane.lp-open .lp-menu { display: flex; }
+}
 /* New is the boards' small button (con.css .btn.sm): 24px, outline, 12px/500.
    Sqs-03 draws it at half strength on the create page, where you already are. */
 .new-link {
