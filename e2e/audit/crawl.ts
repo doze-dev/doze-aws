@@ -6,7 +6,8 @@
 //
 // Follows the console's own links from the home page and, on every page, at two
 // viewports and two themes, records JS errors, console errors, failed or 4xx/5xx
-// same-origin requests, horizontal overflow, and (desktop/light) axe violations.
+// same-origin requests, horizontal overflow, and axe violations (the first page
+// of each shape, at 1440 and 1024, light and dark).
 // Writes audit/out/report.json and screenshots of every page. Expect two benign
 // findings on S3 object previews: the preview iframe is sandboxed with a CSP on
 // purpose, so it logs blocked scripts and inline styles.
@@ -15,13 +16,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 const ORIGIN = process.env.ORIGIN ?? 'http://127.0.0.1:4566';
 const ROOT = `${ORIGIN}/_console/`;
-const OUT = import.meta.dir + '/out';
+const OUT = process.env.OUT ?? import.meta.dir + '/out';
 const AXE = import.meta.dir + '/../node_modules/axe-core/axe.min.js';
 const MAX_PAGES = Number(process.env.MAX_PAGES ?? 500);
 const PER_SHAPE = 3;
 mkdirSync(OUT + '/shots', { recursive: true });
 
-const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 768, height: 900 } };
+// "mobile" kept its name for the report's sake; it is the console's declared
+// floor, 1024 by 768 (board Narrow), where the list pane is the name switcher.
+const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 1024, height: 768 } };
 const THEMES = ['light', 'dark'] as const;
 
 // A page's shape: its path with the parts that name a resource collapsed, so a
@@ -52,9 +55,11 @@ async function visit(url: string, vp: keyof typeof VIEWPORTS, theme: string, wit
   const t0 = Date.now();
   let status = 0, links: string[] = [], title = '';
   try {
-    const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 20000 }).catch(async () => page.waitForLoadState('load').then(() => null));
+    // 'load' and a short settle, not 'networkidle': every live page polls, so the
+    // network is never idle there and each visit used to cost its 20 s timeout.
+    const resp = await page.goto(url, { waitUntil: 'load', timeout: 20000 }).catch(async () => page.waitForLoadState('load').then(() => null));
     status = resp?.status() ?? 0;
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(700);
     title = await page.title();
     const overflow = await page.evaluate(() => {
       const d = document.scrollingElement!;
@@ -105,15 +110,21 @@ while (queue.length && n < MAX_PAGES) {
   const main = await visit(key, 'desktop', 'light', first, first ? id + '_desktop_light' : null);
   pages.push({ url: key, shape: sh, status: main.status, title: main.title, ms: main.ms });
   if (first) {
-    await visit(key, 'desktop', 'dark', false, id + '_desktop_dark');
-    await visit(key, 'mobile', 'light', false, null);
-    await visit(key, 'mobile', 'dark', false, id + '_mobile_dark');
+    // axe runs in both themes at both widths: contrast is the rule a dark
+    // theme breaks and a light one does not, and the switcher only exists at 1024.
+    await visit(key, 'desktop', 'dark', true, id + '_desktop_dark');
+    await visit(key, 'mobile', 'light', true, id + '_mobile_light');
+    await visit(key, 'mobile', 'dark', true, id + '_mobile_dark');
   }
   for (const l of main.links) {
     if (!l.startsWith(ROOT) || /\/static\/|download|\.zip|export/.test(l)) continue;
     queue.push(l);
   }
-  if (n % 25 === 0) console.log(`${n} pages, ${findings.length} findings, queue ${queue.length}`);
+  if (n % 25 === 0) {
+    console.log(`${n} pages, ${findings.length} findings, queue ${queue.length}`);
+    // A crawl that is stopped early keeps what it found.
+    writeFileSync(`${OUT}/report.json`, JSON.stringify({ pages, findings }, null, 1));
+  }
 }
 await browser.close();
 writeFileSync(`${OUT}/report.json`, JSON.stringify({ pages, findings }, null, 1));

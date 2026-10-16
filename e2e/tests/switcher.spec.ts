@@ -119,6 +119,24 @@ for (const width of [1100, 1024, 900]) {
   });
 }
 
+// The strip's words come from the rows, so a row's badge must not leak into the
+// name ("default default" on the default bus) and a page of the service is not
+// counted as one of its members (IAM's access log).
+test.describe('what the strip says', () => {
+  test.use({ viewport: { width: 1024, height: 768 } });
+  test('a badge in the row is not part of the name', async ({ page }) => {
+    await page.goto('eb/default');
+    await expect(page.locator('.listpane .lp-sw-name')).toHaveText('default');
+  });
+  test('IAM: a page is named but not counted, a principal is both', async ({ page }) => {
+    await page.goto('iam');
+    await expect(page.locator('.listpane .lp-sw-name')).toHaveText('Access log');
+    await expect(page.locator('.listpane .lp-sw-of')).toHaveText(/^\d+ principals?$/);
+    await page.goto('iam/account');
+    await expect(page.locator('.listpane .lp-sw-name')).toHaveText('Account');
+  });
+});
+
 test.describe('at 1101 and above the pane is the column', () => {
   test.use({ viewport: { width: 1101, height: 800 } });
   test('232 px wide, the rows drawn, no switcher', async ({ page, request, uniqueName }) => {

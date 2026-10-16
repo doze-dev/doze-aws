@@ -124,7 +124,7 @@
     <button type="button" class="btn btn-ghost btn-sm rw-toggle" data-wire-toggle aria-controls="res-wire"><span class="rw-show">show</span><span class="rw-hide">hide</span></button></div>
   {{if not .Enabled}}<p class="mini-note">Traffic capture is off for this instance.</p>
   {{else if .Rows}}
-  <div class="rw-list">
+  <div class="rw-list" tabindex="0" role="region" aria-label="Calls that touched this {{.Noun}}">
   {{range .Rows}}<div class="rw-row {{if .IsErr}}{{.State}}{{end}}">
     <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
     <span class="rw-act">{{.Action}}</span>

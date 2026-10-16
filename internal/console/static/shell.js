@@ -1005,7 +1005,17 @@
       var rows = Array.prototype.slice.call(pane.querySelectorAll(".lp-scroll .li[href]"));
       var items = rows.filter(function (r) { return !r.matches(".lp-pseudo, .lp-page, .lp-ghost"); });
       var on = pane.querySelector(".lp-scroll .li.on[href]");
-      var word = function (r) { var nm = r.querySelector(".nm") || r; return nm.textContent.replace(/\s+/g, " ").trim(); };
+      // A row's name is its own text: a badge inside it ("default" on the default
+      // bus, "HTTP" on an API) is not part of the name. A row whose name is all
+      // markup (a key's bare id in a span) falls back to everything it says.
+      var squash = function (s) { return s.replace(/\s+/g, " ").trim(); };
+      var word = function (r) {
+        // Most rows carry the resource's whole name for the filter (data-name).
+        if (r.getAttribute("data-name")) return squash(r.getAttribute("data-name"));
+        var nm = r.querySelector(".nm") || r, own = "";
+        nm.childNodes.forEach(function (n) { if (n.nodeType === 3) own += n.textContent; });
+        return squash(own) || squash(nm.textContent);
+      };
       var item = btn.getAttribute("data-item") || "item";
       var many = /s$/.test(item) ? item + "es" : item + "s";
       var n = items.length, label = n + " " + (n === 1 ? item : many);

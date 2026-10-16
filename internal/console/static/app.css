@@ -534,7 +534,7 @@ tr:hover .row-actions { opacity: 1; }
 .icon-btn.sm .ic { width: 15px; height: 15px; }
 .tbl.kv td { height: 30px; }
 .tbl.kv td:first-child { width: 54%; font-family: var(--mono); font-size: 12px; color: var(--muted-foreground); }
-.tbl.kv td:last-child { font-family: var(--mono); font-size: 12px; }
+.tbl.kv td:last-child { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; } /* a long URL wraps in its column instead of running out of the panel (CloudFormation outputs at 1024) */
 
 /* ---------- badges ---------- */
 .badge { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; font-size: 12px; font-weight: 600; border-radius: 999px; background: var(--secondary); color: var(--secondary-foreground); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
@@ -1204,7 +1204,11 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   transition: background .12s;
 }
 .new-link:hover { background: var(--muted); }
-.new-link.is-current { opacity: .5; pointer-events: none; }
+/* Dimmed, not faded: Sqs-03 draws New at half strength, but opacity halves the
+   label's contrast too (axe: color-contrast, 3.0:1 on the create pages). The look
+   is kept with a lighter line and no fill, and the label stays the muted text
+   colour that already passes 4.5:1 on the pane. aria-disabled says what it is. */
+.new-link.is-current { color: var(--muted-foreground); background: transparent; border-color: var(--line2); pointer-events: none; }
 /* The filter is kept although the boards draw none (see lp_head): drawn quietly,
    a 28px box on the well colour with the lightest line, so the header stays the
    boards' header and the box reads as a convenience, not as a control. */

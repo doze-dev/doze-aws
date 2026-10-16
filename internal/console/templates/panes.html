@@ -44,7 +44,7 @@
   <div class="lp-h">
     <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}{{template "lp_switch" dict "Svc" .Svc}}</span>
     {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
-    {{if .NewURL}}<a class="new-link{{if .Creating}} is-current{{end}}" href="{{.NewURL}}"{{if .Creating}} aria-current="page"{{end}}>New</a>{{end}}
+    {{if .NewURL}}<a class="new-link{{if .Creating}} is-current{{end}}" href="{{.NewURL}}"{{if .Creating}} aria-current="page" aria-disabled="true"{{end}}>New</a>{{end}}
   </div>
   <div class="lp-menu">
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" aria-label="Filter {{plural .Svc}}" x-data x-model="$store.filter.q" spellcheck="false"></label>
@@ -333,7 +333,7 @@
   <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
     <div class="dialog wide anim">
       <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
-      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-b info-body" tabindex="0" role="region" aria-label="What is real here" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
       <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
     </div>
   </div>
