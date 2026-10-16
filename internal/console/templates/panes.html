@@ -118,7 +118,7 @@
 
        .attr-row already solved this for message attributes — a grid with real
        gaps. Same shape here. */}}
-  <form class="panel" hx-post="{{.Prefix}}/tags/save" hx-target="#tag-editor" hx-select="" hx-swap="outerHTML">
+  <form novalidate class="panel" hx-post="{{.Prefix}}/tags/save" hx-target="#tag-editor" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="svc" value="{{.Svc}}"><input type="hidden" name="id" value="{{.ID}}">
     <div class="tag-rows">
       <template x-for="(row, i) in rows" :key="i">

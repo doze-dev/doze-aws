@@ -38,7 +38,7 @@
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Test event</h2></div><div style="padding:14px 16px">
         {{/* As you type, the rules panel shows live match verdicts (the sibling
              div re-posts the form to /match, debounced). Publish sends it for real. */}}
-        <form id="eb-event-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/test-event" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML">
+        <form novalidate id="eb-event-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/test-event" hx-target="#eb-rules" hx-select="" hx-swap="outerHTML">
           <div class="fgrid" style="margin-bottom:10px"><div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div><div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div></div>
           <div class="field"><label>Detail <span class="dim">JSON</span></label><textarea name="detail" data-editor="json" rows="4" placeholder='{"orderId":"A-1042"}'></textarea></div>
           <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -83,7 +83,7 @@
           <button class="icon-btn sm danger" title="Delete archive" hx-post="{{$.Prefix}}/eb/{{pathesc $.Bus}}/delete-archive" hx-vals='{"name":"{{jsonstr .Name}}"}' hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" hx-confirm="Delete archive “{{.Name}}” and its captured events?">{{icon "trash"}}</button>
         </div></td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No archives — create one to capture this bus's events for replay.</p></div>{{end}}
-    <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-archive" hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+    <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-archive" hx-target="#eb-archives" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
       <input class="input" name="name" placeholder="orders-archive" required autocomplete="off" style="flex:1">
       <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Archive</button>
     </form>
@@ -118,7 +118,7 @@
 <div class="eb-trace">
       <div class="sec-title">Trace a target back</div>
       <div class="panel">
-        <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
+        <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
           <input class="input mono" name="target" placeholder="arn:aws:sqs:{{region}}:{{account}}:orders" required autocomplete="off">
           <button class="btn btn-outline btn-sm" type="submit">Which rules fire into this?</button>
         </form>
@@ -180,7 +180,7 @@
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
-  <form hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rule/{{pathesc .Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+  <form novalidate hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/rule/{{pathesc .Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
     <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:{{region}}:{{account}}:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .Destinations}}<option value="{{.ARN}}">API destination · {{.Name}}</option>{{end}}</select></div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>
@@ -199,7 +199,7 @@
     {{if .Reason}}<p class="mini-note">{{.Reason}}</p>{{end}}
     {{/* Editable, because the alternative to fixing a wrong pattern is deleting
          the archive — which discards everything it has already captured. */}}
-    <form hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/archive/{{pathesc .A.Name}}/update" hx-target="#eb-archive-detail" hx-select="" hx-swap="outerHTML">
+    <form novalidate hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/archive/{{pathesc .A.Name}}/update" hx-target="#eb-archive-detail" hx-select="" hx-swap="outerHTML">
       <div class="field"><label>Event pattern <span class="dim">what this archive captures</span></label>
         {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" .A.Pattern "Rows" 4 "UID" (printf "arch-%s" .A.Name) "Test" true}}</div>
       <div class="field"><label>Retention <span class="dim">days</span></label>

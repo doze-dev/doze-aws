@@ -22,7 +22,7 @@
       <div id="eb-http-detail"></div>
       <div class="split">
         <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create connection</h2></div><div class="form-b">
-          <form hx-post="{{.Prefix}}/eb/destinations/create-connection" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()" x-data="{auth:'BASIC'}">
+          <form novalidate hx-post="{{.Prefix}}/eb/destinations/create-connection" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()" x-data="{auth:'BASIC'}">
             <div class="fgrid">
               <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-api" required></div>
               <div class="field"><label>Authorization</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
@@ -33,7 +33,7 @@
           </form>
         </div></div>
         <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create API destination</h2></div><div class="form-b">
-          <form hx-post="{{.Prefix}}/eb/destinations/create-destination" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+          <form novalidate hx-post="{{.Prefix}}/eb/destinations/create-destination" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
             <div class="fgrid">
               <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-hook" required></div>
               <div class="field"><label>Connection</label><select class="input" name="connection" required>{{range .Connections}}<option value="{{.ARN}}">{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
@@ -121,7 +121,7 @@
   </tbody></table>
   <div class="form-b">
     <p class="mini-note">Secrets are stored with the connection and never reported; the Secret ARN is the one AWS would mint, so a template's GetAtt resolves.</p>
-    <form hx-post="{{.Prefix}}/eb/destinations/connection/{{pathesc .C.Name}}/update" hx-target="#eb-connection-detail" hx-select="" hx-swap="outerHTML" x-data="{auth:'{{.C.AuthType}}'}">
+    <form novalidate hx-post="{{.Prefix}}/eb/destinations/connection/{{pathesc .C.Name}}/update" hx-target="#eb-connection-detail" hx-select="" hx-swap="outerHTML" x-data="{auth:'{{.C.AuthType}}'}">
       <div class="fgrid">
         <div class="field"><label>Description</label><input class="input" name="description" value="{{.C.Description}}"></div>
         <div class="field"><label>Re-authorize as</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
@@ -146,7 +146,7 @@
   </tbody></table>
   <div class="form-b">
     {{if eq .D.State "INACTIVE"}}<p class="mini-note">INACTIVE: its connection was deleted. Point it at another connection to reactivate.</p>{{end}}
-    <form hx-post="{{.Prefix}}/eb/destinations/destination/{{pathesc .D.Name}}/update" hx-target="#eb-destination-detail" hx-select="" hx-swap="outerHTML">
+    <form novalidate hx-post="{{.Prefix}}/eb/destinations/destination/{{pathesc .D.Name}}/update" hx-target="#eb-destination-detail" hx-select="" hx-swap="outerHTML">
       <div class="field"><label>Connection</label><select class="input" name="connection">{{range .Connections}}<option value="{{.ARN}}" {{if eq .ARN $.D.ConnectionARN}}selected{{end}}>{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
       <div class="field"><label>Endpoint</label><input class="input mono" name="endpoint" value="{{.D.Endpoint}}" required></div>
       <div class="fgrid">

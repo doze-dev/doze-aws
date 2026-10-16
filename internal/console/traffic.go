@@ -90,11 +90,15 @@ type TrafficEntry struct {
 	NotBuilt   string // "declined" | "deferred" for an operation doze-aws does not build
 	LocalLimit string // "1" when the refusal is a limit of doze-aws, not of AWS
 	LegacyStub string // "1" when an older stub table answered: not built, under another code
-	Method     string
-	Path       string // path + query, for replay
-	Host       string
-	CT         string // Content-Type
-	Target     string // X-Amz-Target
+	// FnError is Lambda's X-Amz-Function-Error: the invoke was served (a 200)
+	// and the function it ran raised. The header is the only fact there is; the
+	// body is whatever the function chose to return.
+	FnError string
+	Method  string
+	Path    string // path + query, for replay
+	Host    string
+	CT      string // Content-Type
+	Target  string // X-Amz-Target
 	// RequestID is the id this call answered with — the same value the SDK
 	// surfaces in an error and the server logs on a 500. It is what turns "my
 	// call failed with request id 7f3a…" into a row on this page.
@@ -187,6 +191,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Denied:  sw.Header().Get(awshttp.DeniedHeader), NotBuilt: sw.Header().Get(awshttp.NotBuiltHeader),
 		LocalLimit: sw.Header().Get(awshttp.LocalLimitHeader),
 		LegacyStub: sw.Header().Get(awshttp.LegacyStubHeader),
+		FnError:    sw.Header().Get(functionErrorHeader),
 		Method:     r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 		// Read back off the response rather than plumbed in: the gateway mints
@@ -1019,6 +1024,20 @@ type Refusal struct {
 func (e TrafficEntry) Failure() *Refusal {
 	if r := parseRefusal(e.Status, e.RespBody, e.ErrType); r != nil {
 		return r
+	}
+	// A function error is a 200 with the function's own document, which says
+	// what it raised: {"errorMessage": …, "errorType": …}. Read only when the
+	// header says the function threw; a 200 body that happens to look like
+	// one is a function's return value.
+	if e.FnError != "" && e.Status < 400 {
+		var j struct {
+			Type    string `json:"errorType"`
+			Message string `json:"errorMessage"`
+		}
+		if json.Unmarshal([]byte(strings.TrimSpace(e.RespBody)), &j) == nil && (j.Type != "" || j.Message != "") {
+			return &Refusal{Code: j.Type, Message: j.Message}
+		}
+		return &Refusal{Message: "The function raised; the response body is the error it returned."}
 	}
 	// A failed hop of a cascade has no AWS error document: its body is the
 	// error's own words ("sns publish: 403 Forbidden: …"). It still failed, and

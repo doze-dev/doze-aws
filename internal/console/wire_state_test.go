@@ -33,6 +33,8 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 		"Denied":      {403, awshttp.DeniedHeader, "iam", "AccessDeniedException"},
 		"NotBuilt":    {501, awshttp.NotBuiltHeader, "deferred", "NotImplemented"},
 		"Failed":      {500, "", "", "InternalFailure"},
+		// A Lambda invoke whose function raised: served (200), flagged by the header.
+		"Threw": {200, "X-Amz-Function-Error", "Unhandled", ""},
 	}
 	svc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		a := answers[strings.TrimPrefix(r.Header.Get("X-Amz-Target"), "AmazonSQS.")]
@@ -43,6 +45,9 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 		w.WriteHeader(a.status)
 		if a.code != "" {
 			w.Write([]byte(`{"__type":"` + a.code + `","message":"said the service"}`))
+		}
+		if a.header == "X-Amz-Function-Error" {
+			w.Write([]byte(`{"errorMessage":"boom: the handler raised","errorType":"Error"}`))
 		}
 	})
 	rec := console.NewRecorder(svc, awsident.Default())
@@ -58,6 +63,7 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 		{"Denied", "denied", "Denied"},
 		{"NotBuilt", "notbuilt", "Not built"},
 		{"Failed", "error", "Failed"},
+		{"Threw", "threw", "It threw"},
 	}
 	for _, w := range want {
 		r := httptest.NewRequest("POST", "/", strings.NewReader(`{"QueueName":"orders"}`))
@@ -120,6 +126,17 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 			if strings.Contains(meta, `class="err"`) || strings.Contains(meta, `class="ok"`) {
 				t.Errorf("the inspector still colours the chip by status alone:\n%s", meta)
 			}
+			if w.action == "Threw" {
+				// The panel says what the function raised, as a refusal's says
+				// what the service answered, and the row is an error row for
+				// the "only errors" filter though its status is 200.
+				if !strings.Contains(drawer, "boom: the handler raised") || !strings.Contains(drawer, "<div class=\"td-k\">It threw · Error</div>") {
+					t.Errorf("the inspector does not say what the function raised:\n%s", drawer)
+				}
+				if !strings.Contains(row, `class="tr-row threw"`) {
+					t.Errorf("a function error is not an error row (the filter would hide it):\n%s", row)
+				}
+			}
 			if w.word != "" {
 				if !strings.Contains(meta, w.word) {
 					t.Errorf("the inspector's chip does not say %q:\n%s", w.word, meta)
@@ -129,5 +146,33 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// The dock under a resource counts a function error in its collapsed sentence,
+// in the state's word, as it counts a refusal: the Narrow board's sentence is
+// where a narrow window learns what happened.
+func TestTheDockCountsAFunctionError(t *testing.T) {
+	svc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Amz-Function-Error", "Unhandled")
+		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
+		w.Write([]byte(`{"errorMessage":"boom","errorType":"Error"}`))
+	})
+	rec := console.NewRecorder(svc, awsident.Default())
+	c, err := console.New(console.Options{Peers: peers.InProcess(func(string) http.Handler { return nil }), Recorder: rec})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"QueueUrl":"http://x/000000000000/orders","MessageBody":"one"}`))
+	r.Header.Set("X-Amz-Target", "AmazonSQS.SendMessage")
+	r.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	rec.ServeHTTP(httptest.NewRecorder(), r)
+
+	dock := req(t, c, "GET", "/_console/traffic/for?svc=sqs&res=orders&noun=queue", nil).Body.String()
+	if !strings.Contains(dock, "1 call touched this queue · 1 threw") {
+		t.Errorf("the dock's sentence does not count the function error:\n%s", dock)
+	}
+	if !strings.Contains(dock, `<span class="tr-state">It threw</span>`) || !strings.Contains(dock, `class="rw-row threw"`) {
+		t.Errorf("the dock row does not say it:\n%s", dock)
 	}
 }

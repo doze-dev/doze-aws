@@ -570,7 +570,11 @@ test.describe('the confirm component', () => {
     await expect(page.locator('#confirm-title')).toContainText(`Delete bucket “${bucket}”?`);
     await expect(page.locator('#confirm-msg')).toHaveText('It must be empty.');
     await expect(page.locator('#confirm-yes')).toHaveText('Delete');
-    await expect(page.locator('#confirm-yes')).toHaveClass(/btn-destructive/);
+    // A delete is destructive, so the verb is the boards' red outline (the
+    // solid red button was the old chrome) and the cancel is "Keep it" (D11).
+    await expect(page.locator('#confirm-yes')).toHaveClass(/\bdanger\b/);
+    await expect(page.locator('#confirm-yes')).not.toHaveClass(/btn-destructive/);
+    await expect(page.locator('#confirm-no')).toHaveText('Keep it');
     await confirmDialog('cancel');
   });
 });

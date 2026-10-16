@@ -178,7 +178,7 @@
   <div class="overlay q-center" role="dialog" aria-modal="true" aria-label="Redrive messages" x-data="{open:false, n:0}" x-show="open" x-cloak
        @redrive-open.window="n=Number((document.getElementById('message-panel-wrap')||{dataset:{}}).dataset.total||0); open=true" @click.self="open=false" @keydown.escape.window="open=false"
        x-effect="[open, window.dozeTrap && dozeTrap($el, open)]">
-    <div class="dialog anim q-dialog"><form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" @htmx:after:request="open=false">
+    <div class="dialog anim q-dialog"><form novalidate hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/redrive" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" @htmx:after:request="open=false">
       <h2 class="q-h2">Move all <span x-text="n">{{add (add .Available .InFlight) .Delayed}}</span> <span x-text="n==1 ? 'message' : 'messages'">messages</span> back?</h2>
       <p class="q-dialog-p">They leave this queue and land in the queue you pick, along with any that are held or delayed; none stays here. {{if eq (len .Sources) 1}}One queue is{{else}}{{len .Sources}} queues are{{end}} set to dead-letter into this one.</p>
       <div class="field"><label for="redrive-dest">Move them to</label>
@@ -423,7 +423,7 @@
     <div class="q-table q-perms">
       <div class="q-r q-rh"><span>Label</span><span>Principal</span><span>Action</span><span></span></div>
       {{range .Perms}}<div class="q-r"><span class="mono">{{.Label}}</span><span class="mono">{{.Account}}</span><span class="mono">{{.Action}}</span>
-        <span class="q-ra"><form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? {{.Account}} loses {{.Action}} on this queue." data-confirm-cancel="Keep it" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{jsonstr .Label}}"}'>
+        <span class="q-ra"><form novalidate hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? {{.Account}} loses {{.Action}} on this queue." data-confirm-cancel="Keep it" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{jsonstr .Label}}"}'>
           <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></span></div>{{end}}
     </div>
     {{end}}
@@ -525,12 +525,12 @@
   <div class="bulkbar q-well" x-show="sel.length" x-cloak>
     <b><span x-text="sel.length"></span> selected</b>
     <div class="q-bar-r">
-      <form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/visibility-batch" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/visibility-batch" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="ids" :value="JSON.stringify(sel)">
         <input type="hidden" name="seconds" value="0">
         <button class="btn btn-outline btn-sm" type="submit">Release selected</button>
       </form>
-      <form hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/delete-batch" hx-confirm="Delete the selected messages? They are gone for good." data-confirm-cancel="Keep them" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/sqs/{{pathesc .Queue}}/delete-batch" hx-confirm="Delete the selected messages? They are gone for good." data-confirm-cancel="Keep them" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="ids" :value="JSON.stringify(sel)">
         <button class="btn btn-outline danger btn-sm" type="submit">Delete selected</button>
       </form>
@@ -546,12 +546,12 @@
       <span class="mono rcv-count rc-{{.ReceiveState $.MaxReceive}}">{{.Receives}}×{{if $.MaxReceive}} of {{$.MaxReceive}}{{end}}</span>
       <span class="rcv-left"><span class="q-lane"><i class="rt-bar"></i></span><span class="mono rt-cd"></span></span>
       <span class="rcv-acts q-ra">
-        <form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/visibility" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form novalidate hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/visibility" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <input type="hidden" name="seconds" value="0">
           <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
         </form>
-        <form hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form novalidate hx-post="{{$.Prefix}}/sqs/{{pathesc $.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." data-confirm-cancel="Keep it" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="from" value="consume">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">Delete</button>

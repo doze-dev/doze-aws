@@ -40,7 +40,7 @@
       {{if eq .Tab "properties"}}
         {{template "s3_props" .}}
       {{else}}
-        <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/upload" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
+        <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/upload" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
               hx-encoding="multipart/form-data" style="display:none"
               @change="if($el.file.files.length){$el.prefix.value=currentPrefix(); htmx.trigger($el,'submit')}" @htmx:after:request="$el.reset()">
           <input type="hidden" name="prefix" value="{{.KeyPrefix}}"><input type="file" name="file">
@@ -53,7 +53,7 @@
              navigate, and a folder created inside invoices/ would land at the
              bucket root. Read the prefix off the table at submit time, the same
              way the upload form does. */}}
-        <form class="newfolder" x-show="newFolder" x-cloak
+        <form novalidate class="newfolder" x-show="newFolder" x-cloak
               hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/folder" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
               @htmx:config:request="$event.detail.ctx.request.body.set('prefix', currentPrefix())"
               @htmx:after:request="if(($event.detail.ctx.response.status < 400)){newFolder=false; $el.reset()}">
@@ -104,13 +104,13 @@
      service. Folders don't select; a prefix is not an object. */}}
 <div class="bulkbar" x-show="sel.length" x-cloak>
   <span class="bb-n"><span x-text="sel.length"></span> selected</span>
-  <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/delete-batch" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
+  <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/delete-batch" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
         @htmx:config:request="$event.detail.ctx.request.body.set('prefix', currentPrefix())"
         hx-confirm="Delete the selected objects?">
     <input type="hidden" name="keys" :value="JSON.stringify(sel)">
     <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
   </form>
-  <form class="bb-combine" x-show="sel.length>1" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/combine" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
+  <form novalidate class="bb-combine" x-show="sel.length>1" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/combine" hx-target="#object-table" hx-select="" hx-swap="outerHTML"
         @htmx:config:request="$event.detail.ctx.request.body.set('prefix', currentPrefix())">
     <input type="hidden" name="keys" :value="JSON.stringify(sel)">
     <input class="input" name="dest" placeholder="combined.log" required spellcheck="false">
@@ -163,7 +163,7 @@
         {{if .Props.ObjectLock}}
         {{/* The bucket default (PutObjectLockConfiguration); per-object
              retention and legal holds live in the object drawer. */}}
-        <form class="ex-grid" style="align-items:end;padding:2px 0 8px" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/lock-config" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
+        <form novalidate class="ex-grid" style="align-items:end;padding:2px 0 8px" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/lock-config" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
           <div class="field" style="width:150px"><label>Default retention</label>
             <select class="input" name="mode"><option value="" {{if not .Lock.Mode}}selected{{end}}>none</option><option {{if eq .Lock.Mode "GOVERNANCE"}}selected{{end}}>GOVERNANCE</option><option {{if eq .Lock.Mode "COMPLIANCE"}}selected{{end}}>COMPLIANCE</option></select></div>
           <div class="field" style="width:90px"><label>Days</label><input class="input" name="days" type="number" min="0" value="{{.Lock.Days}}"></div>
@@ -182,7 +182,7 @@
       {{if .Props.Tags}}<table class="tbl kv"><tbody>
         {{range .Props.Tags}}<tr><td>{{.K}}</td><td style="display:flex;align-items:center;justify-content:space-between;gap:8px">{{.V}}<button class="icon-btn sm danger" title="Remove tag" hx-post="{{$.Prefix}}/s3/{{pathesc $.Bucket}}/remove-tag" hx-vals='{"key":"{{jsonstr .K}}"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML" hx-confirm="Remove the tag “{{.K}}”?">{{icon "x"}}</button></td></tr>{{end}}
       </tbody></table>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No tags yet.</div>{{end}}
-      <form class="tag-row-form" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/add-tag" hx-target="#s3-props" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+      <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/add-tag" hx-target="#s3-props" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
         <input class="input" name="key" placeholder="Key" required style="max-width:150px"><input class="input" name="value" placeholder="Value" style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
       </form>
     </div>
@@ -192,7 +192,7 @@
 
     <div class="sec-title">CORS</div>
     <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
-      <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/cors" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/cors" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
         {{template "rows_builder" dict "Field" "rules" "Value" .CORSJSON "Rows" 6
           "Spec" `[{"key":"AllowedOrigins","kind":"list"},{"key":"AllowedMethods","kind":"list"},{"key":"AllowedHeaders","kind":"list"},{"key":"ExposeHeaders","kind":"list"},{"key":"MaxAgeSeconds","kind":"num"}]`
           "Cols" (list
@@ -210,7 +210,7 @@
 
     <div class="sec-title">Lifecycle</div>
     <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
-      <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/lifecycle" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/lifecycle" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
         {{template "rows_builder" dict "Field" "rules" "Value" .LifecycleJSON "Rows" 6
           "Spec" `[{"key":"ID","kind":"text"},{"key":"Prefix","kind":"text"},{"key":"Status","kind":"text"},{"key":"ExpireDays","kind":"num"},{"key":"NoncurrentDays","kind":"num"}]`
           "Cols" (list
@@ -234,7 +234,7 @@
       <div class="panel-h"><h2>{{icon "braces"}} {{if .BucketPolicy}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>
         <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
       <div x-show="open" x-cloak style="padding:14px 16px">
-        <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/policy" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
+        <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/policy" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
           {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .BucketPolicy "Rows" 12 "UID" "bucketpol" "Check" false "Resource" (printf "arn:aws:s3:::%s,arn:aws:s3:::%s/*" .Bucket .Bucket)}}
           <div class="fr-btn"><button class="btn" type="submit">Save bucket policy</button></div>
         </form>
@@ -251,7 +251,7 @@
       </tbody></table></div>
       <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/website" hx-vals='{"disable":"1"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML" hx-confirm="Disable website hosting? Requests to the site stop resolving.">Disable</button></div>
       {{else}}
-      <form hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/website" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/website" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
         <div class="ex-grid" style="align-items:end">
           <div class="field" style="flex:1"><label>Index document</label><input class="input mono" name="index" placeholder="index.html" required spellcheck="false"></div>
           <div class="field" style="flex:1"><label>Error document <span class="dim">optional</span></label><input class="input mono" name="error" placeholder="error.html" spellcheck="false"></div>
@@ -293,7 +293,7 @@
       </div>
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No notifications — object events go nowhere yet.</p></div>{{end}}
-    <form class="sub-add" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/notify-add" hx-target="#s3-notify" hx-select="" hx-swap="outerHTML">
+    <form novalidate class="sub-add" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/notify-add" hx-target="#s3-notify" hx-select="" hx-swap="outerHTML">
       <select aria-label="Destination service" class="input" title="Destination service" name="dest" required>
         <option value="">— destination —</option>
         {{range .Queues}}<option value="sqs:{{.Name}}">SQS · {{.Name}}</option>{{end}}
@@ -338,7 +338,7 @@
   {{/* Share link: doze-aws enforces presigned expiry, so the durations are real. */}}
   <div class="drawer-sec">
     <div class="ds-title">{{icon "link"}} Share link</div>
-    <form class="ds-row" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/presign" hx-vals='{"key":"{{jsonstr .Meta.Key}}"}' hx-target="#share-out" hx-select="" hx-swap="innerHTML">
+    <form novalidate class="ds-row" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/presign" hx-vals='{"key":"{{jsonstr .Meta.Key}}"}' hx-target="#share-out" hx-select="" hx-swap="innerHTML">
       <select class="input" name="ttl"><option value="15m">15 minutes</option><option value="1h" selected>1 hour</option><option value="24h">24 hours</option></select>
       <button class="btn btn-outline btn-sm" type="submit">Generate</button>
     </form>
@@ -348,7 +348,7 @@
   {{/* Copy / move: one CopyObject away. */}}
   <div class="drawer-sec">
     <div class="ds-title">{{icon "copy"}} Copy / move</div>
-    <form class="ds-col" x-data hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/copy" hx-vals='{"src":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#object-table" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400))drawer=false">
+    <form novalidate class="ds-col" x-data hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/copy" hx-vals='{"src":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#object-table" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400))drawer=false">
       <input aria-label="New key — include folders in the path" class="input" name="dst" value="{{.Meta.Key}}" spellcheck="false" title="New key — include folders in the path">
       <div class="ds-row" style="justify-content:flex-end">
         <button class="btn btn-outline btn-sm" type="submit">Copy</button>
@@ -360,7 +360,7 @@
   {{/* Object tags (Get/PutObjectTagging; empty deletes the subresource). */}}
   <div class="drawer-sec">
     <div class="ds-title">{{icon "tag"}} Tags</div>
-    <form class="ds-col" x-data='{rows: [{{range .ObjTags}}{k:{{printf "%q" .K}},v:{{printf "%q" .V}}},{{end}}]}'
+    <form novalidate class="ds-col" x-data='{rows: [{{range .ObjTags}}{k:{{printf "%q" .K}},v:{{printf "%q" .V}}},{{end}}]}'
           hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/object-tags" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">
       <template x-for="(row,i) in rows" :key="i">
         <div class="attr-row" style="grid-template-columns:1fr 1.2fr 30px">
@@ -386,7 +386,7 @@
       <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/legal-hold" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"{{if not .LegalHold}},"on":"1"{{end}}}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">{{if .LegalHold}}Release{{else}}Hold{{end}}</button>
     </div>
     {{with .Retention}}<p class="mini-note" style="margin:6px 0 0">Retained under {{.Mode}} until {{.Until}}.</p>{{end}}
-    <form class="ds-row" style="margin-top:6px" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/retention" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">
+    <form novalidate class="ds-row" style="margin-top:6px" hx-post="{{.Prefix}}/s3/{{pathesc .Bucket}}/retention" hx-vals='{"key":"{{jsonstr .Meta.Key}}","prefix":"{{jsonstr .KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML">
       <select class="input" name="mode"><option>GOVERNANCE</option><option>COMPLIANCE</option></select>
       <input class="input" name="until" type="date" required>
       <button class="btn btn-outline btn-sm" type="submit">Retain</button>

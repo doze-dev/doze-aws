@@ -155,7 +155,7 @@ func (c *Console) trafficFor(w http.ResponseWriter, r *http.Request) {
 	}
 	var rows []trafficRow
 	more, total := 0, 0
-	var tally [4]int // refused, denied, not built, failed
+	var tally [5]int // refused, denied, not built, failed, threw
 	count := func(state string) {
 		switch state {
 		case "refused", "refusedhere":
@@ -166,6 +166,8 @@ func (c *Console) trafficFor(w http.ResponseWriter, r *http.Request) {
 			tally[2]++
 		case "error":
 			tally[3]++
+		case "threw":
+			tally[4]++
 		}
 	}
 	if c.rec != nil {
@@ -200,9 +202,9 @@ type wireTally struct {
 
 // tallyOf names the counts in the order the states are taught (D7), leaving
 // out the ones nothing is in.
-func tallyOf(n [4]int) []wireTally {
+func tallyOf(n [5]int) []wireTally {
 	var out []wireTally
-	for i, word := range [4]string{"refused", "denied", "not built", "failed"} {
+	for i, word := range [5]string{"refused", "denied", "not built", "failed", "threw"} {
 		if n[i] > 0 {
 			out = append(out, wireTally{N: n[i], Word: word})
 		}
@@ -366,7 +368,7 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 		Time:    clockMillis(e.At),
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Status: e.Status, Millis: fmtMillis(e.Millis),
-		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
+		IsErr: e.Status >= 400 || state == "threw", Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		Refused: ref, State: state, StateWord: word,
 		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,
 		// Every row names a resource and none of them was a link, on the
@@ -382,7 +384,14 @@ type wireFacts struct {
 	NotBuilt string // "declined" | "deferred"
 	Local    string // "1"
 	Stub     string // "1": a legacy stub table's answer
+	FnError  string // "Unhandled": a Lambda function raised (X-Amz-Function-Error)
 }
+
+// functionErrorHeader is how Lambda says an invoke was served and the function
+// it ran was not: a 200 with this header (lambda/invoke.go sets it, with the
+// value AWS gives, "Unhandled"). It is the only fact the wire has; the body is
+// whatever the function returned.
+const functionErrorHeader = "X-Amz-Function-Error"
 
 func factsOf(h http.Header) wireFacts {
 	return wireFacts{
@@ -390,11 +399,12 @@ func factsOf(h http.Header) wireFacts {
 		NotBuilt: h.Get(awshttp.NotBuiltHeader),
 		Local:    h.Get(awshttp.LocalLimitHeader),
 		Stub:     h.Get(awshttp.LegacyStubHeader),
+		FnError:  h.Get(functionErrorHeader),
 	}
 }
 
 func factsOfEntry(e TrafficEntry) wireFacts {
-	return wireFacts{Denied: e.Denied, NotBuilt: e.NotBuilt, Local: e.LocalLimit, Stub: e.LegacyStub}
+	return wireFacts{Denied: e.Denied, NotBuilt: e.NotBuilt, Local: e.LocalLimit, Stub: e.LegacyStub, FnError: e.FnError}
 }
 
 // callState separates the ways a call fails to be served. They are different
@@ -409,6 +419,10 @@ func factsOfEntry(e TrafficEntry) wireFacts {
 //	             policy decided.)
 //	error        doze-aws itself broke: a 5xx that is not a refusal. A bug here
 //	             rather than in the caller.
+//	threw        the call was served and the code it ran raised: a Lambda
+//	             invoke answers 200 with X-Amz-Function-Error. Nothing the
+//	             caller sent was wrong and nothing in doze-aws broke; the
+//	             function is what to read.
 //	refusedhere  a 4xx for a limit that is doze-aws's own: AWS would accept it.
 //	refused      a 4xx: the request breaks a rule of the service.
 //
@@ -429,6 +443,8 @@ func callState(status int, ref *Refusal, f wireFacts) string {
 		return "error"
 	case status >= 400:
 		return "refused"
+	case f.FnError != "":
+		return "threw"
 	}
 	return "served"
 }
@@ -461,6 +477,9 @@ func stateCopyFor(state, notBuilt string) stateView {
 	case "error":
 		return stateView{Label: "Failed",
 			Why: "This is doze-aws failing rather than refusing. A 5xx here is a bug in the emulator, not in the call, and is worth reporting."}
+	case "threw":
+		return stateView{Label: "It threw",
+			Why: "The call was served and your function raised. Lambda answers 200 and flags the error in X-Amz-Function-Error; the body says what it threw. Nothing here is a bug in doze-aws."}
 	case "refusedhere":
 		return stateView{Label: "Refused here",
 			Why: "AWS would accept this. doze-aws refuses it because of a limit of its own."}

@@ -54,7 +54,7 @@
         <div class="panel-h"><h2>{{icon "braces"}} Resource policy</h2>
           <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
         <div x-show="open" x-cloak style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/policy" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML">
+          <form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/policy" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML">
             {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .KeyPolicy "Rows" 12 "UID" "keypol" "Check" false}}
             <div class="fr-btn"><button class="btn" type="submit">Save key policy</button></div>
           </form>
@@ -72,7 +72,7 @@
            which is the whole point of an asymmetric key over a MAC. */}}
       <div class="sec-title">Public key</div>
       <div class="panel">
-        <form class="form-b" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/public-key" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
+        <form novalidate class="form-b" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/public-key" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
           <p class="mini-note">Hand this to whoever needs to verify a signature without calling KMS.</p>
           <div class="send-foot"><button class="btn btn-sm" type="submit">Export public key</button></div>
         </form>
@@ -84,7 +84,7 @@
            ReEncrypt exists is that the plaintext never travels. */}}
       <div class="sec-title">Re-encrypt <span class="dim">— move ciphertext to another key</span></div>
       <div class="panel">
-        <form class="form-b" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/reencrypt" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
+        <form novalidate class="form-b" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/reencrypt" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
           <div class="field"><label>Ciphertext <span class="dim">base64</span></label>
             <textarea name="ciphertext" rows="3" spellcheck="false" required placeholder="AQICAHj…"></textarea></div>
           <div class="field"><label>Destination key</label>
@@ -99,7 +99,7 @@
            that was never the problem. */}}
       <div class="sec-title">Random bytes <span class="dim">— no key involved</span></div>
       <div class="panel">
-        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/random" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
+        <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/kms/random" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
           <input aria-label="Number of random bytes" class="input" name="bytes" title="Number of random bytes" type="number" min="1" max="1024" value="32">
           <button class="btn btn-outline btn-sm" type="submit">Generate</button>
         </form>
@@ -107,7 +107,7 @@
       <div id="kms-op-out" class="kms-op-out"></div>
       <div class="sec-title">Description</div>
       <div class="panel">
-        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/description">
+        <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/description">
           <input class="input" name="description" value="{{.Key.Description}}" placeholder="What this key is for" autocomplete="off">
           <button class="btn btn-outline btn-sm" type="submit">Save</button>
         </form>
@@ -124,7 +124,7 @@
         {{/* Repoint, not delete-and-recreate. Those are different: between the
              two calls the alias does not exist, and anything resolving it in
              that window fails. UpdateAlias moves it in one step. */}}
-        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/update-alias" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+        <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/update-alias" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
           {{/* A distinct field name, not a second name="alias" beside the
                add-alias form. Two adjacent forms with the same field name is
                ambiguous to anything addressing them — a test, a screen reader
@@ -132,7 +132,7 @@
           <input class="input mono" name="existing_alias" placeholder="alias/existing-name" required autocomplete="off">
           <button class="btn btn-ghost btn-sm" type="submit" title="Point an existing alias at this key">Repoint here</button>
         </form>
-        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
+        <form novalidate class="tag-row-form" hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
           <span class="dim mono" style="align-self:center;font-size:12px">alias/</span><input class="input" name="alias" placeholder="my-key" required style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
         </form>
       </div>
@@ -142,7 +142,7 @@
     {{/* Playground is usage-aware — a key gets exactly the operations it can do. */}}
     {{if eq .Key.Usage "SIGN_VERIFY"}}
     <div class="panel"><div class="panel-h"><h2>{{icon "key"}} Sign / verify</h2></div><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/sign" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">
+      <form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/sign" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">
         <div class="field"><label>Message</label><textarea name="message" rows="2" placeholder="sign me" required>hello doze</textarea></div>
         <div class="fgrid" style="margin-top:8px;align-items:end"><div class="field"><label>Algorithm</label><select class="input" name="algo">{{range .Key.SigAlgos}}<option>{{.}}</option>{{end}}</select></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Sign →</button></div></div>
       </form>
@@ -150,7 +150,7 @@
     </div></div>
     {{else if eq .Key.Usage "GENERATE_VERIFY_MAC"}}
     <div class="panel"><div class="panel-h"><h2>{{icon "key"}} HMAC</h2></div><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/mac" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">
+      <form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/mac" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">
         <div class="field"><label>Message</label><textarea name="message" rows="2" placeholder="authenticate me" required>hello doze</textarea></div>
         <div class="fgrid" style="margin-top:8px;align-items:end"><div class="field"><label>Algorithm</label><select class="input" name="algo">{{range .Key.MacAlgos}}<option>{{.}}</option>{{end}}</select></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Generate MAC →</button></div></div>
       </form>
@@ -158,9 +158,9 @@
     </div></div>
     {{else}}
     <div class="panel"><div class="panel-h"><h2>{{icon "lock"}} Encrypt / decrypt</h2></div><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML" style="margin-bottom:12px"><div class="field"><label>Plaintext → ciphertext</label><textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea></div>
+      <form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML" style="margin-bottom:12px"><div class="field"><label>Plaintext → ciphertext</label><textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea></div>
       {{template "cli" (printf "kms encrypt --key-id %s --plaintext $plaintext --cli-binary-format raw-in-base64-out" .Key.ID)}}<div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Encrypt</button></div></form>
-      <form hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/decrypt" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML"><div class="field"><label>Ciphertext (base64) → plaintext</label><textarea name="ciphertext" rows="2" placeholder="paste ciphertext…" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Decrypt</button></div></form>
+      <form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key.ID}}/decrypt" hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML"><div class="field"><label>Ciphertext (base64) → plaintext</label><textarea name="ciphertext" rows="2" placeholder="paste ciphertext…" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Decrypt</button></div></form>
       <div id="kms-crypto-out" style="margin-top:12px"></div>
     </div></div>
     {{end}}
@@ -171,7 +171,7 @@
 {{/* Sign result → one-click Verify (round-trip like encrypt/decrypt). */}}
 {{define "kms_sign_result"}}
 <div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>Signature (base64) · {{.Algo}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Signature}}">{{icon "copy"}}</button></div><pre>{{.Signature}}</pre></div>
-<form hx-post="{{.Prefix}}/kms/{{pathesc .Key}}/verify" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
+<form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key}}/verify" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
   <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="signature" value="{{.Signature}}">
   <button class="btn btn-outline btn-sm" type="submit">Verify this signature →</button>
 </form>
@@ -179,7 +179,7 @@
 
 {{define "kms_mac_result"}}
 <div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>MAC (base64) · {{.Algo}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Mac}}">{{icon "copy"}}</button></div><pre>{{.Mac}}</pre></div>
-<form hx-post="{{.Prefix}}/kms/{{pathesc .Key}}/verify-mac" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
+<form novalidate hx-post="{{.Prefix}}/kms/{{pathesc .Key}}/verify-mac" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
   <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="mac" value="{{.Mac}}">
   <button class="btn btn-outline btn-sm" type="submit">Verify this MAC →</button>
 </form>

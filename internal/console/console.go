@@ -324,7 +324,7 @@ func (c *Console) fail(w http.ResponseWriter, err error) {
 type failReason struct {
 	Code    string
 	Message string
-	State   string // served | refused | refusedhere | denied | notbuilt | error — same vocabulary as the wire
+	State   string // served | refused | refusedhere | denied | notbuilt | error | threw — same vocabulary as the wire (an action that fails is never "threw": that is a served call)
 	// NotBuilt carries "declined" or "deferred" for a notbuilt state, so the
 	// sentence under it can say which.
 	NotBuilt string

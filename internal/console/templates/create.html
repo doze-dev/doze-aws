@@ -7,7 +7,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create bucket</div>
     <p class="det-sub" style="margin-bottom:18px">Buckets hold objects. Names are 3–63 lowercase characters.</p>
-    <form hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label>
         <div class="ex-grid"><input class="input" style="flex:1" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
         <button type="button" class="btn btn-outline" hx-post="{{.Prefix}}/s3/check-name" hx-include="closest form" hx-target="#s3-name-out" hx-select="" hx-swap="innerHTML">Check availability</button></div>
@@ -152,7 +152,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page" x-data="{sk:false, gsis:[], ttl:false}">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create table</div>
     <p class="det-sub" style="margin-bottom:18px">On-demand capacity. Add secondary indexes and TTL here — or later via the SDK.</p>
-    <form hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Table name</label><input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Primary key</h2></div><div class="form-b">
         <div class="fgrid"><div class="field"><label>Partition key</label><input class="input" name="hash_key" placeholder="pk" required></div><div class="field"><label>Type</label><select class="input" name="hash_type"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select></div></div>
@@ -199,7 +199,7 @@
   {{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create topic</div><p class="det-sub" style="margin-bottom:18px">Publish once, deliver to every subscription.</p>
-    <form hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Topic name</label><input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli" "sns create-topic --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}</form>
+    <form novalidate hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Topic name</label><input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli" "sns create-topic --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
@@ -207,7 +207,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create event bus</div><p class="det-sub" style="margin-bottom:18px">Rules on a custom bus only match events sent to that bus.</p>
-    <form hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bus name</label><input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}</form>
+    <form novalidate hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bus name</label><input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
@@ -215,7 +215,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
-    <form hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-rule" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/eb/{{pathesc .Bus}}/create-rule" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Match</h2></div><div class="form-b">
         <div class="field" style="margin-bottom:12px"><label>Event pattern</label>
@@ -239,7 +239,7 @@
   {{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create key</div><p class="det-sub" style="margin-bottom:18px">Symmetric keys encrypt/decrypt; RSA/ECC sign/verify; HMAC generate MACs.</p>
-    <form hx-post="{{.Prefix}}/kms/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/kms/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>Key type</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Key spec</label><select class="input" name="spec"><option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option><option value="RSA_2048">RSA_2048</option><option value="RSA_3072">RSA_3072</option><option value="RSA_4096">RSA_4096</option><option value="ECC_NIST_P256">ECC_NIST_P256</option><option value="ECC_NIST_P384">ECC_NIST_P384</option><option value="HMAC_256">HMAC_256</option></select></div>
         <div class="field"><label>Usage</label><select class="input" name="usage"><option value="">Default for spec</option><option value="ENCRYPT_DECRYPT">ENCRYPT_DECRYPT</option><option value="SIGN_VERIFY">SIGN_VERIFY</option><option value="GENERATE_VERIFY_MAC">GENERATE_VERIFY_MAC</option></select></div>
@@ -257,7 +257,7 @@
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create parameter</div><p class="det-sub" style="margin-bottom:18px">Path-style names like <span class="mono">/app/db/host</span> group related config.</p>
-    <form hx-post="{{.Prefix}}/ssm/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/ssm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/db/host" required autocomplete="off" autofocus></div>
         <div class="field"><label>Type</label><select class="input" name="type"><option value="String">String</option><option value="SecureString">SecureString — encrypted</option><option value="StringList">StringList</option></select></div>
@@ -273,7 +273,7 @@
   {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Store a new secret</div><p class="det-sub" style="margin-bottom:18px">Encrypted at rest. JSON key/value is conventional; any string works.</p>
-    <form hx-post="{{.Prefix}}/sm/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/sm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Secret name</label><input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="Database credentials"></div>
@@ -290,7 +290,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title fp-title" role="heading" aria-level="1">Create state machine</div>
     <p class="det-sub fp-sub">Write the workflow in the States Language; Validate runs the same analyser CreateStateMachine does, so what passes here deploys.</p>
-    <form hx-post="{{.Prefix}}/sfn/create" hx-indicator="#submit-spin" data-err-slot="#sfn-validate-out">
+    <form novalidate hx-post="{{.Prefix}}/sfn/create" hx-indicator="#submit-spin" data-err-slot="#sfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Name</label><input class="input" name="name" placeholder="order-flow" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus></div>
         <div class="field stack"><label>Type</label>
@@ -342,7 +342,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create stack</div>
     <p class="det-sub" style="margin-bottom:18px">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
-    <form hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}" data-err-slot="#cfn-validate-out">
+    <form novalidate hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}" data-err-slot="#cfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Stack name</label><input class="input" name="name" placeholder="my-stack" required pattern="[a-zA-Z][a-zA-Z0-9\-]{0,127}" autocomplete="off" autofocus></div>
       </div></div>
@@ -387,7 +387,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create API</div>
     <p class="det-sub" style="margin-bottom:18px">A REST API is a resource tree with methods and integrations, deployed to a stage. An HTTP API is routes by key, answering at <span class="mono">$default</span> as soon as a route exists.</p>
-    <form hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin" x-data="{proto:'REST'}">
+    <form novalidate hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin" x-data="{proto:'REST'}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Kind</label>
           <div class="opt-row"><label><input type="radio" name="protocol" value="REST" x-model="proto"> REST API <span class="dim">(apigateway v1)</span></label></div>
@@ -408,7 +408,7 @@
   {{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title fp-title" role="heading" aria-level="1">Create log group</div><p class="det-sub fp-sub">A function makes its own group (<span class="mono">/aws/lambda/&lt;name&gt;</span>) the first time it prints. Create one here for an application that writes with PutLogEvents, or to set retention before a function exists.</p>
-    <form hx-post="{{.Prefix}}/logs/create" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/logs/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/api" required autocomplete="off" autofocus spellcheck="false"></div>
         <div class="field"><label>Retention <span class="dim">the values AWS accepts</span></label><select class="input" name="days"><option value="">default (a day)</option>{{range $d := list 1 3 5 7 14 30 60 90 120 150 180 365}}<option value="{{$d}}">{{$d}} days</option>{{end}}</select></div>
@@ -428,7 +428,7 @@
   <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title fp-title" role="heading" aria-level="1">Create alarm</div><p class="det-sub fp-sub">An alarm watches one metric over a window and notifies when it crosses a threshold. It is evaluated over <b>completed</b> periods — the period containing now is still filling, so a fresh alarm reads INSUFFICIENT_DATA until one period has closed.</p>
     {{if .Metrics}}
-    <form hx-post="{{.Prefix}}/cw/create-alarm" hx-indicator="#submit-spin">
+    <form novalidate hx-post="{{.Prefix}}/cw/create-alarm" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="fgrid">
           <div class="field"><label>Alarm name</label><input class="input" name="name" placeholder="too-many-errors" required autocomplete="off" autofocus></div>

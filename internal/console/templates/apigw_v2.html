@@ -67,7 +67,7 @@
 
   <div class="sec-title">Add route</div>
   <div class="panel"><div class="form-b" x-data="{kind:'lambda'}">
-    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML">
+    <form novalidate hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML">
       <div class="fgrid">
         <div class="field"><label>Method</label>
           <select class="input mono" name="method"><option>ANY</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
@@ -92,7 +92,7 @@
 {{define "apigw_http_stages"}}
 <div class="split">
   <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create stage</h2></div><div class="form-b">
-    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-stage">
+    <form novalidate hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-stage">
       <div class="fgrid">
         <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="$default" spellcheck="false"></div>
         <div class="field"><label>Auto-deploy</label><select class="input" name="auto_deploy"><option value="on">on — every route change is live</option><option value="off">off — deploy by hand</option></select></div>
@@ -103,7 +103,7 @@
   </div></div>
   <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Deploy</h2></div><div class="form-b">
     {{if .Stages}}
-    <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/deploy">
+    <form novalidate hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/deploy">
       <div class="field"><label>Stage</label><select class="input mono" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
       <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Deploy now</button></div>
     </form>
@@ -133,7 +133,7 @@
 
 {{define "apigw_http_invoke"}}
 {{if .Stages}}
-<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
+<form novalidate class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field w-stage"><label>Stage</label>
       <select class="input" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
@@ -154,7 +154,7 @@
 
 {{define "apigw_http_settings"}}
 <div class="panel form-sec"><div class="panel-h"><h2>{{icon "settings"}} API settings and CORS</h2></div><div class="form-b">
-  <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/update">
+  <form novalidate hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/update">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input" name="name" value="{{.API.Name}}" required></div>
       <div class="field"><label>Description</label><input class="input" name="description" value="{{.API.Description}}"></div>
@@ -203,7 +203,7 @@
   </tbody>
 </table></div>
 <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Add authorizer</h2></div><div class="form-b">
-  <form hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-authorizer">
+  <form novalidate hx-post="{{.Prefix}}/apigw-http/{{pathesc .API.ID}}/create-authorizer">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="gate" required spellcheck="false"></div>
       <div class="field"><label>Function</label><select class="input mono" name="lambda" required><option value="">— pick a function —</option>{{range .Functions}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>

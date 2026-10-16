@@ -305,17 +305,21 @@ return p.join(" ");};</script>
   </div>
 
   <!-- styled confirm (replaces native hx-confirm dialogs) -->
-  <div class="overlay" id="confirm" hidden>
+  <div class="overlay q-center" id="confirm" hidden>
     {{/* shell.js fills both: confirm-title is the question, which names the
          thing ("Delete bucket “uploads”?"), and confirm-msg is the sentence the
          call site wrote after it, what follows from saying yes. The static
-         text below is only what an unscripted page would show. */}}
-    <div class="dialog anim" role="alertdialog" aria-modal="true"
+         text below is only what an unscripted page would show. It is the
+         Confirms boards' card (Sqs-16, S3-12, States): the title, the
+         sentence, and two outlined buttons right-aligned, "Keep it" and the
+         verb, with no footer strip; shell.js sets the words and the verb's
+         colour from the same reading of the question. */}}
+    <div class="dialog confirm-card anim" role="alertdialog" aria-modal="true"
          aria-labelledby="confirm-title" aria-describedby="confirm-msg">
-      <div class="dialog-h"><h3 id="confirm-title">Are you sure?</h3><p id="confirm-msg"></p></div>
-      <div class="dialog-f">
+      <h3 id="confirm-title">Are you sure?</h3><p id="confirm-msg"></p>
+      <div class="q-actions q-end">
         <button type="button" class="btn btn-outline" id="confirm-no">Cancel</button>
-        <button type="button" class="btn btn-destructive" id="confirm-yes">Confirm</button>
+        <button type="button" class="btn btn-outline danger" id="confirm-yes">Confirm</button>
       </div>
     </div>
   </div>

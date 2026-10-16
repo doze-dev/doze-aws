@@ -51,6 +51,17 @@ func main() {
 			continue
 		}
 		logInvocation(id, event)
+		// {"raise": "why"} makes the handler fail the way a function that threw
+		// does: the Runtime API's error endpoint, not its response endpoint. The
+		// invoke is still served (a 200) and carries X-Amz-Function-Error, which
+		// is what states.spec.ts reads off the wire.
+		var asked struct {
+			Raise string `json:"raise"`
+		}
+		if json.Unmarshal(event, &asked) == nil && asked.Raise != "" {
+			fail(client, base, id, asked.Raise)
+			continue
+		}
 		out, _ := json.Marshal(invokeResult{Echoed: event, RequestID: id})
 		respond(client, base, id, out)
 	}
@@ -82,6 +93,23 @@ func respond(client *http.Client, base, id string, body []byte) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	resp.Body.Close()
+}
+
+// fail reports the invocation as raised, with the error document a Lambda
+// runtime client posts: {"errorMessage": …, "errorType": …}.
+func fail(client *http.Client, base, id, why string) {
+	body, _ := json.Marshal(map[string]string{"errorMessage": why, "errorType": "FixtureError"})
+	req, err := http.NewRequest(http.MethodPost, base+id+"/error", bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Lambda-Runtime-Function-Error-Type", "Unhandled")
 	resp, err := client.Do(req)
 	if err != nil {
 		return

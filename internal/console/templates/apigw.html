@@ -47,7 +47,7 @@
         {{template "apigw_stages" .}}
       {{else if eq .Tab "settings"}}
         <div class="panel" style="max-width:560px"><div class="panel-h"><h2>{{icon "settings"}} API settings</h2></div><div class="form-b">
-          <form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/update">
+          <form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/update">
             <div class="field"><label>Name</label><input class="input" name="name" value="{{.API.Name}}" required></div>
             <div class="field" style="margin-top:8px"><label>Description</label><input class="input" name="description" value="{{.API.Description}}"></div>
             <div class="fr-btn"><button class="btn" type="submit">Save settings</button></div>
@@ -64,7 +64,7 @@
         {{/* The three small structural edits, as dialogs (the ddb Update
              pattern): row buttons stash the target in section state. */}}
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Add resource" x-effect="[addRes, window.dozeTrap && dozeTrap($el, addRes)]" x-show="addRes" x-cloak @click.self="addRes=null" @keydown.escape.window="addRes=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addRes=null;$el.reset();}">
+          <div class="dialog anim"><form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addRes=null;$el.reset();}">
             <input type="hidden" name="parent" :value="addRes && addRes.id">
             <div class="dialog-h"><h3>Add resource</h3><p>One path part under <span class="mono" x-text="addRes && addRes.path"></span>.</p></div>
             <div class="dialog-b"><div class="field"><label>Path part</label><input class="input mono" name="part" placeholder="orders" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div>
@@ -73,7 +73,7 @@
           </form></div>
         </div>
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Add method" x-effect="[addM, window.dozeTrap && dozeTrap($el, addM)]" x-show="addM" x-cloak @click.self="addM=null" @keydown.escape.window="addM=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-method" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addM=null;$el.reset();}">
+          <div class="dialog anim"><form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-method" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addM=null;$el.reset();}">
             <input type="hidden" name="resource" :value="addM && addM.id">
             <div class="dialog-h"><h3>Add method</h3><p>On <span class="mono" x-text="addM && addM.path"></span>. The verb exists first; its integration is wired from the method panel.</p></div>
             <div class="dialog-b">
@@ -88,7 +88,7 @@
           </form></div>
         </div>
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Rename resource" x-effect="[ren, window.dozeTrap && dozeTrap($el, ren)]" x-show="ren" x-cloak @click.self="ren=null" @keydown.escape.window="ren=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){ren=null;$el.reset();}">
+          <div class="dialog anim"><form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){ren=null;$el.reset();}">
             <input type="hidden" name="resource" :value="ren && ren.id">
             <div class="dialog-h"><h3>Rename resource</h3><p>Changes the last path part of <span class="mono" x-text="ren && ren.path"></span>; children move with it.</p></div>
             <div class="dialog-b"><div class="field"><label>New path part</label><input class="input mono" name="part" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div></div>
@@ -160,7 +160,7 @@
       </tbody></table></div>
       <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/delete-integration" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML" hx-confirm="Remove the integration? The method stays, but nothing answers it.">Remove integration</button></div>
       {{else}}<p class="mini-note">Unwired — the method exists but nothing answers it. Wire a backend:</p>{{end}}
-      <form x-data="{t:'AWS_PROXY'}" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-integration" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
+      <form novalidate x-data="{t:'AWS_PROXY'}" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-integration" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="margin-top:8px"><label>Type</label>
           <select class="input" name="type" x-model="t">
             <option value="AWS_PROXY">AWS_PROXY — Lambda, whole request through</option>
@@ -184,7 +184,7 @@
         <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" aria-label="Remove {{.}}" hx-confirm="Remove the {{.}} method response?" hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/delete-response" hx-vals='{"resource":"{{jsonstr $.M.ResourceID}}","verb":"{{jsonstr $.M.Verb}}","path":"{{jsonstr $.M.Path}}","status":"{{jsonstr .}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML" aria-label="Remove {{.}}">&times;</button></span>
         {{else}}<span class="mini-note">none declared</span>{{end}}
       </div>
-      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-response" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
+      <form novalidate class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-response" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
         <button class="btn btn-outline btn-sm" type="submit">Declare</button>
       </form>
@@ -199,7 +199,7 @@
         {{end}}</tbody>
       </table></div>
       {{else}}<p class="mini-note">none — proxy integrations pass the backend's answer straight through</p>{{end}}
-      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-response" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
+      <form novalidate class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/put-response" hx-vals='{"resource":"{{jsonstr .M.ResourceID}}","verb":"{{jsonstr .M.Verb}}","path":"{{jsonstr .M.Path}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
         <div class="field" style="flex:1"><label>Response template <span class="dim">optional, application/json</span></label><input class="input mono" name="template" placeholder='{"ok": true}' spellcheck="false"></div>
         <button class="btn btn-outline btn-sm" type="submit">Map</button>
@@ -214,7 +214,7 @@
 {{define "apigw_stages"}}
 <div class="split">
   <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Deploy</h2></div><div class="form-b">
-    <form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/deploy">
+    <form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/deploy">
       <div class="fgrid">
         <div class="field"><label>Stage</label><input class="input mono" name="stage" placeholder="dev" required pattern="[a-zA-Z0-9_\-]+" spellcheck="false"></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what changed"></div>
@@ -225,7 +225,7 @@
   </div></div>
   <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Stage from an old deployment</h2></div><div class="form-b">
     {{if .Deployments}}
-    <form hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/create-stage">
+    <form novalidate hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/create-stage">
       <div class="fgrid">
         <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="rollback" required pattern="[a-zA-Z0-9_\-]+" spellcheck="false"></div>
         <div class="field"><label>Deployment</label><select class="input mono" name="deployment">{{range .Deployments}}<option value="{{.ID}}" title="{{zoned .Created}}">{{.ID}} · {{.Created}}</option>{{end}}</select></div>
@@ -246,7 +246,7 @@
       <td class="mono sub">{{.Name}}</td>
       <td>
         {{/* Repointing IS UpdateStage; the select submits on change. */}}
-        <form hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/update-stage" hx-trigger="change" hx-confirm="Repoint stage “{{.Name}}” to this deployment? Callers get it straight away.">
+        <form novalidate hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/update-stage" hx-trigger="change" hx-confirm="Repoint stage “{{.Name}}” to this deployment? Callers get it straight away.">
           <input type="hidden" name="name" value="{{.Name}}">
           <select class="input mono" name="deployment" style="font-size:11px" title="Deployment stage {{.Name}} serves" aria-label="Deployment stage {{.Name}} serves">
             {{$cur := .DeploymentID}}{{range $.Deployments}}<option value="{{.ID}}" {{if eq .ID $cur}}selected{{end}}>{{.ID}}</option>{{end}}
@@ -286,7 +286,7 @@
      answers is the one thing the definition above cannot tell you. */}}
 {{define "apigw_invoke"}}
 {{if .Stages}}
-<form class="explorer-form"
+<form novalidate class="explorer-form"
       hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field" style="width:120px"><label>Stage</label>
@@ -353,11 +353,11 @@
   {{if .Authorizers}}<table class="tbl"><thead><tr><th>Name</th><th>Type</th><th>Function</th><th>Identity source</th><th>Cache</th><th></th></tr></thead><tbody>{{range .Authorizers}}
     <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/authorizer/{{pathesc .ID}}" hx-target="#apigw-authorizer-detail" hx-select="" hx-swap="innerHTML">{{.Name}}</button></td>
       <td class="dim">{{.Type}}</td><td class="mono">{{.Function}}</td><td class="mono dim">{{.Source}}</td>
-      <td><form class="ex-grid" hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/update-authorizer" hx-vals='{"id":"{{jsonstr .ID}}"}' hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML"><input class="input" name="ttl" type="number" min="0" max="3600" value="{{.TTL}}"><button class="btn btn-outline btn-sm" type="submit">Set TTL</button></form></td>
+      <td><form novalidate class="ex-grid" hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/update-authorizer" hx-vals='{"id":"{{jsonstr .ID}}"}' hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML"><input class="input" name="ttl" type="number" min="0" max="3600" value="{{.TTL}}"><button class="btn btn-outline btn-sm" type="submit">Set TTL</button></form></td>
       <td class="right"><button class="icon-btn sm danger" title="Delete authorizer" hx-post="{{$.Prefix}}/apigw/{{pathesc $.API.ID}}/delete-authorizer" hx-vals='{"id":"{{jsonstr .ID}}"}' hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML" hx-confirm="Delete authorizer “{{.Name}}”? Methods that name it stop serving.">{{icon "trash"}}</button></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No authorizers — methods are open unless one gates them.</p></div>{{end}}
   <div id="apigw-authorizer-detail"></div>
-  <form class="form-b" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/create-authorizer" hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML" x-data="{t:'TOKEN'}">
+  <form novalidate class="form-b" hx-post="{{.Prefix}}/apigw/{{pathesc .API.ID}}/create-authorizer" hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML" x-data="{t:'TOKEN'}">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input" name="name" placeholder="token-gate" required></div>
       <div class="field"><label>Type</label><select class="input" name="type" x-model="t"><option>TOKEN</option><option>REQUEST</option></select></div>

@@ -9,7 +9,7 @@
 {{define "sfn_versions_tab"}}
 <div class="panel">
   <div class="panel-h"><h2>{{icon "git-branch"}} Versions <span class="badge">{{len .Versions}}</span></h2><span class="dim">revision {{.Machine.Revision}} is what Publish freezes</span></div>
-  <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/publish" hx-indicator="#publish-spin">
+  <form novalidate class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/publish" hx-indicator="#publish-spin">
     <input class="input" name="description" placeholder="Description — optional, kept on the version" maxlength="256" autocomplete="off">
     <span id="publish-spin" class="dim htmx-indicator">Working…</span>
     <button class="btn btn-sm" type="submit">{{icon "plus"}} Publish version</button>
@@ -35,7 +35,7 @@
         {{/* The inline edit: the same two rows the create form has, posted
              to Update. Description is left out on purpose — the model
              treats an absent description as "keep it". */}}
-        <form x-show="edit" x-cloak class="sfn-routes" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Name}}/alias/{{pathesc .Name}}/update">
+        <form novalidate x-show="edit" x-cloak class="sfn-routes" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Name}}/alias/{{pathesc .Name}}/update">
           {{range $i, $r := .Routing}}
           <span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v{{add $i 1}}" value="{{$r.Version}}" size="3" inputmode="numeric" required><input class="input mono" name="w{{add $i 1}}" value="{{$r.Weight}}" size="3" inputmode="numeric"><span class="dim">%</span></span>
           {{end}}
@@ -56,7 +56,7 @@
 
 <div class="panel" x-data="{two:false}">
   <div class="panel-h"><h2>{{icon "plus"}} Create alias</h2><span class="dim">{{if .Versions}}one version, or two with weights summing to 100{{else}}publish a version first — an alias has to point at one{{end}}</span></div>
-  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/alias/create" hx-indicator="#alias-spin">
+  <form novalidate class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/alias/create" hx-indicator="#alias-spin">
     <div class="field"><label>Name <span class="dim">not a number — that would read as a version</span></label><input class="input mono" name="name" placeholder="PROD" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
     <div class="field stack"><label>Description <span class="dim">optional</span></label><input class="input" name="description" maxlength="256" autocomplete="off"></div>
     <div class="field stack"><label>Routing</label>
@@ -113,7 +113,7 @@
 {{define "sfn_test_panel"}}
 <div class="panel" x-data="{mock:'none'}">
   <div class="panel-h"><h2>{{icon "play"}} Test a state</h2><span class="dim">runs one state of the definition above — as edited, saved or not</span></div>
-  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/test-state" hx-include="#sfn-def-editor" hx-target="#sfn-test-out" hx-select="" hx-swap="innerHTML" hx-indicator="#test-spin" data-err-slot="#sfn-test-out">
+  <form novalidate class="form-b" hx-post="{{.Prefix}}/sfn/{{pathesc .Name}}/test-state" hx-include="#sfn-def-editor" hx-target="#sfn-test-out" hx-select="" hx-swap="innerHTML" hx-indicator="#test-spin" data-err-slot="#sfn-test-out">
     <div class="sfn-inline">
       <div class="field"><label>State</label><select class="input mono" name="state" required>{{range .StateNames}}<option value="{{.}}">{{.}}</option>{{end}}</select></div>
       <div class="field"><label>Inspection <span class="dim">DEBUG adds the path pipeline, TRACE the request too</span></label><select class="input" name="level"><option value="INFO">INFO</option><option value="DEBUG">DEBUG</option><option value="TRACE">TRACE</option></select></div>
@@ -171,7 +171,7 @@
       <td class="right num">{{.Counts.Total}}</td>
     </tr></tbody></table>
   <div class="form-b sfn-inline">
-    <form class="sfn-inline" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Machine}}/execution/{{pathesc $.Name}}/maprun" hx-target="#sfn-history" hx-select="" hx-swap="outerHTML">
+    <form novalidate class="sfn-inline" hx-post="{{$.Prefix}}/sfn/{{pathesc $.Machine}}/execution/{{pathesc $.Name}}/maprun" hx-target="#sfn-history" hx-select="" hx-swap="outerHTML">
       <input type="hidden" name="arn" value="{{.ARN}}">
       <label class="dim">Max concurrency <span title="0 means unlimited">(0 = unlimited)</span></label>
       <input class="input mono" name="max" value="{{.MaxConcurrency}}" size="4" inputmode="numeric" required>
@@ -210,7 +210,7 @@
     <div class="det-b">
       <div class="panel">
         <div class="panel-h"><h2>{{icon "plus"}} Create activity</h2></div>
-        <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/activities/create" hx-indicator="#act-spin">
+        <form novalidate class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/activities/create" hx-indicator="#act-spin">
           <input class="input mono" name="name" placeholder="approve-order" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus>
           <span id="act-spin" class="dim htmx-indicator">Working…</span>
           <button class="btn btn-sm" type="submit">Create</button>

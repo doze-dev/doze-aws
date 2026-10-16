@@ -76,7 +76,7 @@
               </td>
               <td class="right">
                 {{if not .Closed}}
-                <form hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/split" hx-confirm="Split {{.ID}} in two? The parent closes and two children open.">
+                <form novalidate hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/split" hx-confirm="Split {{.ID}} in two? The parent closes and two children open.">
                   <input type="hidden" name="shard" value="{{.ID}}">
                   <input type="hidden" name="at" value="{{midpoint .StartKey .EndKey}}">
                   <button class="btn btn-outline btn-sm" type="submit">{{icon "git-branch"}} Split</button>
@@ -95,7 +95,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "send"}} Put record</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/put">
+            <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/put">
               <div class="field" style="margin-bottom:10px">
                 <label>Partition key</label>
                 <input class="input" name="partitionKey" placeholder="device-7" value="console" autocomplete="off">
@@ -126,7 +126,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "clock"}} Retention</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/retention">
+            <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/retention">
               <div class="field">
                 <label>Hours <span class="dim">24 – 8760</span></label>
                 <input class="input" name="hours" type="number" min="24" max="8760" value="{{.Summary.Retention}}">
@@ -167,7 +167,7 @@
      the drawer below narrows what came back, which it cannot. Keeping them
      apart is why the footer can say what it actually scanned. */}}
 {{define "kinesis_filters"}}
-<form class="explorer-form" x-data="{more:{{if or .Query.Partition .Query.Contains}}true{{else}}false{{end}}}"
+<form novalidate class="explorer-form" x-data="{more:{{if or .Query.Partition .Query.Contains}}true{{else}}false{{end}}}"
       hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/records/query"
       hx-target="#k-records" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
@@ -347,7 +347,7 @@
             {{if eq .Summary.Mode "ON_DEMAND"}}
               <p class="mini-note">Shard layout is managed for you on an on-demand stream. Switch to provisioned to reshard by hand.</p>
             {{else if .Pairs}}
-            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/merge"
+            <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/merge"
                   hx-confirm="Merge these two shards? Both close and one child opens covering their combined range.">
               <div class="field">
                 <label>Adjacent pair</label>
@@ -378,7 +378,7 @@
             {{if eq .Summary.Mode "ON_DEMAND"}}
               <p class="mini-note">On-demand streams scale themselves; the count is not yours to set.</p>
             {{else}}
-            <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/scale"
+            <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/scale"
                   hx-confirm="Rescale the stream? Existing shards close and a new set opens, tiling the key space evenly.">
               <div class="field">
                 <label>Target shards</label>
@@ -397,7 +397,7 @@
       <div class="sec-title">Capacity mode</div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/mode">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/mode">
             <div class="ex-grid">
               <div class="field" style="width:220px">
                 <label>Stream mode</label>
@@ -421,7 +421,7 @@
       <div class="sec-title">Encryption <span class="dim">— recorded, not applied</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/encryption">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/encryption">
             <div class="ex-grid">
               <div class="field" style="width:320px">
                 <label>KMS key</label>
@@ -445,7 +445,7 @@
       <div class="sec-title">Shard-level metrics <span class="dim">— recorded, not published</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/metrics">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/metrics">
             <div class="chips" style="margin-bottom:12px">
               {{$on := .Summary.Metrics}}
               {{range .AllMetrics}}
@@ -474,7 +474,7 @@
               <td><span class="chip">{{.Status}}</span></td>
               <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
               <td class="right">
-                <form hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
+                <form novalidate hx-post="{{$.Prefix}}/kinesis/{{pathesc $.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
                   <input type="hidden" name="name" value="{{.Name}}">
                   <button class="icon-btn sm danger" title="Deregister">{{icon "trash"}}</button>
                 </form>
@@ -488,7 +488,7 @@
       </div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/consumers/add">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/consumers/add">
             <div class="ex-grid">
               <div class="field" style="width:280px">
                 <label>Register a consumer</label>
@@ -503,7 +503,7 @@
       <div class="sec-title">Resource policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/policy">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/{{pathesc .Stream}}/policy">
             <div class="field">
               <label>Policy JSON <span class="dim">empty removes it</span></label>
               {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .Policy "Rows" 8 "UID" (printf "kinpol-%s" .Stream) "Check" false}}
@@ -542,7 +542,7 @@
     <div class="det-b">
       <div class="panel" style="max-width:520px">
         <div style="padding:16px">
-          <form hx-post="{{.Prefix}}/kinesis/create">
+          <form novalidate hx-post="{{.Prefix}}/kinesis/create">
             <div class="field" style="margin-bottom:12px">
               <label>Stream name</label>
               <input class="input" name="name" placeholder="telemetry" required autofocus autocomplete="off">

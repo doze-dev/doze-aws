@@ -191,7 +191,7 @@
            breach, which is how a developer checks the topic behind it. */}}
       <div class="panel">
         <div class="panel-h"><h2>{{icon "play"}} Set state</h2><span class="dim">fires the actions for the state you pick, as SetAlarmState does on AWS</span></div>
-        <form class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{pathesc .A.Name}}/state">
+        <form novalidate class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{pathesc .A.Name}}/state">
           <div class="fgrid">
             <div class="field"><label>State</label><select class="input" name="state">
               <option value="ALARM">ALARM</option>
@@ -206,7 +206,7 @@
 
       <div class="panel">
         <div class="panel-h"><h2>{{icon "power"}} Actions are {{if .A.Enabled}}enabled{{else}}disabled{{end}}</h2><span class="dim">an alarm with actions off still changes state, it just notifies nothing</span></div>
-        <form class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{pathesc .A.Name}}/actions">
+        <form novalidate class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{pathesc .A.Name}}/actions">
           <input type="hidden" name="enabled" value="{{if .A.Enabled}}false{{else}}true{{end}}">
           <button class="btn btn-outline" type="submit">{{if .A.Enabled}}Disable actions{{else}}Enable actions{{end}}</button>
         </form>

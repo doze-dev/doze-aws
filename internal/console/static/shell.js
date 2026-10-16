@@ -529,7 +529,10 @@
     }
     var destructive = verb !== "" && CONFIRM_VERBS[verb] === 1;
     if (explicit && explicit.hasAttribute("data-confirm-destructive")) destructive = explicit.getAttribute("data-confirm-destructive") !== "false";
-    return { title: title, detail: detail, verb: verb || "Confirm", destructive: destructive || verb === "" };
+    // known: the site's verb was read. An unreadable one ("Make this version
+    // current?") still gets the cautious button, but it is not known to lose
+    // anything, so its cancel is not "Keep it".
+    return { title: title, detail: detail, verb: verb || "Confirm", destructive: destructive || verb === "", known: verb !== "" };
   }
   document.addEventListener("htmx:confirm", function (e) {
     var confirmBox = document.getElementById("confirm");
@@ -580,15 +583,17 @@
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
     yes.textContent = parts.verb;
-    // The cancel button names what it keeps (the design's "Keep it") when the
-    // trigger says so, and is "Cancel" otherwise.
+    // The cancel button says what it keeps. The boards write "Keep it" on every
+    // confirm that destroys something (Sqs-16, S3-12, Kms-13, States) and
+    // "Cancel" on the one that does not (Sqs-14, the redrive). So the word is
+    // decided here, from the same reading that decides the verb's colour, and
+    // not at the ninety call sites. A trigger that names its own (the plural
+    // "Keep them" of a purge) is believed.
     var keep = e.target && e.target.closest && e.target.closest("[data-confirm-cancel]");
-    no.textContent = keep ? keep.getAttribute("data-confirm-cancel") : "Cancel";
-    // The cancel button names what it keeps (the design's "Keep it") when the
-    // trigger says so, and is "Cancel" otherwise.
-    var keep = e.target && e.target.closest && e.target.closest("[data-confirm-cancel]");
-    no.textContent = keep ? keep.getAttribute("data-confirm-cancel") : "Cancel";
-    yes.className = "btn " + (parts.destructive ? "btn-destructive" : "");
+    no.textContent = keep ? keep.getAttribute("data-confirm-cancel") : parts.destructive && parts.known ? "Keep it" : "Cancel";
+    // The verb is a red outline when it destroys something (the boards'
+    // "btn danger") and the plain filled button when it does not.
+    yes.className = "btn" + (parts.destructive ? " btn-outline danger" : "");
     function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
     function dismiss() { close(); settle(false); }
     function onKey(ev) { if (ev.key === "Escape") dismiss(); }

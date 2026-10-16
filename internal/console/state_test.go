@@ -1,6 +1,9 @@
 package console
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The wire's whole claim is that a refusal, a denial, a not-built operation and
 // a fault are different events. If callState blurs them the claim is false, so
@@ -43,6 +46,12 @@ func TestCallStateClassifiesFromFacts(t *testing.T) {
 
 		{"the emulator broke", 500, nil, wireFacts{}, "error"},
 		{"a 503 is still the emulator", 503, &Refusal{Code: "Whatever"}, wireFacts{}, "error"},
+
+		// A Lambda invoke whose function raised is a 200 with the header. The
+		// header decides, never the body's spelling and never the status.
+		{"a function raised: the header says so", 200, nil, wireFacts{FnError: "Unhandled"}, "threw"},
+		{"a 200 whose body looks like an error is served", 200, &Refusal{Code: "Error", Message: "errorMessage"}, wireFacts{}, "served"},
+		{"the emulator failing outranks nothing: a 500 with the header is still a fault", 500, nil, wireFacts{FnError: "Unhandled"}, "error"},
 	} {
 		if got := callState(c.status, c.ref, c.facts); got != c.want {
 			t.Errorf("%s: callState(%d, %v, %+v) = %q, want %q", c.name, c.status, c.ref, c.facts, got, c.want)
@@ -55,7 +64,7 @@ func TestCallStateClassifiesFromFacts(t *testing.T) {
 // being coloured as something else.
 func TestEveryStateHasItsOwnWords(t *testing.T) {
 	seen := map[string]string{}
-	for _, s := range []string{"refused", "refusedhere", "denied", "notbuilt", "error"} {
+	for _, s := range []string{"refused", "refusedhere", "denied", "notbuilt", "error", "threw"} {
 		v := stateCopyFor(s, "")
 		if v.Label == "" || v.Why == "" {
 			t.Errorf("%s: has no label or no explanation: %+v", s, v)
@@ -79,5 +88,18 @@ func TestAServiceThatIsNotRunningIsNotAFault(t *testing.T) {
 	}
 	if got := callState(503, &Refusal{Code: "ServiceUnavailable"}, wireFacts{}); got != "error" {
 		t.Errorf("an unstamped 503 reads %q, want error", got)
+	}
+}
+
+// "It threw" is the board's fourth answer: the call was served and the code it
+// ran was not. Its words say whose fault it was, which Failed (the emulator
+// broke) must not: the two send you to different places.
+func TestItThrewBlamesTheFunctionNotTheEmulator(t *testing.T) {
+	v := stateCopyFor("threw", "")
+	if v.Label != "It threw" {
+		t.Errorf("label = %q, want the board's \"it threw\"", v.Label)
+	}
+	if !strings.Contains(v.Why, "function") || strings.Contains(v.Why, "bug in the emulator") {
+		t.Errorf("the sentence should put it on the function: %q", v.Why)
 	}
 }

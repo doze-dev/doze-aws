@@ -992,7 +992,7 @@ test.describe('configuration tab', () => {
     await expect(page.locator('#confirm-msg')).toContainText('NonExistentQueue');
     await expect(page.locator('#confirm-no')).toHaveText('Keep it');
     await expect(page.locator('#confirm-yes')).toHaveText('Delete queue');
-    await expect(page.locator('#confirm-yes')).toHaveClass(/btn-destructive/);
+    await expect(page.locator('#confirm-yes')).toHaveClass(/\bdanger\b/);
     await confirmDialog('cancel');
 
     await page.getByRole('button', { name: 'Purge' }).click();

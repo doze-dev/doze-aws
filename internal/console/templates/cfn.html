@@ -153,7 +153,7 @@
              CreateChangeSet when the review switch asks for the diff first.
              An empty parameter keeps the current value — the emulator merges
              with the stack's existing set, so blank means unchanged. */}}
-        <form hx-post="{{.Prefix}}/cfn/{{pathesc .Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <form novalidate hx-post="{{.Prefix}}/cfn/{{pathesc .Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
           <div class="panel form-sec"><div class="panel-h"><h2>Template</h2></div><div class="form-b">
             <div class="opt-row"><div><div class="opt-l">Use previous template</div><div class="opt-d">Change only parameters; the template stays as deployed</div></div><label class="switch"><input aria-label="Use previous template" type="checkbox" name="useprev" x-model="useprev"><span class="track"></span><span class="thumb"></span></label></div>
             <div class="field" x-show="!useprev" style="margin-top:10px"><label>Template <span class="dim">JSON or YAML</span></label>

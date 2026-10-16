@@ -39,7 +39,7 @@
         {{if .S.Description}}{{.S.Description}}{{else}}<span class="dim">No description</span>{{end}}
         <button type="button" class="icon-btn sm" title="Edit details" @click="editing=true">{{icon "pencil"}}</button>
       </div>
-      <form x-show="editing" x-cloak class="tag-row-form" hx-post="{{.Prefix}}/sm/update">
+      <form novalidate x-show="editing" x-cloak class="tag-row-form" hx-post="{{.Prefix}}/sm/update">
         <input type="hidden" name="name" value="{{.S.Name}}">
         <input class="input" name="description" value="{{.S.Description}}" placeholder="What this secret is for" autocomplete="off">
         <input class="input mono" name="kms_key" placeholder="KMS key id, optional" autocomplete="off">
@@ -80,7 +80,7 @@
         <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{jsonstr .S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" data-confirm-verb="Turn off" data-confirm-destructive="true" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
       </div>
       {{else}}
-      <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
+      <form novalidate hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="name" value="{{.S.Name}}">
         <p class="mini-note" style="margin-top:0">Point at a Lambda that implements the rotation protocol; doze-aws invokes it on the schedule (and on demand).</p>
         <div class="fgrid">
@@ -100,7 +100,7 @@
       <div class="panel-h"><h2>{{icon "braces"}} {{if .Policy}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>
         <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
       <div class="form-b" x-show="open" x-cloak>
-        <form hx-post="{{.Prefix}}/sm/policy" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
+        <form novalidate hx-post="{{.Prefix}}/sm/policy" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="name" value="{{.S.Name}}">
           {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .Policy "Rows" 10 "UID" "secpol" "Check" false}}
           <div class="fr-btn"><button class="btn" type="submit">Save policy</button>

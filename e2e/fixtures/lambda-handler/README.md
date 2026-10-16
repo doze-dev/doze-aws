@@ -18,5 +18,10 @@ already gitignored by the repo root `.gitignore`, so this directory stays
 free of build artifacts and the Lambda function's "code path" (`e2e/.tmp/lambda-fixture`)
 never collides with the source directory.
 
+An event with a `raise` string (`{"raise": "why"}`) makes the handler fail the
+way a function that threw does (the Runtime API's error endpoint), so the invoke
+is a 200 carrying `X-Amz-Function-Error`. `states.spec.ts` builds its own copy
+into `e2e/.tmp/lambda-fixture-states/` and reads that off the wire.
+
 To build by hand: `go build -o /path/to/output/bootstrap .` from this
 directory.
