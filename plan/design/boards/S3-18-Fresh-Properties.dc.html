@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>S3, a new bucket's properties</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./con.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{--bg:#f3f3f0;--card:#ffffff;--ink:#17191c;--mut:#565b63;--line:#d9d8d2;--line2:#e9e8e3;--sel:#e9e8e2;--well:#f7f7f4;
+--ok:#166b3f;--warn:#855000;--bad:#b3251b;--deny:#673c9c;--okbg:#e3f1e8;--warnbg:#f6ecd6;--badbg:#f8e3e0;--denybg:#ece4f6;
+box-sizing:border-box;width:1440px;height:900px;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);
+font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-feature-settings:'tnum' 1}
+.app.dark{--bg:#111315;--card:#191c1f;--ink:#e9eaeb;--mut:#a3a9b0;--line:#2d3136;--line2:#23272b;--sel:#262a2f;--well:#15181a;
+--ok:#5fca8f;--warn:#e0b060;--bad:#ff8a7e;--deny:#c3a3f2;--okbg:#17301f;--warnbg:#33290f;--badbg:#3a1a17;--denybg:#2a2040}
+.app *{box-sizing:border-box}
+.app button,.app input,.app select{font:inherit;color:inherit;margin:0}
+.app h1,.app h2,.app h3,.app p{margin:0}
+.m{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-size:12px}
+.mut{color:var(--mut)}.b{font-weight:600}.i{font-style:italic}.ra{text-align:right}.nw{white-space:nowrap}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.deny{color:var(--deny)}
+.row{display:flex;gap:12px}.col{display:flex;flex-direction:column}.ce{align-items:center}.sb{justify-content:space-between}
+.grow{flex:1;min-width:0;min-height:0}.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g16{gap:16px}.g20{gap:20px}.wrap{flex-wrap:wrap}
+.el{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top{flex:none;height:44px;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;width:182px}
+.logo{width:18px;height:18px;border-radius:4px;background:var(--ink);color:var(--card);display:flex;align-items:center;justify-content:center;font:700 11px/1 'IBM Plex Mono',monospace}
+.jump{flex:none;width:420px;height:28px;display:flex;align-items:center;gap:8px;padding:0 8px 0 10px;border:1px solid var(--line);border-radius:4px;background:var(--well);color:var(--mut)}
+.body{flex:1;min-height:0;display:flex}
+.rail{flex:none;width:196px;background:var(--card);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.nav{display:flex;align-items:center;gap:9px;height:28px;padding:0 8px;border-radius:4px;color:var(--ink);text-decoration:none}
+.nav.on{background:var(--sel);font-weight:600}
+.nav .n{margin-left:auto;color:var(--mut);font:400 11px/1 'IBM Plex Mono',monospace}
+.cap{font:600 10px/16px 'IBM Plex Sans',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.rail .cap{padding:10px 8px 3px}
+.sv{flex:none;width:18px;height:18px;border-radius:4px;background:var(--c,#6b7688);color:#fff;display:inline-flex;align-items:center;justify-content:center;font:700 9px/1 'IBM Plex Mono',monospace;letter-spacing:-.02em}
+.sv.sm{width:14px;height:14px;border-radius:3px;font-size:8px}
+.dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}.dot.off{background:var(--line)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;padding:16px 20px 0;gap:12px;overflow:hidden}
+.insp{flex:none;width:400px;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.insp .hd{padding:12px 16px 10px;border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:4px}
+.insp .bd{padding:12px 16px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden}
+.list{flex:none;width:248px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.list .li{display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-bottom:1px solid var(--line2)}
+.list .li.on{background:var(--sel);font-weight:600}
+.dock{flex:none;background:var(--card);border-top:1px solid var(--line);display:flex;flex-direction:column}
+.dock .dh{height:30px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line2)}
+.keys{flex:none;height:28px;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--card);border-top:1px solid var(--line);color:var(--mut);font-size:12px;white-space:nowrap}
+.k{display:inline-block;min-width:18px;padding:0 5px;margin-right:6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;background:var(--well);color:var(--ink);font:500 11px/16px 'IBM Plex Mono',monospace;text-align:center}
+.r{display:grid;grid-template-columns:var(--c);column-gap:14px;align-items:center;min-height:28px;padding:0 12px;border-bottom:1px solid var(--line2)}
+.r>*{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r.h{min-height:26px;background:var(--well);color:var(--mut);font:600 10px/16px 'IBM Plex Sans',sans-serif;letter-spacing:.09em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.r.on{background:var(--sel)}
+.r.kid{color:var(--mut)}
+.tree{color:var(--line);font-family:'IBM Plex Mono',monospace}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.pad{padding:12px 14px}
+.well{background:var(--well);border:1px solid var(--line2);border-radius:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:3px;border:1px solid var(--line);background:var(--card);font-size:12px;white-space:nowrap}
+.pill.ok{background:var(--okbg);border-color:transparent}.pill.warn{background:var(--warnbg);border-color:transparent}
+.pill.bad{background:var(--badbg);border-color:transparent}.pill.deny{background:var(--denybg);border-color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 11px;border-radius:4px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:500;white-space:nowrap;cursor:pointer}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{height:24px;padding:0 8px;font-size:12px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--mut)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tab{height:30px;display:flex;align-items:center;gap:6px;padding:0 11px;color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-1px;text-decoration:none}
+.tab.on{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--card)}
+.seg>*{height:24px;display:flex;align-items:center;padding:0 9px;font-size:12px;color:var(--mut);border-right:1px solid var(--line)}
+.seg>*:last-child{border-right:0}.seg>.on{background:var(--ink);color:var(--card)}
+.inp{height:28px;padding:0 9px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--ink);width:100%}
+.code{font:400 12px/19px 'IBM Plex Mono',ui-monospace,Menlo,monospace;background:var(--well);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;white-space:pre;overflow:hidden;margin:0}
+.code .s{color:var(--ok)}.code .n{color:var(--warn)}.code .kw{color:var(--deny)}.code .c{color:var(--mut)}
+.kv{display:grid;grid-template-columns:var(--c,96px 1fr);column-gap:12px;row-gap:5px}
+.kv>:nth-child(odd){color:var(--mut)}
+.h1{font:600 18px/24px 'IBM Plex Sans',sans-serif}
+.h2{font:600 14px/20px 'IBM Plex Sans',sans-serif}
+.facts{display:flex;border:1px solid var(--line);border-radius:4px;background:var(--card);overflow:hidden}
+.facts>div{padding:7px 14px 8px;border-right:1px solid var(--line2);display:flex;flex-direction:column}
+.facts>div:last-child{border-right:0;flex:1}
+.lane{position:relative;height:8px;background:var(--line2);border-radius:2px}
+.lane>div{position:absolute;top:0;height:8px;border-radius:2px;background:var(--ink)}
+.lane>div.kid{background:var(--mut)}.lane>div.bad{background:var(--bad)}
+.note{font-size:12px;color:var(--mut)}
+.callout{border:1px solid var(--line);border-radius:4px;background:var(--card);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.callout.bad{background:var(--badbg);border-color:transparent}.callout.deny{background:var(--denybg);border-color:transparent}
+.callout.warn{background:var(--warnbg);border-color:transparent}.callout.ok{background:var(--okbg);border-color:transparent}
+.modal{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.scrim{position:absolute;inset:0;background:rgba(20,22,25,.34)}
+.tag{font:500 11px/1 'IBM Plex Mono',monospace;color:var(--mut)}
+.box{position:absolute;border:1px solid var(--line);border-radius:4px;background:var(--card);padding:7px 10px;display:flex;flex-direction:column;gap:1px}
+.wire{position:absolute;background:var(--mut)}
+.app a{color:inherit;text-decoration:underline;text-decoration-color:#a8a8a1;text-underline-offset:2px}
+.app a.nav,.app a.tab,.app a.btn,.app a.callout,.app a.well{text-decoration:none}
+.g12{gap:12px}
+.callout.bad,.callout.deny,.callout.warn,.callout.ok{color:var(--ink)}
+.c-s3{--c:#12a05f}.c-ddb{--c:#2f6bff}.c-sqs{--c:#e0328c}.c-sns{--c:#a83bf0}.c-eb{--c:#00a799}.c-kin{--c:#0a9edb}.c-lam{--c:#e77610}.c-apigw{--c:#00997a}.c-sfn{--c:#d6247a}.c-logs{--c:#c13b6a}.c-cw{--c:#e0407e}.c-kms{--c:#e5352b}.c-sm{--c:#c78806}.c-ssm{--c:#5ea60c}.c-iam{--c:#6a4dfb}.c-cfn{--c:#97921a}.c-sts{--c:#6b7688}
+.rail.c{width:48px;padding:10px 0;align-items:center;gap:4px}
+.rail.c .nav{padding:0 5px}
+.tag.new{color:var(--deny);border:1px solid var(--deny);border-radius:3px;padding:1px 5px;font-size:10px}
+.tag.real{color:var(--ok);border:1px solid var(--ok);border-radius:3px;padding:1px 5px;font-size:10px}
+.tag.gone{color:var(--bad);border:1px solid var(--bad);border-radius:3px;padding:1px 5px;font-size:10px}
+</style>
+</helmet>
+<div class="app">
+
+<div class="top">
+<div class="brand" style="width: auto"><span class="logo">z</span><span>doze-aws</span><span class="mut" style="font-weight: 400">harbour</span></div>
+<div class="jump"><span class="grow">Jump to a resource, or do something…</span><span class="k" style="margin: 0">⌘K</span></div>
+<div class="grow"></div>
+<span class="pill"><span class="dot"></span><span class="m">127.0.0.1:4566</span></span>
+</div>
+
+<div class="body">
+
+<nav class="rail c" aria-label="Services">
+<a class="nav" href="Main.dc.html" aria-label="The wire"><span class="sv" style="--c: var(--ink); color: var(--card)">≋</span></a>
+<a class="nav on" href="S3-Home.dc.html" aria-label="S3"><span class="sv c-s3">S3</span></a>
+<a class="nav" href="Ddb-Home.dc.html" aria-label="DynamoDB"><span class="sv c-ddb">DB</span></a>
+<a class="nav" href="Sqs-02-Pick.dc.html" aria-label="SQS"><span class="sv c-sqs">SQ</span></a>
+<a class="nav" href="Sns-Home.dc.html" aria-label="SNS"><span class="sv c-sns">SN</span></a>
+<a class="nav" href="Eb-Home.dc.html" aria-label="EventBridge"><span class="sv c-eb">EB</span></a>
+<a class="nav" href="Kinesis-Home.dc.html" aria-label="Kinesis"><span class="sv c-kin">KN</span></a>
+<a class="nav" href="Lambda-Home.dc.html" aria-label="Lambda"><span class="sv c-lam">λ</span></a>
+<a class="nav" href="Apigw-Home.dc.html" aria-label="API Gateway"><span class="sv c-apigw">AG</span></a>
+<a class="nav" href="Sfn-Home.dc.html" aria-label="Step Functions"><span class="sv c-sfn">SF</span></a>
+<a class="nav" href="Logs-Home.dc.html" aria-label="CloudWatch Logs"><span class="sv c-logs">LG</span></a>
+<a class="nav" href="Cw-Home.dc.html" aria-label="CloudWatch"><span class="sv c-cw">CW</span></a>
+<a class="nav" href="Kms-Home.dc.html" aria-label="KMS"><span class="sv c-kms">KM</span></a>
+<a class="nav" href="Sm-Home.dc.html" aria-label="Secrets Manager"><span class="sv c-sm">SM</span></a>
+<a class="nav" href="Ssm-Home.dc.html" aria-label="Parameter Store"><span class="sv c-ssm">PS</span></a>
+<a class="nav" href="Iam-Home.dc.html" aria-label="IAM"><span class="sv c-iam">IA</span></a>
+<a class="nav" href="Cfn-Home.dc.html" aria-label="CloudFormation"><span class="sv c-cfn">CF</span></a>
+</nav>
+
+<div class="list" style="width: 262px">
+<div class="row sb ce" style="padding: 12px 12px 8px"><span class="h2">Buckets <span class="m mut">5</span></span><a class="btn sm" href="S3-02-Create.dc.html">New</a></div>
+<div class="li"><span class="grow el">harbour-data-exports</span></div>
+<div class="li"><span class="grow el">harbour-product-images</span></div>
+<div class="li"><span class="grow el">harbour-receipts</span></div>
+<div class="li on"><span class="grow el">harbour-returns-labels</span></div>
+<div class="li"><span class="grow el">harbour-www</span></div>
+</div>
+
+<main class="main" style="padding: 14px 18px 0; gap: 10px">
+<div class="row sb ce">
+<div class="row ce g8"><span class="sv c-s3">S3</span><h1 class="h1">harbour-returns-labels</h1></div>
+<div class="row g8 ce"><a class="btn sm danger" href="S3-12-Confirms.dc.html">Delete bucket</a></div>
+</div>
+<div class="tabs"><a class="tab" href="S3-06-Empty.dc.html">Objects</a><a class="tab on" href="S3-18-Fresh-Properties.dc.html">Properties</a></div>
+
+<div class="row g16" style="align-items: flex-start">
+
+<div class="col grow" style="flex: 1 1 0; gap: 10px">
+<span class="h2">Bucket settings</span>
+<div class="card" style="--c: 128px 78px 1fr">
+<div class="r" style="min-height: 58px"><span>Versioning</span><span class="m">Disabled</span><span class="note" style="white-space: normal">Never switched on. Overwrites replace and deletes remove.</span></div>
+<div class="r" style="min-height: 58px"><span>Block public access</span><span class="m ok">On</span><span class="note" style="white-space: normal">Every new bucket starts on. A policy that grants to everyone is refused.</span></div>
+<div class="r" style="min-height: 46px; border: 0"><span>Object lock</span><span class="m">Disabled</span><span class="note" style="white-space: normal">Chosen when the bucket is created.</span></div>
+</div>
+
+<span class="h2">Details</span>
+<div class="card" style="--c: 128px 1fr">
+<div class="r"><span class="note">ARN</span><span class="m el">arn:aws:s3:::harbour-returns-labels</span></div>
+<div class="r" style="border: 0"><span class="note">Region</span><span class="m">us-east-1</span></div>
+</div>
+
+<span class="h2">Tags</span>
+<div class="card pad col g8">
+<span class="note">No tags yet.</span>
+<div class="row g8" style="border-top: 1px solid var(--line2); padding-top: 8px"><input class="inp m" placeholder="Key"><input class="inp" placeholder="Value"><button class="btn sm">Add</button></div>
+</div>
+</div>
+
+<div class="col grow" style="flex: 1.2 1 0; gap: 8px">
+<span class="h2">Configuration, none set</span>
+
+<div class="card" style="--c: 140px 1fr">
+<div class="r" style="min-height: 58px"><a href="S3-17-Notifications.dc.html">Event notifications</a><span class="note" style="white-space: normal">No notifications — object events go nowhere yet.</span></div>
+<div class="r" style="min-height: 58px"><a href="S3-19-CORS.dc.html">CORS</a><span class="note" style="white-space: normal">No rules. A browser's preflight to this bucket gets a 403.</span></div>
+<div class="r" style="min-height: 46px"><a href="S3-20-Lifecycle.dc.html">Lifecycle</a><span class="note" style="white-space: normal">No rules. Nothing expires.</span></div>
+<div class="r" style="min-height: 58px"><a href="S3-21-Policy.dc.html">Bucket policy</a><span class="note" style="white-space: normal"><span class="pill" style="height: 18px">Not set</span> Requests are decided by the caller's identity policies alone.</span></div>
+<div class="r" style="min-height: 58px"><a href="S3-23-Website.dc.html">Static website</a><span class="note" style="white-space: normal"><span class="pill" style="height: 18px">Not set</span> Serves the bucket as a website: a key ending in / resolves to its index document, misses to the error document.</span></div>
+<div class="r" style="min-height: 58px"><a href="S3-24-Uploads.dc.html">Multipart uploads</a><span class="note" style="white-space: normal">None in progress. An upload that was started but never completed or aborted would sit here, holding its parts.</span></div>
+<div class="r" style="min-height: 46px; border: 0"><span>Encryption</span><span class="note" style="white-space: normal"><span class="pill ok" style="height: 18px">Configured</span> A new bucket answers AES256, as AWS does by default.</span></div>
+</div>
+<span class="note">Each is one click from a working editor. The empty line says what the absence means, not only that it is absent.</span>
+</div>
+
+</div>
+</main>
+
+</div>
+
+<div class="keys">
+<span><span class="k">j</span><span class="k">k</span>bucket</span><span><span class="k">⌘K</span>jump or act</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

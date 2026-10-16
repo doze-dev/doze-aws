@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What is real in KMS</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./con.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{--bg:#f3f3f0;--card:#ffffff;--ink:#17191c;--mut:#565b63;--line:#d9d8d2;--line2:#e9e8e3;--sel:#e9e8e2;--well:#f7f7f4;
+--ok:#166b3f;--warn:#855000;--bad:#b3251b;--deny:#673c9c;--okbg:#e3f1e8;--warnbg:#f6ecd6;--badbg:#f8e3e0;--denybg:#ece4f6;
+box-sizing:border-box;width:1440px;height:900px;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);
+font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-feature-settings:'tnum' 1}
+.app.dark{--bg:#111315;--card:#191c1f;--ink:#e9eaeb;--mut:#a3a9b0;--line:#2d3136;--line2:#23272b;--sel:#262a2f;--well:#15181a;
+--ok:#5fca8f;--warn:#e0b060;--bad:#ff8a7e;--deny:#c3a3f2;--okbg:#17301f;--warnbg:#33290f;--badbg:#3a1a17;--denybg:#2a2040}
+.app *{box-sizing:border-box}
+.app button,.app input,.app select{font:inherit;color:inherit;margin:0}
+.app h1,.app h2,.app h3,.app p{margin:0}
+.m{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-size:12px}
+.mut{color:var(--mut)}.b{font-weight:600}.i{font-style:italic}.ra{text-align:right}.nw{white-space:nowrap}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.deny{color:var(--deny)}
+.row{display:flex;gap:12px}.col{display:flex;flex-direction:column}.ce{align-items:center}.sb{justify-content:space-between}
+.grow{flex:1;min-width:0;min-height:0}.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g16{gap:16px}.g20{gap:20px}.wrap{flex-wrap:wrap}
+.el{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top{flex:none;height:44px;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;width:182px}
+.logo{width:18px;height:18px;border-radius:4px;background:var(--ink);color:var(--card);display:flex;align-items:center;justify-content:center;font:700 11px/1 'IBM Plex Mono',monospace}
+.jump{flex:none;width:420px;height:28px;display:flex;align-items:center;gap:8px;padding:0 8px 0 10px;border:1px solid var(--line);border-radius:4px;background:var(--well);color:var(--mut)}
+.body{flex:1;min-height:0;display:flex}
+.rail{flex:none;width:196px;background:var(--card);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.nav{display:flex;align-items:center;gap:9px;height:28px;padding:0 8px;border-radius:4px;color:var(--ink);text-decoration:none}
+.nav.on{background:var(--sel);font-weight:600}
+.nav .n{margin-left:auto;color:var(--mut);font:400 11px/1 'IBM Plex Mono',monospace}
+.cap{font:600 10px/16px 'IBM Plex Sans',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.rail .cap{padding:10px 8px 3px}
+.sv{flex:none;width:18px;height:18px;border-radius:4px;background:var(--c,#6b7688);color:#fff;display:inline-flex;align-items:center;justify-content:center;font:700 9px/1 'IBM Plex Mono',monospace;letter-spacing:-.02em}
+.sv.sm{width:14px;height:14px;border-radius:3px;font-size:8px}
+.dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}.dot.off{background:var(--line)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;padding:16px 20px 0;gap:12px;overflow:hidden}
+.insp{flex:none;width:400px;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.insp .hd{padding:12px 16px 10px;border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:4px}
+.insp .bd{padding:12px 16px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden}
+.list{flex:none;width:248px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.list .li{display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-bottom:1px solid var(--line2)}
+.list .li.on{background:var(--sel);font-weight:600}
+.dock{flex:none;background:var(--card);border-top:1px solid var(--line);display:flex;flex-direction:column}
+.dock .dh{height:30px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line2)}
+.keys{flex:none;height:28px;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--card);border-top:1px solid var(--line);color:var(--mut);font-size:12px;white-space:nowrap}
+.k{display:inline-block;min-width:18px;padding:0 5px;margin-right:6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;background:var(--well);color:var(--ink);font:500 11px/16px 'IBM Plex Mono',monospace;text-align:center}
+.r{display:grid;grid-template-columns:var(--c);column-gap:14px;align-items:center;min-height:28px;padding:0 12px;border-bottom:1px solid var(--line2)}
+.r>*{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r.h{min-height:26px;background:var(--well);color:var(--mut);font:600 10px/16px 'IBM Plex Sans',sans-serif;letter-spacing:.09em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.r.on{background:var(--sel)}
+.r.kid{color:var(--mut)}
+.tree{color:var(--line);font-family:'IBM Plex Mono',monospace}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.pad{padding:12px 14px}
+.well{background:var(--well);border:1px solid var(--line2);border-radius:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:3px;border:1px solid var(--line);background:var(--card);font-size:12px;white-space:nowrap}
+.pill.ok{background:var(--okbg);border-color:transparent}.pill.warn{background:var(--warnbg);border-color:transparent}
+.pill.bad{background:var(--badbg);border-color:transparent}.pill.deny{background:var(--denybg);border-color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 11px;border-radius:4px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:500;white-space:nowrap;cursor:pointer}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{height:24px;padding:0 8px;font-size:12px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--mut)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tab{height:30px;display:flex;align-items:center;gap:6px;padding:0 11px;color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-1px;text-decoration:none}
+.tab.on{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--card)}
+.seg>*{height:24px;display:flex;align-items:center;padding:0 9px;font-size:12px;color:var(--mut);border-right:1px solid var(--line)}
+.seg>*:last-child{border-right:0}.seg>.on{background:var(--ink);color:var(--card)}
+.inp{height:28px;padding:0 9px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--ink);width:100%}
+.code{font:400 12px/19px 'IBM Plex Mono',ui-monospace,Menlo,monospace;background:var(--well);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;white-space:pre;overflow:hidden;margin:0}
+.code .s{color:var(--ok)}.code .n{color:var(--warn)}.code .kw{color:var(--deny)}.code .c{color:var(--mut)}
+.kv{display:grid;grid-template-columns:var(--c,96px 1fr);column-gap:12px;row-gap:5px}
+.kv>:nth-child(odd){color:var(--mut)}
+.h1{font:600 18px/24px 'IBM Plex Sans',sans-serif}
+.h2{font:600 14px/20px 'IBM Plex Sans',sans-serif}
+.facts{display:flex;border:1px solid var(--line);border-radius:4px;background:var(--card);overflow:hidden}
+.facts>div{padding:7px 14px 8px;border-right:1px solid var(--line2);display:flex;flex-direction:column}
+.facts>div:last-child{border-right:0;flex:1}
+.lane{position:relative;height:8px;background:var(--line2);border-radius:2px}
+.lane>div{position:absolute;top:0;height:8px;border-radius:2px;background:var(--ink)}
+.lane>div.kid{background:var(--mut)}.lane>div.bad{background:var(--bad)}
+.note{font-size:12px;color:var(--mut)}
+.callout{border:1px solid var(--line);border-radius:4px;background:var(--card);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.callout.bad{background:var(--badbg);border-color:transparent}.callout.deny{background:var(--denybg);border-color:transparent}
+.callout.warn{background:var(--warnbg);border-color:transparent}.callout.ok{background:var(--okbg);border-color:transparent}
+.modal{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.scrim{position:absolute;inset:0;background:rgba(20,22,25,.34)}
+.tag{font:500 11px/1 'IBM Plex Mono',monospace;color:var(--mut)}
+.box{position:absolute;border:1px solid var(--line);border-radius:4px;background:var(--card);padding:7px 10px;display:flex;flex-direction:column;gap:1px}
+.wire{position:absolute;background:var(--mut)}
+.app a{color:inherit;text-decoration:underline;text-decoration-color:#a8a8a1;text-underline-offset:2px}
+.app a.nav,.app a.tab,.app a.btn,.app a.callout,.app a.well{text-decoration:none}
+.g12{gap:12px}
+.callout.bad,.callout.deny,.callout.warn,.callout.ok{color:var(--ink)}
+.c-s3{--c:#12a05f}.c-ddb{--c:#2f6bff}.c-sqs{--c:#e0328c}.c-sns{--c:#a83bf0}.c-eb{--c:#00a799}.c-kin{--c:#0a9edb}.c-lam{--c:#e77610}.c-apigw{--c:#00997a}.c-sfn{--c:#d6247a}.c-logs{--c:#c13b6a}.c-cw{--c:#e0407e}.c-kms{--c:#e5352b}.c-sm{--c:#c78806}.c-ssm{--c:#5ea60c}.c-iam{--c:#6a4dfb}.c-cfn{--c:#97921a}.c-sts{--c:#6b7688}
+.rail.c{width:48px;padding:10px 0;align-items:center;gap:4px}
+.rail.c .nav{padding:0 5px}
+.tag.new{color:var(--deny);border:1px solid var(--deny);border-radius:3px;padding:1px 5px;font-size:10px}
+.tag.real{color:var(--ok);border:1px solid var(--ok);border-radius:3px;padding:1px 5px;font-size:10px}
+.tag.gone{color:var(--bad);border:1px solid var(--bad);border-radius:3px;padding:1px 5px;font-size:10px}
+.fid .r>*{white-space:normal;overflow:visible;line-height:18px}.fid .r{padding-top:3px;padding-bottom:3px;min-height:24px;align-items:start}
+</style>
+</helmet>
+<div class="app" style="position: relative">
+
+<div class="top">
+<div class="brand" style="width: auto"><span class="logo">z</span><span>doze-aws</span><span class="mut" style="font-weight: 400">harbour</span></div>
+<div class="jump"><span class="grow">Jump to a resource, or do something…</span><span class="k" style="margin: 0">⌘K</span></div>
+<div class="grow"></div>
+<span class="pill"><span class="dot"></span><span class="m">127.0.0.1:4566</span></span>
+</div>
+
+<div class="body">
+
+<nav class="rail c" aria-label="Services">
+<a class="nav" href="Main.dc.html" aria-label="The wire"><span class="sv" style="--c: var(--ink); color: var(--card)">≋</span></a>
+<a class="nav" href="S3-Home.dc.html" aria-label="S3"><span class="sv c-s3">S3</span></a>
+<a class="nav" href="Ddb-Home.dc.html" aria-label="DynamoDB"><span class="sv c-ddb">DB</span></a>
+<a class="nav" href="Sqs-02-Pick.dc.html" aria-label="SQS"><span class="sv c-sqs">SQ</span></a>
+<a class="nav" href="Sns-Home.dc.html" aria-label="SNS"><span class="sv c-sns">SN</span></a>
+<a class="nav" href="Eb-Home.dc.html" aria-label="EventBridge"><span class="sv c-eb">EB</span></a>
+<a class="nav" href="Kinesis-Home.dc.html" aria-label="Kinesis"><span class="sv c-kin">KN</span></a>
+<a class="nav" href="Lambda-Home.dc.html" aria-label="Lambda"><span class="sv c-lam">λ</span></a>
+<a class="nav" href="Apigw-Home.dc.html" aria-label="API Gateway"><span class="sv c-apigw">AG</span></a>
+<a class="nav" href="Sfn-Home.dc.html" aria-label="Step Functions"><span class="sv c-sfn">SF</span></a>
+<a class="nav" href="Logs-Home.dc.html" aria-label="CloudWatch Logs"><span class="sv c-logs">LG</span></a>
+<a class="nav" href="Cw-Home.dc.html" aria-label="CloudWatch"><span class="sv c-cw">CW</span></a>
+<a class="nav on" href="Kms-Home.dc.html" aria-label="KMS"><span class="sv c-kms">KM</span></a>
+<a class="nav" href="Sm-Home.dc.html" aria-label="Secrets Manager"><span class="sv c-sm">SM</span></a>
+<a class="nav" href="Ssm-Home.dc.html" aria-label="Parameter Store"><span class="sv c-ssm">PS</span></a>
+<a class="nav" href="Iam-Home.dc.html" aria-label="IAM"><span class="sv c-iam">IA</span></a>
+<a class="nav" href="Cfn-Home.dc.html" aria-label="CloudFormation"><span class="sv c-cfn">CF</span></a>
+</nav>
+
+<div class="list" style="width: 262px">
+<div class="row sb ce" style="padding: 12px 12px 8px"><span class="row ce" style="gap: 8px"><span class="h2">Keys</span><span class="m mut">7</span></span><span class="row ce g4"><a class="btn sm ghost" href="Kms-19-Fidelity.dc.html" aria-label="What is real here">i</a><a class="btn sm" href="Kms-02-Create.dc.html">New</a></span></div>
+<div class="li on"><span class="grow el">harbour-checkout</span><span class="m">↻</span></div>
+<div class="li"><span class="grow el">harbour-ledger</span><span class="pill warn" style="height: 18px">disabled</span></div>
+<div class="li"><span class="grow el">harbour-mac</span></div>
+<div class="li"><span class="grow el">harbour-old-sessions</span><span class="pill warn" style="height: 18px">deleting</span></div>
+<div class="li"><span class="grow el">harbour-sessions</span></div>
+<div class="li"><span class="grow el">harbour-signing</span></div>
+<div class="li"><span class="grow el">harbour-vault</span></div>
+</div>
+
+<main class="main" style="padding: 14px 18px 0; gap: 10px">
+<div class="row ce g8"><span class="sv c-kms">KM</span><h1 class="h1">harbour-checkout</h1><span class="pill ok"><span class="dot"></span>Enabled</span></div>
+</main>
+
+</div>
+
+<div class="scrim"></div>
+
+<div class="modal col" style="left: 40px; top: 20px; width: 1360px; height: 860px; overflow: hidden" role="dialog" aria-label="Fidelity">
+<div class="col" style="padding: 14px 20px 10px; border-bottom: 1px solid var(--line2); gap: 2px">
+<div class="row sb ce"><h3 class="h2">Fidelity</h3><a class="btn sm" href="Kms-Home.dc.html">Close</a></div>
+<span class="note">What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</span>
+</div>
+
+<div class="row g16" style="padding: 12px 20px; align-items: flex-start">
+
+<div class="col" style="flex: 1 1 0; gap: 8px">
+<div class="row g8"><span class="pill ok"><span class="b">F</span> 18 functional</span><span class="pill"><span class="b">S</span> 2 stub</span></div>
+<div class="card fid" style="--c: 40px 300px 1fr">
+<div class="r h"><span>Tier</span><span>Operations</span><span>Notes</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">CreateKey</span><span class="note">SYMMETRIC_DEFAULT, RSA_2048/3072/4096, ECC_NIST_P256/P384/P521, HMAC_224/256/384/512. ECC_SECG_P256K1 → honest error (no stdlib secp256k1)</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">DescribeKey / ListKeys</span><span class="note">by id, ARN, alias, alias ARN</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">Encrypt / Decrypt</span><span class="note">SYMMETRIC_DEFAULT (blob embeds key id; Decrypt needs no KeyId) and RSAES_OAEP_SHA_1/SHA_256 (KeyId required, like real KMS)</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">ReEncrypt</span><span class="note">—</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GenerateDataKey(WithoutPlaintext)</span><span class="note">AES_128/AES_256/NumberOfBytes</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GenerateDataKeyPair(WithoutPlaintext)</span><span class="note">RSA/ECC pairs, private key wrapped by the symmetric key</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GenerateRandom</span><span class="note">—</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">Sign / Verify</span><span class="note">RSASSA_PKCS1_V1_5_SHA_256/384/512, RSASSA_PSS_SHA_256/384/512, ECDSA_SHA_256/384/512; RAW and DIGEST message types</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GetPublicKey</span><span class="note">real SPKI DER</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GenerateMac / VerifyMac</span><span class="note">HMAC_SHA_224/256/384/512, constant-time compare</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">EnableKey / DisableKey</span><span class="note">DisabledException on use</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">ScheduleKeyDeletion / CancelKeyDeletion</span><span class="note">7–30 day window, janitor finalizes; cancelled keys land Disabled</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">CreateAlias / UpdateAlias / DeleteAlias / ListAliases</span><span class="note">—</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">TagResource / UntagResource / ListResourceTags</span><span class="note">—</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">UpdateKeyDescription</span><span class="note">—</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">GetKeyPolicy / PutKeyPolicy / ListKeyPolicies</span><span class="note">the key policy, evaluated on every request naming the key under IAM soft and enforce. As on AWS it gates the identity policies: they count only while the key policy allows the account root (the default policy's one statement), and a policy that names nobody locks everyone out, root and PutKeyPolicy included. Stored and returned only under the default off</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">EnableKeyRotation / DisableKeyRotation / GetKeyRotationStatus</span><span class="note">symmetric keys only; RotationPeriodInDays stored and reported (AWS's default when omitted); the scheduled rotation itself is not run by a clock locally — RotateKeyOnDemand is the switch</span></div>
+<div class="r"><span class="m ok">F</span><span class="m">RotateKeyOnDemand / ListKeyRotations</span><span class="note">fresh backing material for a symmetric key, kept alongside the old so earlier ciphertexts still decrypt; the rotation list records each</span></div>
+<div class="r"><span class="m mut">S</span><span class="m">Grants (Create/Retire/Revoke/List)</span><span class="note">grants are IAM machinery</span></div>
+<div class="r"><span class="m mut">S</span><span class="m">Custom key stores, ImportKeyMaterial, multi-region replication, DeriveSharedSecret</span><span class="note">cloud-infrastructure-only</span></div>
+</div>
+</div>
+
+<div class="col" style="width: 300px; flex: none; gap: 10px">
+<div class="row ce g8"><span class="h2">What is real</span><span class="tag new">new</span></div>
+<span class="note">From the ledger's “Differences from AWS”, which the panel does not show today.</span>
+<div class="callout ok"><span class="b">The crypto is real</span><span class="note">Symmetric keys are AES-256-GCM with the encryption context as authenticated data. RSA and ECC keys really sign, verify and, for RSA, encrypt. HMAC keys really MAC. Signatures verify outside KMS.</span></div>
+<div class="callout warn"><span class="b">The key custody is not</span><span class="note">Keys live in the data directory, not in an HSM, and anything that can read that directory has the key material.</span></div>
+<div class="callout"><span class="b">Scheduled rotation has no clock</span><span class="note">The flag and the period are stored and reported; nothing fires on the schedule. Rotate now is the switch.</span></div>
+<div class="callout"><span class="b">One principal</span><span class="note">Every caller is the same identity, so a key policy is evaluated for one. It cannot tell two callers apart.</span></div>
+<span class="note">Grants and imported key material are stubs: refused by name, because each needs infrastructure that has no local counterpart.</span>
+</div>
+
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,4620 @@
+{
+  "v": 3,
+  "attachments": {},
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-10T16:00:00Z"
+  },
+  "title": "doze-aws Console Dream Design",
+  "launch": {
+    "view": "canvas",
+    "page": "readme"
+  },
+  "pages": [
+    {
+      "id": "readme",
+      "name": "Read me first"
+    },
+    {
+      "id": "wire",
+      "name": "1 · The wire"
+    },
+    {
+      "id": "system",
+      "name": "2 · One anatomy"
+    },
+    {
+      "id": "s3",
+      "name": "3 · S3"
+    },
+    {
+      "id": "ddb",
+      "name": "4 · DynamoDB"
+    },
+    {
+      "id": "sqs",
+      "name": "5 · SQS"
+    },
+    {
+      "id": "sns",
+      "name": "6 · SNS"
+    },
+    {
+      "id": "eb",
+      "name": "7 · EventBridge"
+    },
+    {
+      "id": "kinesis",
+      "name": "8 · Kinesis"
+    },
+    {
+      "id": "lambda",
+      "name": "9 · Lambda"
+    },
+    {
+      "id": "apigw",
+      "name": "10 · API Gateway"
+    },
+    {
+      "id": "sfn",
+      "name": "11 · Step Functions"
+    },
+    {
+      "id": "logs",
+      "name": "12 · CloudWatch Logs"
+    },
+    {
+      "id": "cw",
+      "name": "13 · CloudWatch"
+    },
+    {
+      "id": "kms",
+      "name": "14 · KMS"
+    },
+    {
+      "id": "sm",
+      "name": "15 · Secrets Manager"
+    },
+    {
+      "id": "ssm",
+      "name": "16 · Parameter Store"
+    },
+    {
+      "id": "iam",
+      "name": "17 · IAM and STS"
+    },
+    {
+      "id": "cfn",
+      "name": "18 · CloudFormation"
+    },
+    {
+      "id": "map",
+      "name": "19 · The map"
+    },
+    {
+      "id": "stack",
+      "name": "20 · Connect and fidelity"
+    },
+    {
+      "id": "bad",
+      "name": "21 · Bad days"
+    }
+  ],
+  "boards": {
+    "Grounding.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "What is real, what is new, what was removed",
+      "radius": 8,
+      "page": "readme"
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Home · the wire",
+      "radius": 8,
+      "page": "wire"
+    },
+    "Wire-Inspect.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A call, opened",
+      "radius": 8,
+      "page": "wire"
+    },
+    "Wire-Refused.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A refused call, explained",
+      "radius": 8,
+      "page": "wire"
+    },
+    "Palette.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Jump",
+      "radius": 8,
+      "page": "wire"
+    },
+    "Wire-Empty.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Nothing has called yet",
+      "radius": 8,
+      "page": "wire"
+    },
+    "Anatomy.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The rule · every resource page",
+      "radius": 8,
+      "page": "system"
+    },
+    "States.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Feedback, confirm, empty, refused · one of each",
+      "radius": 8,
+      "page": "system"
+    },
+    "Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Creating something",
+      "radius": 8,
+      "page": "system"
+    },
+    "Dark.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Dark",
+      "radius": 8,
+      "page": "system"
+    },
+    "Narrow.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1024,
+      "h": 768,
+      "title": "At 1024 × 768",
+      "radius": 8,
+      "page": "system"
+    },
+    "Teaching.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "How a setting teaches",
+      "radius": 8,
+      "page": "system"
+    },
+    "S3-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Buckets, none selected",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No buckets yet",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a bucket",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-03-Create-Locked.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create with object lock",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-05-Objects.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Objects in a folder",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-06-Empty.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Empty bucket, new folder refused",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-07-Upload.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Upload, drop and refusal",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-11-Bulk.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Select several, combine refused",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-08-Object.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Object panel",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-09-Object-Versions.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Versions",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-10-Object-Lock.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Retention and legal hold",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-12-Confirms.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "The eight confirms",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-13-Delete-Bucket-Refused.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Delete bucket, not empty",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-14-Properties.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Properties overview",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-18-Fresh-Properties.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "A new bucket, every empty state",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-15-Access.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Versioning, public access, lock",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-17-Notifications.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Event notifications",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-19-CORS.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "CORS rules",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-20-Lifecycle.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Lifecycle rules",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-21-Policy.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Bucket policy",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-22-Policy-Refused.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Policy refused",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-23-Website.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Static website",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-24-Uploads.dc.html": {
+      "x": 6080,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Multipart uploads",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-25-Denied.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Denied by the bucket policy",
+      "radius": 8,
+      "page": "s3"
+    },
+    "S3-26-Notify-Neighbours.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Notifications that cannot arrive",
+      "radius": 8,
+      "page": "s3"
+    },
+    "Ddb-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The first table, Items",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No tables yet",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create table",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-03-Create-Variant.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, sort key, index, TTL",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, refused",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-05-Items-Empty.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A new table, no items",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-06-Item-Open.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "An item opened",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-07-Scan-Filter.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Scan with a filter",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-08-Scan-Slow.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A scan in flight",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-09-Query.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Query an index",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-10-Read-Refused.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Get and PartiQL, refused",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-11-Bulk.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Items selected",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-12-Item-Add.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Add item",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-13-Item-Add-Refused.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Add item, refused",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-14-Item-Edit.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit and update an item",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-15-Confirms.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "What asks first",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-16-Details.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Details, TTL and indexes",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-17-Details-Fresh.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Details, nothing set up",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-18-Details-Stream.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "A table with a stream",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Ddb-19-Tags.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "ddb"
+    },
+    "Sqs-01-None.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No queues yet",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-02-Pick.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Queues exist, none open",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-03-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create queue, with the life of a message",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-04-Create-FIFO.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a FIFO queue, Advanced open",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-05-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused, inline",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Queue.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Messages · peek, open one",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-08-Send.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Send a message",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-09-Send-Refused.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A send refused",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-20-Denied.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A send denied (enforce)",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-10-Consume-Empty.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Consume · before receiving",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-11-Consume-Held.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Consume · holding three",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Bad-DLQ.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "A dead-letter queue",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-14-Redrive-Confirm.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Redrive · confirm",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-15-Redrive-Done.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Redrive · finished",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-16-Confirms.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "The three confirms",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-17-Config.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Configuration, in plain words",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-18-Config-Edit.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Editing settings, with the reader checked",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-19-Tags.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags, a draft",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sqs-21-Config-Refused.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Editing settings, refused",
+      "radius": 8,
+      "page": "sqs"
+    },
+    "Sns-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Topics, nothing selected",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No topics yet",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create topic",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-03-Create-FIFO.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create FIFO topic",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Topic name refused",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-05-Subscriptions.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Subscriptions tab",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-06-Subs-Empty.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "No subscribers yet",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-07-Sub-Settings.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Filter policy and raw delivery",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-08-Subscribe.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Add a subscription",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-09-Subscribe-Refused.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Subscribe refused",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-10-Confirm.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm a pending subscription",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-11-Publish.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Publish with a receipt",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-12-Receipts.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Four ways to arrive nowhere",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-13-Publish-FIFO.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "FIFO publish refused",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-14-Details.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Details tab",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-15-Access.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Access policy",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-16-Tags.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags tab",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-17-Confirms.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Delete, unsubscribe, revoke",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Sns-18-Denied.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Publish denied (enforce)",
+      "radius": 8,
+      "page": "sns"
+    },
+    "Eb-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A fresh stack: the default bus, no rules",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-02-Bus-Create.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create event bus",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-03-Bus-Create-Refused.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create event bus, refused",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-04-Bus-New.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A new custom bus",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-05-Rules.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "The default bus's rules",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-06-Test-Event.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Test event: verdicts and publish",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-07-Rule-Create.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create rule: pattern",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-08-Rule-Create-Schedule.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create rule: schedule",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-09-Rule-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create rule, refused",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-10-Rule.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "A pattern rule",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-11-Rule-Schedule.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "A scheduled rule, disabled",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-12-Target-Add.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Add a target",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-13-Target-Shape.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "What a target receives (new)",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-14-Archives.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Archives and replays",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-15-Archive-Detail.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "An archive, opened",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-16-Replay.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "After a replay",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-17-Replay-Options.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Replay with a window and rules (new)",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-18-Trace.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Trace a target back",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-19-Destinations.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Connections and API destinations",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-20-Connection.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "A connection, opened",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-21-Connection-Create.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Create connection: OAuth, refused",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-22-Destination.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "An API destination, inactive",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-23-Confirms.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Seven confirms",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Eb-24-Bad-Nothing-Arrived.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Published, and nothing arrived",
+      "radius": 8,
+      "page": "eb"
+    },
+    "Kinesis-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A stream, Shards",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No streams yet",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "New stream",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-03-Create-Shards.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "New stream, four shards",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "New stream, refused",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-05-Shards-Resharded.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "After a split",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-06-Put.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Put a record",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-07-Put-Refused.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Put and retention, refused",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-08-Records.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Records",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-09-Record-Full.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "One record, whole",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-10-Records-Routed.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "One partition key",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-11-Records-Empty.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Empty and following",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-12-Details-Layout.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Details, layout and mode",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-13-Details-Stored.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Details, stored settings",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-14-Tags.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-15-Confirms.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Five confirms",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-16-Denied.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Put denied by policy",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Kinesis-17-Bad-Days.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Bad days",
+      "radius": 8,
+      "page": "kinesis"
+    },
+    "Lambda-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Functions and layers, nothing selected",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No functions yet",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-02-Create.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create function",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-03-Create-Node.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, Node with env",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-04-Create-Refused.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, refused",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-05-Test.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Test tab",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-06-Invoke-OK.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke, succeeded cold",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-07-Invoke-Async.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke, async event",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-08-Invoke-Refused.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke, refused",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-09-Config.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Configuration, read",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-10-Config-Edit.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Configuration, edited",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-11-Config-Refused.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Configuration, refused",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-12-Triggers.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Triggers and add form",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-13-Trigger-Refused.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Trigger refused",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-14-Logs.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Logs, one invocation",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-15-Tags.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-16-Versions.dc.html": {
+      "x": 6080,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Versions and aliases",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-17-Layer-Versions.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A layer's versions",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-18-Layer-Version.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "One version and permissions",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-19-Layer-Refused.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Layer publish refused",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-20-Confirms.dc.html": {
+      "x": 0,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "The six confirms",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-21-Bad-Launch.dc.html": {
+      "x": 0,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "A function that will not start",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-22-Bad-Threw.dc.html": {
+      "x": 1520,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "The handler threw",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Lambda-23-Bad-Timeout.dc.html": {
+      "x": 3040,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "Timed out, process exited",
+      "radius": 8,
+      "page": "lambda"
+    },
+    "Apigw-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No APIs yet",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-02-Create.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a REST API",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-03-Create-Http.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create an HTTP API",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-04-Create-Refused.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-05-Rest-Routes.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Routes",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-06-Route-Dialogs.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Add resource, add method, rename",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-07-Method.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A method and its integration",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-08-Integration.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "The five integration types",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-09-Stages.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Stages and deployments",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-10-Stages-Refused.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Deploy refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-11-Rollback.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Repointing is not a rollback",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-12-Settings.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings and authorizers",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-13-Authorizer-Refused.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Add authorizer refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-17-Tags.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-14-Invoke.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-15-Invoke-Refused.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Answers that are not a 200",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-16-Denied.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke denied (IAM enforce)",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-18-Http-Routes.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Routes",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-19-Http-Route-Refused.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Add route refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-20-Http-No-Stage.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "No stage yet",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-21-Http-Stages.dc.html": {
+      "x": 4560,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Stages",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-22-Http-Settings.dc.html": {
+      "x": 6080,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings and CORS",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-23-Http-Settings-Refused.dc.html": {
+      "x": 0,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-24-Http-Invoke.dc.html": {
+      "x": 1520,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "Invoke",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-25-Keys.dc.html": {
+      "x": 0,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "Keys and plans",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-26-Keys-Empty.dc.html": {
+      "x": 1520,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "None yet",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-27-Keys-Refused.dc.html": {
+      "x": 3040,
+      "y": 9240,
+      "w": 1440,
+      "h": 900,
+      "title": "Create key refused",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-28-Confirms-Rest.dc.html": {
+      "x": 0,
+      "y": 10560,
+      "w": 1440,
+      "h": 900,
+      "title": "REST API confirms",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-29-Confirms-Other.dc.html": {
+      "x": 1520,
+      "y": 10560,
+      "w": 1440,
+      "h": 900,
+      "title": "HTTP API and key confirms",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Apigw-30-Not-Here.dc.html": {
+      "x": 0,
+      "y": 11880,
+      "w": 1440,
+      "h": 900,
+      "title": "Fidelity and 501 families",
+      "radius": 8,
+      "page": "apigw"
+    },
+    "Sfn-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Pick a machine",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No state machines yet",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a machine",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-03-Create-Express.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, Express",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-05-Executions.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Executions",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-06-Executions-Empty.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Nothing to list",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-07-Start.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Start an execution",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-08-Start-Refused.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Start refused",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-09-Express-Run.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Express, run synchronously",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-10-Graph.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-11-Definition.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Definition",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-12-Definition-Test.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Save refused, test a state",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-13-Versions.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Versions and aliases",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-14-Logs.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Logs",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-15-Tags.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-21-Activities.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Activities",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-22-Activity-Task.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Take a task",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-24-Confirms.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirms",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-16-Execution-Running.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Running, history",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-17-Execution-Graph.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph, coloured",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-18-Task-Result.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Answering a token",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-19-Execution-Failed.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Failed, redrive",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-20-Execution-IO.dc.html": {
+      "x": 6080,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Input, output, definition",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-23-Map-Run.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A Map Run",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Sfn-25-Bad-Heartbeat.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Nobody answered",
+      "radius": 8,
+      "page": "sfn"
+    },
+    "Logs-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Log groups, none selected",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No log groups yet",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a log group",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-03-Create-Retention.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, with retention and cli",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, refused",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-05-Tail.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Tail",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-06-Tail-Filter.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Tail, filter pattern",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-07-Tail-Invocation.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Tail, one invocation",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-08-Tail-Empty.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "A new group, no lines",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-09-Streams.dc.html": {
+      "x": 6080,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Streams",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-10-Metric-Filters.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Metric filters and add form",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-11-Metric-Test.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Test a pattern",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-12-Metric-Refused.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Add a filter, refused",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-13-Subscriptions.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Subscription filters",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-14-Subscribe-Refused.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Subscribe, refused",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-15-Retention.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Retention",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-16-Tags.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags, refused",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-17-Confirms.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Four confirms",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-18-Bad-Unfiring.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A filter that never fires",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Logs-19-Bad-Gone.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A group that comes back",
+      "radius": 8,
+      "page": "logs"
+    },
+    "Cw-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Alarms and metrics",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Nothing yet",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-02-Metrics-Only.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Metrics, no alarms",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-03-Create-None.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, nothing to watch",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-04-Create.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create alarm",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-05-Create-Replace.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "p95 over three periods, replacing",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-06-Create-Refused.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-07-Metric.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "A metric's chart",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-08-Metric-Quiet.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Nothing in the window",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-09-Alarm-State.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "State and settings",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-10-Alarm-Fresh.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "A new alarm",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-11-Alarm-Metric.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Metric tab",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-12-Alarm-History.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "History tab",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-13-Alarm-Tags.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags tab",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-14-SetState.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Set state, composing",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-15-SetState-Done.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Set state, done",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-16-SetState-Refused.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Set state, refused",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-17-Actions-Off.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Actions off",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-18-Delete.dc.html": {
+      "x": 6080,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Delete confirm",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-19-No-Notification.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "State changed, nothing sent",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Cw-20-No-Data.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "An alarm that cannot get data",
+      "radius": 8,
+      "page": "cw"
+    },
+    "Kms-01-None.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No keys yet",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-Home.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Keys, operations",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-03-Create-Signing.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a signing key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-04-Create-Refused.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create refused",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-05-Encrypt.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Encrypt, decrypt, re-encrypt",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-06-Refused.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Crypto refused",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-07-Sign-Verify.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Sign, verify, public key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-08-Mac-Random.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "MAC and random bytes",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-09-Config.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Configuration",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-10-Aliases.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Aliases",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-11-Key-Policy.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Key policy",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-12-Tags.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-13-Confirms.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirms",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-14-Disabled.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "A disabled key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-15-Pending-Deletion.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Pending deletion",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-16-Rsa-Encrypt.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "An RSA encryption key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-17-Denied.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Denied under enforce",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-18-Lockout.dc.html": {
+      "x": 6080,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Locked out of a key",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Kms-19-Fidelity.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Fidelity ledger",
+      "radius": 8,
+      "page": "kms"
+    },
+    "Sm-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Secrets, none selected",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No secrets yet",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Store a new secret",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-03-Create-Refused.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Store refused",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-04-Value.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Value, hidden and revealed",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-05-Details.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Description and KMS key",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-06-Edit.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit, save as new version",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-07-Edit-Refused.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit refused",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-08-Versions.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Versions and labels",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-09-Diff.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Diff against current",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-10-Rollback.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Make current",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-11-Rotation-Off.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Rotation off, enable",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-12-Rotation-On.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Rotation on",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-13-Rotation-Failed.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "A rotation that failed",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-14-Policy.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Resource policy",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-15-Tags.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-16-Confirms.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirms",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-17-Pending.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "In the recovery window",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-18-Denied.dc.html": {
+      "x": 0,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "Denied under enforce",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Sm-19-No-Value.dc.html": {
+      "x": 1520,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "A value the page cannot show",
+      "radius": 8,
+      "page": "sm"
+    },
+    "Ssm-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Parameters, nothing selected",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No parameters yet",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-02-Create.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a String",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-03-Create-Secure.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Create a SecureString, advanced",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-04-Create-Refused.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Name rule refused",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-05-Create-Exists.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Name already exists",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-06-Param.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "View a String",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-07-Param-Secure.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "View a SecureString",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-08-Edit.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit, save as next version",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-09-Edit-Gone.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit, parameter gone",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-10-Versions.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Versions and labels",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-11-Diff.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Diff against current",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-12-Label-Refused.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Label refused",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-13-Tags.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Tags, one refused",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-14-Path.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Query a path",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Ssm-15-Confirms.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "The two delete confirms",
+      "radius": 8,
+      "page": "ssm"
+    },
+    "Iam-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Access log, soft",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-01-Empty.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Nothing recorded yet",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-02-Log-Enforce.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Access log, enforce",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-03-Log-Off.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Access log, off",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-04-Generate.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Generate a policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-05-Simulate.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Simulate a principal",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-06-Simulate-Draft.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Simulate a draft",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-07-Simulate-Refused.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Simulate, refused",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-08-Create-Names.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "New user, group, profile, service role",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-09-Create-Role.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "New role and its trust policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-10-Create-Policy.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "New policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-11-Create-Refused.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, refused",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-12-User.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "A user",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-13-User-Keys.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Access keys",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-14-Inline-Edit.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit an inline policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-15-Role.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "A role",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-16-Role-Trust.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Edit the trust policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-17-Policy.dc.html": {
+      "x": 3040,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "A customer policy",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-18-Policy-NewVersion.dc.html": {
+      "x": 4560,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Publish a version",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-19-Group.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A group",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-20-Profile.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "An instance profile",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-24-Account.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "The account",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-25-Confirms.dc.html": {
+      "x": 4560,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirms and what is refused after",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-21-Sts.dc.html": {
+      "x": 0,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "Assume a role",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-22-Sts-Minted.dc.html": {
+      "x": 1520,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "Minted credentials",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Iam-23-Sts-Modes.dc.html": {
+      "x": 3040,
+      "y": 7920,
+      "w": 1440,
+      "h": 900,
+      "title": "The other mints and their refusals",
+      "radius": 8,
+      "page": "iam"
+    },
+    "Cfn-Home.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Stacks, exports, deleted",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-01-None.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "No stacks yet",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-02-Create.dc.html": {
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create stack",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-03-Create-Loaded.dc.html": {
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Validated, parameters answered",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-04-Create-Refused.dc.html": {
+      "x": 3040,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Create, refused",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-05-Export.dc.html": {
+      "x": 4560,
+      "y": 1320,
+      "w": 1440,
+      "h": 900,
+      "title": "Start from what's running",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-06-Resources.dc.html": {
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Resources, parameters, outputs",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-07-Resource-Open.dc.html": {
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "One resource opened",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-08-Events.dc.html": {
+      "x": 3040,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Events",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-09-Template.dc.html": {
+      "x": 4560,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Template",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-10-Review-Pending.dc.html": {
+      "x": 6080,
+      "y": 2640,
+      "w": 1440,
+      "h": 900,
+      "title": "Awaiting review",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-11-Update.dc.html": {
+      "x": 0,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Update stack",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-12-Update-Review.dc.html": {
+      "x": 1520,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Update as a change set",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-13-Update-Refused.dc.html": {
+      "x": 3040,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Update, refused",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-14-ChangeSets.dc.html": {
+      "x": 4560,
+      "y": 3960,
+      "w": 1440,
+      "h": 900,
+      "title": "Change sets",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-15-Confirms.dc.html": {
+      "x": 0,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Four confirms",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-16-Delete-Refused.dc.html": {
+      "x": 1520,
+      "y": 5280,
+      "w": 1440,
+      "h": 900,
+      "title": "Delete, refused",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-17-Rollback-Create.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A create that was undone",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-18-Rollback-Retain.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A rollback that kept a bucket",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-19-Rollback-Update.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "An update that was undone",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Cfn-20-Left-Behind.dc.html": {
+      "x": 4560,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "A refused create's leftover",
+      "radius": 8,
+      "page": "cfn"
+    },
+    "Map.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The map · a few resources, wires drawn",
+      "radius": 8,
+      "page": "map"
+    },
+    "Map-Large.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The map · forty resources, flows as cards",
+      "radius": 8,
+      "page": "map"
+    },
+    "Connect.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Connect",
+      "radius": 8,
+      "page": "stack"
+    },
+    "Fidelity.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "How real is this service",
+      "radius": 8,
+      "page": "stack"
+    },
+    "Bad-Down.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "doze-aws has stopped",
+      "radius": 8,
+      "page": "bad"
+    }
+  },
+  "order": [
+    "Grounding.dc.html",
+    "Main.dc.html",
+    "Wire-Inspect.dc.html",
+    "Wire-Refused.dc.html",
+    "Palette.dc.html",
+    "Wire-Empty.dc.html",
+    "Anatomy.dc.html",
+    "States.dc.html",
+    "Create.dc.html",
+    "Dark.dc.html",
+    "Narrow.dc.html",
+    "Teaching.dc.html",
+    "S3-Home.dc.html",
+    "S3-01-None.dc.html",
+    "S3-02-Create.dc.html",
+    "S3-03-Create-Locked.dc.html",
+    "S3-04-Create-Refused.dc.html",
+    "S3-05-Objects.dc.html",
+    "S3-06-Empty.dc.html",
+    "S3-07-Upload.dc.html",
+    "S3-11-Bulk.dc.html",
+    "S3-08-Object.dc.html",
+    "S3-09-Object-Versions.dc.html",
+    "S3-10-Object-Lock.dc.html",
+    "S3-12-Confirms.dc.html",
+    "S3-13-Delete-Bucket-Refused.dc.html",
+    "S3-14-Properties.dc.html",
+    "S3-18-Fresh-Properties.dc.html",
+    "S3-15-Access.dc.html",
+    "S3-17-Notifications.dc.html",
+    "S3-19-CORS.dc.html",
+    "S3-20-Lifecycle.dc.html",
+    "S3-21-Policy.dc.html",
+    "S3-22-Policy-Refused.dc.html",
+    "S3-23-Website.dc.html",
+    "S3-24-Uploads.dc.html",
+    "S3-25-Denied.dc.html",
+    "S3-26-Notify-Neighbours.dc.html",
+    "Ddb-Home.dc.html",
+    "Ddb-01-None.dc.html",
+    "Ddb-02-Create.dc.html",
+    "Ddb-03-Create-Variant.dc.html",
+    "Ddb-04-Create-Refused.dc.html",
+    "Ddb-05-Items-Empty.dc.html",
+    "Ddb-06-Item-Open.dc.html",
+    "Ddb-07-Scan-Filter.dc.html",
+    "Ddb-08-Scan-Slow.dc.html",
+    "Ddb-09-Query.dc.html",
+    "Ddb-10-Read-Refused.dc.html",
+    "Ddb-11-Bulk.dc.html",
+    "Ddb-12-Item-Add.dc.html",
+    "Ddb-13-Item-Add-Refused.dc.html",
+    "Ddb-14-Item-Edit.dc.html",
+    "Ddb-15-Confirms.dc.html",
+    "Ddb-16-Details.dc.html",
+    "Ddb-17-Details-Fresh.dc.html",
+    "Ddb-18-Details-Stream.dc.html",
+    "Ddb-19-Tags.dc.html",
+    "Sqs-01-None.dc.html",
+    "Sqs-02-Pick.dc.html",
+    "Sqs-03-Create.dc.html",
+    "Sqs-04-Create-FIFO.dc.html",
+    "Sqs-05-Create-Refused.dc.html",
+    "Queue.dc.html",
+    "Sqs-08-Send.dc.html",
+    "Sqs-09-Send-Refused.dc.html",
+    "Sqs-20-Denied.dc.html",
+    "Sqs-10-Consume-Empty.dc.html",
+    "Sqs-11-Consume-Held.dc.html",
+    "Bad-DLQ.dc.html",
+    "Sqs-14-Redrive-Confirm.dc.html",
+    "Sqs-15-Redrive-Done.dc.html",
+    "Sqs-16-Confirms.dc.html",
+    "Sqs-17-Config.dc.html",
+    "Sqs-18-Config-Edit.dc.html",
+    "Sqs-19-Tags.dc.html",
+    "Sqs-21-Config-Refused.dc.html",
+    "Sns-Home.dc.html",
+    "Sns-01-None.dc.html",
+    "Sns-02-Create.dc.html",
+    "Sns-03-Create-FIFO.dc.html",
+    "Sns-04-Create-Refused.dc.html",
+    "Sns-05-Subscriptions.dc.html",
+    "Sns-06-Subs-Empty.dc.html",
+    "Sns-07-Sub-Settings.dc.html",
+    "Sns-08-Subscribe.dc.html",
+    "Sns-09-Subscribe-Refused.dc.html",
+    "Sns-10-Confirm.dc.html",
+    "Sns-11-Publish.dc.html",
+    "Sns-12-Receipts.dc.html",
+    "Sns-13-Publish-FIFO.dc.html",
+    "Sns-14-Details.dc.html",
+    "Sns-15-Access.dc.html",
+    "Sns-16-Tags.dc.html",
+    "Sns-17-Confirms.dc.html",
+    "Sns-18-Denied.dc.html",
+    "Eb-Home.dc.html",
+    "Eb-02-Bus-Create.dc.html",
+    "Eb-03-Bus-Create-Refused.dc.html",
+    "Eb-04-Bus-New.dc.html",
+    "Eb-05-Rules.dc.html",
+    "Eb-06-Test-Event.dc.html",
+    "Eb-07-Rule-Create.dc.html",
+    "Eb-08-Rule-Create-Schedule.dc.html",
+    "Eb-09-Rule-Create-Refused.dc.html",
+    "Eb-10-Rule.dc.html",
+    "Eb-11-Rule-Schedule.dc.html",
+    "Eb-12-Target-Add.dc.html",
+    "Eb-13-Target-Shape.dc.html",
+    "Eb-14-Archives.dc.html",
+    "Eb-15-Archive-Detail.dc.html",
+    "Eb-16-Replay.dc.html",
+    "Eb-17-Replay-Options.dc.html",
+    "Eb-18-Trace.dc.html",
+    "Eb-19-Destinations.dc.html",
+    "Eb-20-Connection.dc.html",
+    "Eb-21-Connection-Create.dc.html",
+    "Eb-22-Destination.dc.html",
+    "Eb-23-Confirms.dc.html",
+    "Eb-24-Bad-Nothing-Arrived.dc.html",
+    "Kinesis-Home.dc.html",
+    "Kinesis-01-None.dc.html",
+    "Kinesis-02-Create.dc.html",
+    "Kinesis-03-Create-Shards.dc.html",
+    "Kinesis-04-Create-Refused.dc.html",
+    "Kinesis-05-Shards-Resharded.dc.html",
+    "Kinesis-06-Put.dc.html",
+    "Kinesis-07-Put-Refused.dc.html",
+    "Kinesis-08-Records.dc.html",
+    "Kinesis-09-Record-Full.dc.html",
+    "Kinesis-10-Records-Routed.dc.html",
+    "Kinesis-11-Records-Empty.dc.html",
+    "Kinesis-12-Details-Layout.dc.html",
+    "Kinesis-13-Details-Stored.dc.html",
+    "Kinesis-14-Tags.dc.html",
+    "Kinesis-15-Confirms.dc.html",
+    "Kinesis-16-Denied.dc.html",
+    "Kinesis-17-Bad-Days.dc.html",
+    "Lambda-Home.dc.html",
+    "Lambda-01-None.dc.html",
+    "Lambda-02-Create.dc.html",
+    "Lambda-03-Create-Node.dc.html",
+    "Lambda-04-Create-Refused.dc.html",
+    "Lambda-05-Test.dc.html",
+    "Lambda-06-Invoke-OK.dc.html",
+    "Lambda-07-Invoke-Async.dc.html",
+    "Lambda-08-Invoke-Refused.dc.html",
+    "Lambda-09-Config.dc.html",
+    "Lambda-10-Config-Edit.dc.html",
+    "Lambda-11-Config-Refused.dc.html",
+    "Lambda-12-Triggers.dc.html",
+    "Lambda-13-Trigger-Refused.dc.html",
+    "Lambda-14-Logs.dc.html",
+    "Lambda-15-Tags.dc.html",
+    "Lambda-16-Versions.dc.html",
+    "Lambda-17-Layer-Versions.dc.html",
+    "Lambda-18-Layer-Version.dc.html",
+    "Lambda-19-Layer-Refused.dc.html",
+    "Lambda-20-Confirms.dc.html",
+    "Lambda-21-Bad-Launch.dc.html",
+    "Lambda-22-Bad-Threw.dc.html",
+    "Lambda-23-Bad-Timeout.dc.html",
+    "Apigw-Home.dc.html",
+    "Apigw-02-Create.dc.html",
+    "Apigw-03-Create-Http.dc.html",
+    "Apigw-04-Create-Refused.dc.html",
+    "Apigw-05-Rest-Routes.dc.html",
+    "Apigw-06-Route-Dialogs.dc.html",
+    "Apigw-07-Method.dc.html",
+    "Apigw-08-Integration.dc.html",
+    "Apigw-09-Stages.dc.html",
+    "Apigw-10-Stages-Refused.dc.html",
+    "Apigw-11-Rollback.dc.html",
+    "Apigw-12-Settings.dc.html",
+    "Apigw-13-Authorizer-Refused.dc.html",
+    "Apigw-17-Tags.dc.html",
+    "Apigw-14-Invoke.dc.html",
+    "Apigw-15-Invoke-Refused.dc.html",
+    "Apigw-16-Denied.dc.html",
+    "Apigw-18-Http-Routes.dc.html",
+    "Apigw-19-Http-Route-Refused.dc.html",
+    "Apigw-20-Http-No-Stage.dc.html",
+    "Apigw-21-Http-Stages.dc.html",
+    "Apigw-22-Http-Settings.dc.html",
+    "Apigw-23-Http-Settings-Refused.dc.html",
+    "Apigw-24-Http-Invoke.dc.html",
+    "Apigw-25-Keys.dc.html",
+    "Apigw-26-Keys-Empty.dc.html",
+    "Apigw-27-Keys-Refused.dc.html",
+    "Apigw-28-Confirms-Rest.dc.html",
+    "Apigw-29-Confirms-Other.dc.html",
+    "Apigw-30-Not-Here.dc.html",
+    "Sfn-Home.dc.html",
+    "Sfn-01-None.dc.html",
+    "Sfn-02-Create.dc.html",
+    "Sfn-03-Create-Express.dc.html",
+    "Sfn-04-Create-Refused.dc.html",
+    "Sfn-05-Executions.dc.html",
+    "Sfn-06-Executions-Empty.dc.html",
+    "Sfn-07-Start.dc.html",
+    "Sfn-08-Start-Refused.dc.html",
+    "Sfn-09-Express-Run.dc.html",
+    "Sfn-10-Graph.dc.html",
+    "Sfn-11-Definition.dc.html",
+    "Sfn-12-Definition-Test.dc.html",
+    "Sfn-13-Versions.dc.html",
+    "Sfn-14-Logs.dc.html",
+    "Sfn-15-Tags.dc.html",
+    "Sfn-21-Activities.dc.html",
+    "Sfn-22-Activity-Task.dc.html",
+    "Sfn-24-Confirms.dc.html",
+    "Sfn-16-Execution-Running.dc.html",
+    "Sfn-17-Execution-Graph.dc.html",
+    "Sfn-18-Task-Result.dc.html",
+    "Sfn-19-Execution-Failed.dc.html",
+    "Sfn-20-Execution-IO.dc.html",
+    "Sfn-23-Map-Run.dc.html",
+    "Sfn-25-Bad-Heartbeat.dc.html",
+    "Logs-Home.dc.html",
+    "Logs-01-None.dc.html",
+    "Logs-02-Create.dc.html",
+    "Logs-03-Create-Retention.dc.html",
+    "Logs-04-Create-Refused.dc.html",
+    "Logs-05-Tail.dc.html",
+    "Logs-06-Tail-Filter.dc.html",
+    "Logs-07-Tail-Invocation.dc.html",
+    "Logs-08-Tail-Empty.dc.html",
+    "Logs-09-Streams.dc.html",
+    "Logs-10-Metric-Filters.dc.html",
+    "Logs-11-Metric-Test.dc.html",
+    "Logs-12-Metric-Refused.dc.html",
+    "Logs-13-Subscriptions.dc.html",
+    "Logs-14-Subscribe-Refused.dc.html",
+    "Logs-15-Retention.dc.html",
+    "Logs-16-Tags.dc.html",
+    "Logs-17-Confirms.dc.html",
+    "Logs-18-Bad-Unfiring.dc.html",
+    "Logs-19-Bad-Gone.dc.html",
+    "Cw-Home.dc.html",
+    "Cw-01-None.dc.html",
+    "Cw-02-Metrics-Only.dc.html",
+    "Cw-03-Create-None.dc.html",
+    "Cw-04-Create.dc.html",
+    "Cw-05-Create-Replace.dc.html",
+    "Cw-06-Create-Refused.dc.html",
+    "Cw-07-Metric.dc.html",
+    "Cw-08-Metric-Quiet.dc.html",
+    "Cw-09-Alarm-State.dc.html",
+    "Cw-10-Alarm-Fresh.dc.html",
+    "Cw-11-Alarm-Metric.dc.html",
+    "Cw-12-Alarm-History.dc.html",
+    "Cw-13-Alarm-Tags.dc.html",
+    "Cw-14-SetState.dc.html",
+    "Cw-15-SetState-Done.dc.html",
+    "Cw-16-SetState-Refused.dc.html",
+    "Cw-17-Actions-Off.dc.html",
+    "Cw-18-Delete.dc.html",
+    "Cw-19-No-Notification.dc.html",
+    "Cw-20-No-Data.dc.html",
+    "Kms-01-None.dc.html",
+    "Kms-Home.dc.html",
+    "Kms-02-Create.dc.html",
+    "Kms-03-Create-Signing.dc.html",
+    "Kms-04-Create-Refused.dc.html",
+    "Kms-05-Encrypt.dc.html",
+    "Kms-06-Refused.dc.html",
+    "Kms-07-Sign-Verify.dc.html",
+    "Kms-08-Mac-Random.dc.html",
+    "Kms-09-Config.dc.html",
+    "Kms-10-Aliases.dc.html",
+    "Kms-11-Key-Policy.dc.html",
+    "Kms-12-Tags.dc.html",
+    "Kms-13-Confirms.dc.html",
+    "Kms-14-Disabled.dc.html",
+    "Kms-15-Pending-Deletion.dc.html",
+    "Kms-16-Rsa-Encrypt.dc.html",
+    "Kms-17-Denied.dc.html",
+    "Kms-18-Lockout.dc.html",
+    "Kms-19-Fidelity.dc.html",
+    "Sm-Home.dc.html",
+    "Sm-01-None.dc.html",
+    "Sm-02-Create.dc.html",
+    "Sm-03-Create-Refused.dc.html",
+    "Sm-04-Value.dc.html",
+    "Sm-05-Details.dc.html",
+    "Sm-06-Edit.dc.html",
+    "Sm-07-Edit-Refused.dc.html",
+    "Sm-08-Versions.dc.html",
+    "Sm-09-Diff.dc.html",
+    "Sm-10-Rollback.dc.html",
+    "Sm-11-Rotation-Off.dc.html",
+    "Sm-12-Rotation-On.dc.html",
+    "Sm-13-Rotation-Failed.dc.html",
+    "Sm-14-Policy.dc.html",
+    "Sm-15-Tags.dc.html",
+    "Sm-16-Confirms.dc.html",
+    "Sm-17-Pending.dc.html",
+    "Sm-18-Denied.dc.html",
+    "Sm-19-No-Value.dc.html",
+    "Ssm-Home.dc.html",
+    "Ssm-01-None.dc.html",
+    "Ssm-02-Create.dc.html",
+    "Ssm-03-Create-Secure.dc.html",
+    "Ssm-04-Create-Refused.dc.html",
+    "Ssm-05-Create-Exists.dc.html",
+    "Ssm-06-Param.dc.html",
+    "Ssm-07-Param-Secure.dc.html",
+    "Ssm-08-Edit.dc.html",
+    "Ssm-09-Edit-Gone.dc.html",
+    "Ssm-10-Versions.dc.html",
+    "Ssm-11-Diff.dc.html",
+    "Ssm-12-Label-Refused.dc.html",
+    "Ssm-13-Tags.dc.html",
+    "Ssm-14-Path.dc.html",
+    "Ssm-15-Confirms.dc.html",
+    "Iam-Home.dc.html",
+    "Iam-01-Empty.dc.html",
+    "Iam-02-Log-Enforce.dc.html",
+    "Iam-03-Log-Off.dc.html",
+    "Iam-04-Generate.dc.html",
+    "Iam-05-Simulate.dc.html",
+    "Iam-06-Simulate-Draft.dc.html",
+    "Iam-07-Simulate-Refused.dc.html",
+    "Iam-08-Create-Names.dc.html",
+    "Iam-09-Create-Role.dc.html",
+    "Iam-10-Create-Policy.dc.html",
+    "Iam-11-Create-Refused.dc.html",
+    "Iam-12-User.dc.html",
+    "Iam-13-User-Keys.dc.html",
+    "Iam-14-Inline-Edit.dc.html",
+    "Iam-15-Role.dc.html",
+    "Iam-16-Role-Trust.dc.html",
+    "Iam-17-Policy.dc.html",
+    "Iam-18-Policy-NewVersion.dc.html",
+    "Iam-19-Group.dc.html",
+    "Iam-20-Profile.dc.html",
+    "Iam-24-Account.dc.html",
+    "Iam-25-Confirms.dc.html",
+    "Iam-21-Sts.dc.html",
+    "Iam-22-Sts-Minted.dc.html",
+    "Iam-23-Sts-Modes.dc.html",
+    "Cfn-Home.dc.html",
+    "Cfn-01-None.dc.html",
+    "Cfn-02-Create.dc.html",
+    "Cfn-03-Create-Loaded.dc.html",
+    "Cfn-04-Create-Refused.dc.html",
+    "Cfn-05-Export.dc.html",
+    "Cfn-06-Resources.dc.html",
+    "Cfn-07-Resource-Open.dc.html",
+    "Cfn-08-Events.dc.html",
+    "Cfn-09-Template.dc.html",
+    "Cfn-10-Review-Pending.dc.html",
+    "Cfn-11-Update.dc.html",
+    "Cfn-12-Update-Review.dc.html",
+    "Cfn-13-Update-Refused.dc.html",
+    "Cfn-14-ChangeSets.dc.html",
+    "Cfn-15-Confirms.dc.html",
+    "Cfn-16-Delete-Refused.dc.html",
+    "Cfn-17-Rollback-Create.dc.html",
+    "Cfn-18-Rollback-Retain.dc.html",
+    "Cfn-19-Rollback-Update.dc.html",
+    "Cfn-20-Left-Behind.dc.html",
+    "Map.dc.html",
+    "Map-Large.dc.html",
+    "Connect.dc.html",
+    "Fidelity.dc.html",
+    "Bad-Down.dc.html"
+  ],
+  "notes": {
+    "r1": {
+      "x": 0,
+      "y": -300,
+      "text": "Start here — what is real, what is new, what was cut",
+      "kind": "title1",
+      "maxW": 1440,
+      "page": "readme"
+    },
+    "w1": {
+      "x": 0,
+      "y": -300,
+      "text": "The wire — what your app just asked AWS for",
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "wire"
+    },
+    "w2": {
+      "x": 0,
+      "y": 1020,
+      "text": "Getting around, and the first minute",
+      "kind": "title1",
+      "maxW": 2960,
+      "page": "wire"
+    },
+    "s1": {
+      "x": 0,
+      "y": -300,
+      "text": "One anatomy for seventeen services",
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "system"
+    },
+    "s2": {
+      "x": 0,
+      "y": 1020,
+      "text": "Dark, and a smaller window",
+      "kind": "title1",
+      "maxW": 2544,
+      "page": "system"
+    },
+    "s3-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "s3-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "Browsing and uploading",
+      "x": 0,
+      "y": 1020
+    },
+    "s3-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "One object, and what asks first",
+      "x": 0,
+      "y": 2340
+    },
+    "s3-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "Properties",
+      "x": 0,
+      "y": 3660
+    },
+    "s3-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "Settings, continued",
+      "x": 0,
+      "y": 4980
+    },
+    "s3-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "s3",
+      "text": "Bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "ddb-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ddb",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "ddb-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ddb",
+      "text": "Reading items",
+      "x": 0,
+      "y": 1020
+    },
+    "ddb-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ddb",
+      "text": "Refusals and bulk actions",
+      "x": 0,
+      "y": 2340
+    },
+    "ddb-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ddb",
+      "text": "The item editor",
+      "x": 0,
+      "y": 3660
+    },
+    "ddb-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ddb",
+      "text": "Details and tags",
+      "x": 0,
+      "y": 4980
+    },
+    "q1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sqs",
+      "text": "Getting in — nothing yet, the list, creating a queue",
+      "x": 0,
+      "y": -300
+    },
+    "q2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sqs",
+      "text": "The queue — read, send, and what refuses a send",
+      "x": 0,
+      "y": 1020
+    },
+    "q3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sqs",
+      "text": "Consume and redrive",
+      "x": 0,
+      "y": 2340
+    },
+    "q4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sqs",
+      "text": "Settings, tags and the confirms",
+      "x": 0,
+      "y": 3660
+    },
+    "sns-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sns",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "sns-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sns",
+      "text": "Subscriptions",
+      "x": 0,
+      "y": 1020
+    },
+    "sns-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sns",
+      "text": "Confirm and publish",
+      "x": 0,
+      "y": 2340
+    },
+    "sns-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sns",
+      "text": "Details, access and tags",
+      "x": 0,
+      "y": 3660
+    },
+    "sns-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sns",
+      "text": "Confirms and denied",
+      "x": 0,
+      "y": 4980
+    },
+    "eb-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "eb-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "A bus and its rules",
+      "x": 0,
+      "y": 1020
+    },
+    "eb-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "A rule and its targets",
+      "x": 0,
+      "y": 2340
+    },
+    "eb-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "Archives, replays, trace",
+      "x": 0,
+      "y": 3660
+    },
+    "eb-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "API destinations",
+      "x": 0,
+      "y": 4980
+    },
+    "eb-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "eb",
+      "text": "Destructive actions and bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "kinesis-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kinesis",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "kinesis-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kinesis",
+      "text": "Shards and putting",
+      "x": 0,
+      "y": 1020
+    },
+    "kinesis-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kinesis",
+      "text": "Reading records",
+      "x": 0,
+      "y": 2340
+    },
+    "kinesis-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kinesis",
+      "text": "Settings",
+      "x": 0,
+      "y": 3660
+    },
+    "kinesis-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kinesis",
+      "text": "Confirms and bad days",
+      "x": 0,
+      "y": 4980
+    },
+    "lambda-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "lambda-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Create a function",
+      "x": 0,
+      "y": 1020
+    },
+    "lambda-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Test a function",
+      "x": 0,
+      "y": 2340
+    },
+    "lambda-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Configuration",
+      "x": 0,
+      "y": 3660
+    },
+    "lambda-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Triggers, logs, tags, versions",
+      "x": 0,
+      "y": 4980
+    },
+    "lambda-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Layers",
+      "x": 0,
+      "y": 6300
+    },
+    "lambda-r7": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Confirms",
+      "x": 0,
+      "y": 7620
+    },
+    "lambda-r8": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "lambda",
+      "text": "Bad days",
+      "x": 0,
+      "y": 8940
+    },
+    "apigw-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "apigw-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "A REST API: the route tree",
+      "x": 0,
+      "y": 1020
+    },
+    "apigw-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "A REST API: stages and deployments",
+      "x": 0,
+      "y": 2340
+    },
+    "apigw-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "A REST API: settings and tags",
+      "x": 0,
+      "y": 3660
+    },
+    "apigw-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "Sending a request",
+      "x": 0,
+      "y": 4980
+    },
+    "apigw-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "An HTTP API",
+      "x": 0,
+      "y": 6300
+    },
+    "apigw-r7": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "An HTTP API, continued",
+      "x": 0,
+      "y": 7620
+    },
+    "apigw-r8": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "API keys and usage plans",
+      "x": 0,
+      "y": 8940
+    },
+    "apigw-r9": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "Confirms",
+      "x": 0,
+      "y": 10260
+    },
+    "apigw-r10": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "apigw",
+      "text": "What is not here",
+      "x": 0,
+      "y": 11580
+    },
+    "sfn-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "sfn-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "Running one",
+      "x": 0,
+      "y": 1020
+    },
+    "sfn-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "The machine",
+      "x": 0,
+      "y": 2340
+    },
+    "sfn-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "Tags and activities",
+      "x": 0,
+      "y": 3660
+    },
+    "sfn-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "An execution",
+      "x": 0,
+      "y": 4980
+    },
+    "sfn-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sfn",
+      "text": "Bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "logs-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "logs-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Reading a group",
+      "x": 0,
+      "y": 1020
+    },
+    "logs-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Metric filters",
+      "x": 0,
+      "y": 2340
+    },
+    "logs-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Subscriptions",
+      "x": 0,
+      "y": 3660
+    },
+    "logs-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Settings and tags",
+      "x": 0,
+      "y": 4980
+    },
+    "logs-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "logs",
+      "text": "Confirms and bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "cw-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "cw-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "Create an alarm",
+      "x": 0,
+      "y": 1020
+    },
+    "cw-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "A metric",
+      "x": 0,
+      "y": 2340
+    },
+    "cw-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "The alarm page",
+      "x": 0,
+      "y": 3660
+    },
+    "cw-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "Acting on an alarm",
+      "x": 0,
+      "y": 4980
+    },
+    "cw-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cw",
+      "text": "Bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "kms-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kms",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "kms-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kms",
+      "text": "Using a key",
+      "x": 0,
+      "y": 1020
+    },
+    "kms-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kms",
+      "text": "Configuring a key",
+      "x": 0,
+      "y": 2340
+    },
+    "kms-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kms",
+      "text": "Bad days",
+      "x": 0,
+      "y": 3660
+    },
+    "kms-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "kms",
+      "text": "What is real",
+      "x": 0,
+      "y": 4980
+    },
+    "sm-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "sm-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "The secret",
+      "x": 0,
+      "y": 1020
+    },
+    "sm-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Versions and staging labels",
+      "x": 0,
+      "y": 2340
+    },
+    "sm-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Rotation",
+      "x": 0,
+      "y": 3660
+    },
+    "sm-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Policy and tags",
+      "x": 0,
+      "y": 4980
+    },
+    "sm-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Deleting",
+      "x": 0,
+      "y": 6300
+    },
+    "sm-r7": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "sm",
+      "text": "Bad days",
+      "x": 0,
+      "y": 7620
+    },
+    "ssm-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ssm",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "ssm-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ssm",
+      "text": "When create is refused",
+      "x": 0,
+      "y": 1020
+    },
+    "ssm-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ssm",
+      "text": "The parameter",
+      "x": 0,
+      "y": 2340
+    },
+    "ssm-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ssm",
+      "text": "History and labels",
+      "x": 0,
+      "y": 3660
+    },
+    "ssm-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "ssm",
+      "text": "Tags, paths and confirms",
+      "x": 0,
+      "y": 4980
+    },
+    "iam-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "The access log, in each mode",
+      "x": 0,
+      "y": -300
+    },
+    "iam-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "From a run to a policy",
+      "x": 0,
+      "y": 1020
+    },
+    "iam-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "Making things",
+      "x": 0,
+      "y": 2340
+    },
+    "iam-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "A user",
+      "x": 0,
+      "y": 3660
+    },
+    "iam-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "A role and a customer policy",
+      "x": 0,
+      "y": 4980
+    },
+    "iam-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "Groups, profiles, account, deletes",
+      "x": 0,
+      "y": 6300
+    },
+    "iam-r7": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "iam",
+      "text": "STS credentials",
+      "x": 0,
+      "y": 7620
+    },
+    "cfn-r1": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "Getting in",
+      "x": 0,
+      "y": -300
+    },
+    "cfn-r2": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "Deploying a template",
+      "x": 0,
+      "y": 1020
+    },
+    "cfn-r3": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "A stack, read",
+      "x": 0,
+      "y": 2340
+    },
+    "cfn-r4": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "Updating and change sets",
+      "x": 0,
+      "y": 3660
+    },
+    "cfn-r5": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "Taking a stack away",
+      "x": 0,
+      "y": 4980
+    },
+    "cfn-r6": {
+      "kind": "title1",
+      "maxW": 7600,
+      "page": "cfn",
+      "text": "Bad days",
+      "x": 0,
+      "y": 6300
+    },
+    "p1": {
+      "x": 0,
+      "y": -300,
+      "text": "The map — drawn when it is small, summarised when it is not",
+      "kind": "title1",
+      "maxW": 2960,
+      "page": "map"
+    },
+    "stack-1": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "stack",
+      "text": "Connect, and how real each service is",
+      "x": 0,
+      "y": -300
+    },
+    "b1": {
+      "x": 0,
+      "y": -300,
+      "text": "Bad days — the page says what happened and what to do",
+      "kind": "title1",
+      "maxW": 6000,
+      "page": "bad"
+    }
+  },
+  "designSystems": []
+}
