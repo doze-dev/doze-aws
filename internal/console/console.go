@@ -417,7 +417,13 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		// emptyCopy hands a template a service's empty-state voice. The copy lives
 		// in copy.go so the thirteen read as one person wrote them.
 		"emptyCopy": emptyFor,
-		"resolveIn": resourceURL,
+		// plural heads a list pane; listKeys and createKeys are the key bar's
+		// sets for a list page and a create page (keys.go).
+		"plural":     pluralFor,
+		"listKeys":   listKeys,
+		"createKeys": func() string { return createKeys },
+		"itemFor":    itemFor,
+		"resolveIn":  resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},

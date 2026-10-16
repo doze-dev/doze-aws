@@ -587,3 +587,262 @@ test.describe('a narrow window', () => {
     await expect(page.locator('.narrow-note')).toContainText('1024');
   });
 });
+
+// ---------------------------------------------------------------------------
+// The key bar (plan/03-shell-fidelity.md 2.4, S5). The bar names the keys the
+// page answers to, and it may name only keys that are bound: the audit found
+// seven that did nothing and an Escape that did not close the wire's inspector.
+// Every key a bar names is driven here, so the bar cannot lie again: a page
+// that declares a key with no driver in this table fails the test, and so does
+// a key whose driver finds nothing happened.
+// ---------------------------------------------------------------------------
+
+async function gatewayCall(request: import('@playwright/test').APIRequestContext, target: string, body: object) {
+  return request.post(GATEWAY_ROOT, {
+    headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': target },
+    data: JSON.stringify(body),
+  });
+}
+
+/** The bar as drawn: one entry per item, its keycaps and its words. */
+async function readBar(page: Page) {
+  return page.locator('#keybar > span').evaluateAll((items) =>
+    items.map((it) => ({
+      caps: Array.from(it.querySelectorAll('.k')).map((k) => k.textContent || ''),
+      label: Array.from(it.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim(),
+    }))
+  );
+}
+const capsOf = async (page: Page) => (await readBar(page)).flatMap((i) => i.caps);
+
+const PALETTE_KEY = process.platform === 'darwin' ? 'Meta+k' : 'Control+k';
+
+/** What pressing each key must do, per page kind. Keyed `kind:cap`. */
+type Drive = (page: Page, env: Record<string, string>) => Promise<void>;
+const DRIVERS: Record<string, Drive> = {
+  // ---- a list page (SQS, with two queues) ----
+  'list:j': async (page) => {
+    await page.keyboard.press('j');
+    await expect(page.locator('.listpane .li.cursor')).toHaveCount(1);
+  },
+  'list:k': async (page) => {
+    await page.keyboard.press('j');
+    await page.keyboard.press('j');
+    const second = await page.locator('.listpane .li[href]').nth(1).getAttribute('href');
+    await expect(page.locator('.listpane .li.cursor')).toHaveAttribute('href', second!);
+    await page.keyboard.press('k');
+    const first = await page.locator('.listpane .li[href]').nth(0).getAttribute('href');
+    await expect(page.locator('.listpane .li.cursor')).toHaveAttribute('href', first!);
+  },
+  'list:⏎': async (page) => {
+    await page.keyboard.press('j');
+    await page.keyboard.press('Enter');
+    await page.waitForURL(/\/sqs\/[^/]+$/);
+  },
+  'list:/': async (page) => {
+    await page.keyboard.press('/');
+    await expect(page.locator('.listpane .filter input')).toBeFocused();
+  },
+  'list:c': async (page) => {
+    await page.keyboard.press('c');
+    await page.waitForURL(/\/sqs\/create$/);
+  },
+  'list:⌘K': async (page) => {
+    await page.keyboard.press(PALETTE_KEY);
+    await expect(page.locator('#palette')).toBeVisible();
+    await expect(page.locator('#pal-q')).toBeFocused();
+  },
+
+  // ---- a create page ----
+  'create:tab': async (page) => {
+    const first = page.locator('input[name=name]');
+    await first.focus();
+    await page.keyboard.press('Tab');
+    await expect(first).not.toBeFocused();
+    expect(await page.evaluate(() => !!document.activeElement?.closest('form'))).toBe(true);
+  },
+  'create:esc': async (page, env) => {
+    // From a field, as typed into, and from nowhere in particular.
+    await page.locator('input[name=name]').fill('never-made');
+    await page.keyboard.press('Escape');
+    await page.waitForURL(new RegExp(`/${env.svc}$`));
+    await page.goto(`${env.svc}/create`);
+    await page.locator('body').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('Escape');
+    await page.waitForURL(new RegExp(`/${env.svc}$`));
+  },
+  'create:⌘K': async (page) => {
+    await page.keyboard.press(PALETTE_KEY);
+    await expect(page.locator('#palette')).toBeVisible();
+  },
+
+  // ---- the wire, with calls on it ----
+  'wire:j': async (page) => {
+    await page.keyboard.press('j');
+    await expect(page.locator('.tr-row.cursor')).toHaveCount(1);
+  },
+  'wire:k': async (page) => {
+    await page.keyboard.press('j');
+    await page.keyboard.press('j');
+    const at = await page.locator('.tr-row.cursor').getAttribute('data-seq');
+    await page.keyboard.press('k');
+    await expect(page.locator('.tr-row.cursor')).not.toHaveAttribute('data-seq', at!);
+  },
+  'wire:⏎': async (page) => {
+    await page.keyboard.press('j');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.t-drawer')).toBeVisible();
+    await expect(page.locator('#t-drawer-inner .td-h')).toBeVisible();
+  },
+  'wire:/': async (page) => {
+    await page.keyboard.press('/');
+    // The visible one: select.js draws a button over the native select.
+    await expect(page.locator('button[aria-label="Filter by service"]')).toBeFocused();
+  },
+  'wire:⌘K': async (page) => {
+    await page.keyboard.press(PALETTE_KEY);
+    await expect(page.locator('#palette')).toBeVisible();
+  },
+
+  // ---- the wire, with a call open ----
+  'inspect:j': async (page) => {
+    const was = await page.locator('.tr-row.sel').getAttribute('data-seq');
+    await page.keyboard.press('j');
+    await expect(page.locator('.tr-row.sel')).not.toHaveAttribute('data-seq', was!);
+    await expect(page.locator('#t-drawer-inner .td-h')).toBeVisible();
+  },
+  'inspect:k': async (page) => {
+    await page.keyboard.press('j');
+    await page.keyboard.press('j');
+    const was = await page.locator('.tr-row.sel').getAttribute('data-seq');
+    await page.keyboard.press('k');
+    await expect(page.locator('.tr-row.sel')).not.toHaveAttribute('data-seq', was!);
+  },
+  'inspect:c': async (page) => {
+    await page.keyboard.press('c');
+    await expect(page.locator('#toasts .toast').last()).toContainText('Copied');
+  },
+  'inspect:→': async (page, env) => {
+    await page.keyboard.press('ArrowRight');
+    await page.waitForURL(new RegExp(`/sqs/${env.queue}$`));
+  },
+  'inspect:esc': async (page) => {
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.t-drawer')).toBeHidden();
+  },
+};
+
+/** The kinds of page the bar changes between, and the keys each names. */
+const KINDS: Record<string, { url: string; caps: string[] }> = {
+  list: { url: 'sqs', caps: ['j', 'k', '⏎', '/', 'c', '⌘K'] },
+  create: { url: 'sqs/create', caps: ['tab', 'esc', '⌘K'] },
+  wire: { url: 'traffic', caps: ['j', 'k', '⏎', '/', '⌘K'] },
+  inspect: { url: 'traffic', caps: ['j', 'k', 'c', '→', 'esc'] },
+};
+
+test.describe('the key bar', () => {
+  test("is a single 28px bar at the foot of the page, and its items are the design's", async ({ page, request, uniqueName }) => {
+    await createQueue(request, uniqueName('e2e-keys'));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('sqs');
+    const bar = page.locator('#keybar');
+    await expect(bar).toBeVisible();
+    const box = (await bar.boundingBox())!;
+    expect(Math.round(box.height)).toBe(28);
+    expect(Math.round(box.y + box.height)).toBe(900);
+    expect(Math.round(box.width)).toBe(1440);
+    expect(await readBar(page)).toEqual([
+      { caps: ['j', 'k'], label: 'queue' },
+      { caps: ['⏎'], label: 'open' },
+      { caps: ['/'], label: 'filter' },
+      { caps: ['c'], label: 'new queue' },
+      { caps: ['⌘K'], label: 'jump or act' },
+    ]);
+    await page.goto('sqs/create');
+    expect(await readBar(page)).toEqual([
+      { caps: ['tab'], label: 'next field' },
+      { caps: ['esc'], label: 'cancel' },
+      { caps: ['⌘K'], label: 'jump or act' },
+    ]);
+  });
+
+  test('is the same bar, once, after a boosted navigation, and follows the page', async ({ page, request, uniqueName }) => {
+    await createQueue(request, uniqueName('e2e-keys'));
+    await page.goto('sqs');
+    expect(await capsOf(page)).toEqual(['j', 'k', '⏎', '/', 'c', '⌘K']);
+    await page.locator('.listpane .new-link').click();
+    await page.waitForURL(/\/sqs\/create$/);
+    await expect(page.locator('#keybar')).toHaveCount(1);
+    await expect.poll(() => capsOf(page)).toEqual(['tab', 'esc', '⌘K']);
+    await page.keyboard.press('Escape');
+    await page.waitForURL(/\/sqs$/);
+    await expect.poll(() => capsOf(page)).toEqual(['j', 'k', '⏎', '/', 'c', '⌘K']);
+  });
+
+  test('never names ?, and no list pane is left with the old key line', async ({ page }) => {
+    for (const url of ['', 'sqs', 's3', 'iam', 'connect', 'sqs/create']) {
+      await page.goto(url);
+      expect(await capsOf(page)).not.toContain('?');
+      await expect(page.locator('.lp-f')).toHaveCount(0);
+    }
+    // And pressing it does nothing (it was the palette's fallback on a page with no filter).
+    await page.goto('connect');
+    await page.keyboard.press('?');
+    await expect(page.locator('#palette')).toBeHidden();
+  });
+
+  for (const [kind, spec] of Object.entries(KINDS)) {
+    test(`every key the ${kind} page names does what it says`, async ({ page, request, context, uniqueName }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+      const env: Record<string, string> = { svc: 'sqs' };
+      const q = await createQueue(request, uniqueName('e2e-keys'));
+      await createQueue(request, uniqueName('e2e-keys'));
+      env.queue = q;
+      if (kind === 'wire' || kind === 'inspect') {
+        for (let i = 0; i < 3; i++) {
+          await gatewayCall(request, 'AmazonSQS.GetQueueAttributes', { QueueUrl: `${GATEWAY_ROOT}000000000000/${q}`, AttributeNames: ['All'] });
+        }
+      }
+      const open = async () => {
+        await page.goto(spec.url);
+        if (kind === 'wire' || kind === 'inspect') {
+          await expect(page.locator('.tr-row').nth(2)).toBeVisible();
+        }
+        if (kind === 'inspect') {
+          await page.locator('.tr-row', { hasText: q }).first().locator('.rowopen').click();
+          await expect(page.locator('#t-drawer-inner .td-h')).toBeVisible();
+          await expect(page.locator('.tr-row.sel')).toHaveCount(1);
+        }
+        await expect(page.locator('#keybar .k').first()).toBeVisible();
+      };
+      await open();
+      // The bar says exactly these keys; a key added to a page is added here with its driver.
+      await expect.poll(() => capsOf(page)).toEqual(spec.caps);
+      for (const cap of spec.caps) {
+        const drive = DRIVERS[`${kind}:${cap}`];
+        expect(drive, `the ${kind} page names ${cap} and this spec has no driver for it`).toBeTruthy();
+        await open();
+        await drive(page, env);
+      }
+    });
+  }
+
+  test('the create page of every service cancels on Escape, from a field', async ({ page }) => {
+    for (const svc of ['s3', 'ddb', 'sns', 'kms', 'ssm', 'sm', 'kinesis', 'lambda', 'logs', 'sfn']) {
+      await page.goto(`${svc}/create`);
+      const field = page.locator('.detail form input:visible:not([type=hidden]):not([type=checkbox]):not([type=radio])').first();
+      await field.focus();
+      await page.keyboard.press('Escape');
+      await page.waitForURL(new RegExp(`/${svc}$`), { timeout: 5000 });
+    }
+  });
+
+  test('Escape closes the dialog on top first, and only then leaves the form', async ({ page }) => {
+    await page.goto('s3/create');
+    await page.locator('.info-btn').click();
+    await expect(page.locator('.info-body')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.info-body')).toBeHidden();
+    expect(page.url()).toMatch(/\/s3\/create$/);
+  });
+});

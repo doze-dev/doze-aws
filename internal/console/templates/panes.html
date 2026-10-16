@@ -14,29 +14,41 @@
 {{end}}
 
 {{/* lp_open / lp_close bracket a list pane; service fills the rows between. */}}
+{{/* The list pane's head (boards Sqs-02-Pick, Sqs-03-Create, every service's
+     Home): the kind in the plural ("Queues", from the catalogue, so it cannot
+     drift from the service's name), and a text New. The pane is the page's
+     navigation, so it also declares the keys it answers to (data-keys, drawn by
+     the key bar; keys.go): move, open, filter, new, jump.
+
+     There is no count in the heading and no key line at the foot: the count is
+     in the rail, beside the service, and the keys are in the bar. A service
+     whose board draws a count beside the heading passes "ShowCount" and its
+     "Count"; the slot has the id the out-of-band patch writes.
+
+     "Creating" dims New on a create page, as Sqs-03 draws it: you are there.
+     "Ghost" is the Create board's hook: the thing being made, as an italic row
+     tagged new at the top of the list while its name is typed. Any input with
+     data-ghost feeds it (shell.js). It is off until a service's own board draws
+     it: Sqs-03 shows the typed name and no ghost row.
+
+     The filter is KEPT, and that is a deliberate deviation from the boards, which
+     draw none: the owner knows. A pane of a hundred queues needs a way to find
+     one, `/` is the key the boards' own key bars promise, and it is the page's
+     navigation for a long list. It is drawn quietly (app.css .listpane .filter)
+     so the header stays the boards' header.
+
+     The AWS icon is not drawn here: no board draws a mark in the list header,
+     and the highlighted rail item beside the pane already shows the service's. */}}
 {{define "lp_head"}}
-<aside class="listpane">
+<aside class="listpane" data-keys="{{listKeys .Svc}}">
   <div class="lp-h">
-    {{/* The count in the heading is what the AWS console does everywhere
-         ("Instances (50)"), and its absence here was odd in a specific way:
-         the rail said "SQS 4" two inches to the left while this heading said
-         plain "SQS", so the same number was present and missing on one screen.
-
-         Shown even when zero, unlike the rail badge. A zero in the rail is one
-         of thirteen and says "empty" thirteen times; a zero here is the answer
-         to the question you asked by opening the page.
-
-         The id is the slot the out-of-band patch writes — see the ri template
-         in layout.html for why chrome outside the swap target needs one. */}}
-    <span class="l">{{awsIcon .Svc}} <span class="lp-name" title="{{.Label}}">{{.Label}}</span> <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
+    <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}</span>
     {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
-    {{/* A square "+" rather than "+ New": with the text, nine of sixteen
-         service names were cut short ("API G…") in their own header. The
-         name and the tooltip still say New. */}}
-    {{if .NewURL}}<a class="new-link" href="{{.NewURL}}" title="New" aria-label="New">{{icon "plus"}}</a>{{end}}
+    {{if .NewURL}}<a class="new-link{{if .Creating}} is-current{{end}}" href="{{.NewURL}}"{{if .Creating}} aria-current="page"{{end}}>New</a>{{end}}
   </div>
-  <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
+  <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" aria-label="Filter {{plural .Svc}}" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll" x-data>
+    {{if .Ghost}}<div class="li on lp-ghost" x-data x-show="$store.ghost.name" x-cloak><span class="nm" x-text="$store.ghost.name"></span><span class="lp-new">new</span></div>{{end}}
 {{end}}
 
 {{/* lp_empty is the list pane's half of the answer: what is missing, in two
@@ -62,10 +74,11 @@
   <button type="button" class="lp-empty-cta" onclick="dozeShell.clearFilter(this)">Clear filter</button>
 </div>
 {{end}}
+{{/* The pane ends with its rows. Its key line ("j k move · c new · / filter") is
+     gone: the key bar at the foot of the page carries it, from data-keys above. */}}
 {{define "lp_foot"}}
     {{template "lp_nofilter" .}}
   </div>
-  <div class="lp-f"><span class="kbd">j</span><span class="kbd">k</span> move · <span class="kbd">c</span> new · <span class="kbd">/</span> filter</div>
 </aside>
 {{end}}
 

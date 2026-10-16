@@ -42,12 +42,15 @@
 {{end}}
 
 {{define "traffic_rows"}}
-<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}">
+{{/* The keys this page answers to (boards Main, Wire-Empty): over the calls
+     when there are some, only the palette's when there are none. The inspector
+     declares its own, below. */}}
+<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}" data-keys="{{if .Entries}}j k=move|⏎=open the call|/=filter|{{end}}⌘K=jump or act">
   <div class="table-wrap" style="overflow:hidden">
   {{if .Entries}}
   {{range .Entries}}
   <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
-    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
+    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-seq="{{.Seq}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
          hx-get="{{$.Prefix}}/traffic/entry?seq={{urlquery .Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
@@ -78,7 +81,9 @@
 
 {{/* The inspector drawer: the full request/response pair for one call. */}}
 {{define "traffic_drawer"}}
-<div class="td-h">
+{{/* The keys an open call answers to (board Wire-Inspect): the next call, the
+     curl, the resource it touched when it names one, and closing. */}}
+<div class="td-h" data-keys="j k=next call|c=copy as curl|{{if .Link}}→=go to the {{if .Noun}}{{.Noun}}{{else}}resource{{end}}|{{end}}esc=close">
   <span class="td-title"><b style="--svc-ink:var(--svc-{{.E.Service}}-ink)">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
   <button class="copy-btn" data-copy="{{.E.Curl}}" title="Copy as curl">{{icon "copy"}} curl</button>
 </div>
@@ -108,6 +113,6 @@
 {{end}}
 
 {{define "traffic_drawer_gone"}}
-<div class="td-h"><span class="td-title">Entry expired</span></div>
+<div class="td-h" data-keys="j k=next call|esc=close"><span class="td-title">Entry expired</span></div>
 <p class="mini-note" style="padding:10px 14px">This call has scrolled out of the 500-entry ring. Pause the tail to keep entries around while you read.</p>
 {{end}}

@@ -537,7 +537,7 @@
 
 {{define "kinesis_create"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  <section class="detail">
+  <section class="detail" data-keys="{{createKeys}}" data-esc-back>
     <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "kinesis"}} New stream</div></div>
     <div class="det-b">
       <div class="panel" style="max-width:520px">

@@ -2,12 +2,21 @@
      Queue, Bad-DLQ). The header, the wiring strip and the wire under the page
      are the shell's (kit res_header, connections, res_wire); everything in the
      body below them is drawn here, with the q- classes in app.css. */}}
+{{/* A row's count: neutral, and "warn" for a dead-letter queue that holds a
+     message (boards Sqs-02, Create, Queue: the DLQ's 3 in amber). "warn" is the
+     list pane's own class for a count that needs a look; any service says it the
+     same way, on the count or inside it. It is inside here because the count's
+     slot is patched out of band as innerHTML (the slot's id must stay unique on
+     the page, and a whole-element swap would need a second copy of it in the
+     hidden tail), and the colour has to follow the number it describes. */}}
+{{define "sqs_lr_n"}}{{if and .IsDLQ .Available}}<span class="warn">{{.Available}}</span>{{else}}{{.Available}}{{end}}{{end}}
+
 {{define "sqs_lp"}}
-{{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List) "Creating" .Creating}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{pathesc .Name}}"
      data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
-    <span class="nm">{{.Name}}</span><span class="sb{{if and .IsDLQ .Available}} q-dlq-n{{end}}" id="lr-sqs-{{slug .Name}}">{{.Available}}</span>
+    <span class="nm">{{.Name}}</span><span class="sb" id="lr-sqs-{{slug .Name}}">{{template "sqs_lr_n" .}}</span>
   </a>
   {{else}}{{template "lp_empty" dict "Svc" "sqs" "Prefix" $.Prefix}}
   {{end}}
@@ -241,7 +250,7 @@
      hidden, because htmx only extracts out-of-band elements during a swap; on a
      full page load nothing consumes them and they would render as text. */}}
 <div hidden>
-{{range .List}}<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Name}}">{{.Available}}</span>
+{{range .List}}<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Name}}">{{template "sqs_lr_n" .}}</span>
 {{end}}
 <span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
@@ -547,7 +556,7 @@
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
 <span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
-{{range .List}}<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Name}}">{{.Available}}</span>
+{{range .List}}<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Name}}">{{template "sqs_lr_n" .}}</span>
 {{end}}
 </div>
 </div>

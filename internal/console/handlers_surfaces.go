@@ -195,6 +195,9 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	c.partial(w, "traffic_drawer", map[string]any{
 		"E": e, "Req": req, "Resp": resp,
+		// The key bar offers → only when the call names a resource the console
+		// has a page for, and calls it by its kind ("go to the queue").
+		"Link": resourceURL(e.Service, e.Resource).Path, "Noun": nounFor(e.Service),
 		"Millis": fmtMillis(e.Millis),
 		"Time":   clockMillis(e.At),
 		"State":  callState(e.Status, e.Failure(), factsOfEntry(e)),

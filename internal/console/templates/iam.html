@@ -2,11 +2,11 @@
      to answer "what can this do", policies are documents you look at to answer
      "what does this grant". Mixing them in one flat list loses that. */}}
 {{define "iam_lp"}}
-<aside class="listpane">
+<aside class="listpane" data-keys="{{listKeys "iam"}}">
   <div class="lp-h">
-    <span class="l">{{awsIcon "iam"}} IAM</span>
+    <span class="l"><span class="lp-name">{{plural "iam"}}</span></span>
     {{template "info_button" dict "Svc" "iam" "Prefix" .Prefix}}
-    <a class="new-link" href="{{.Prefix}}/iam/create">{{icon "plus"}} New</a>
+    <a class="new-link{{if .Creating}} is-current{{end}}" href="{{.Prefix}}/iam/create"{{if .Creating}} aria-current="page"{{end}}>New</a>
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll">
@@ -46,7 +46,6 @@
     <div class="mini-note" style="padding:6px 12px">None written yet.</div>
     {{end}}
   </div>
-  <div class="lp-f"><span class="kbd">j</span><span class="kbd">k</span> move · <span class="kbd">/</span> filter</div>
 </aside>
 {{end}}
 
@@ -520,8 +519,8 @@
 
 {{define "iam_create"}}{{template "shell_top" .}}
   {{template "iam_actions_datalist" .SeenActions}}
-  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "")}}
-  <section class="detail">
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "" "Creating" true)}}
+  <section class="detail" data-keys="{{createKeys}}" data-esc-back>
     <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} New</div></div>
     <div class="det-b" x-data="{kind:'{{if .Kind}}{{.Kind}}{{else}}user{{end}}'}">
       {{/* Everything IAM can hold. */}}

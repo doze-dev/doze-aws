@@ -27,7 +27,7 @@
 try{var r=localStorage.getItem("rail");var d=document.documentElement;
 if(r==="slim"||r==="wide")d.setAttribute("data-rail",r);
 else if(window.matchMedia&&matchMedia("(max-width: 1180px)").matches)d.setAttribute("data-rail","slim");}catch(e){}})();</script>
-<script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
+<script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});window.Alpine.store("ghost",{name:""});});
 /* kvEditor backs the secret editor's key/value builder. Inline rather than in
    deferred shell.js because Alpine evaluates x-data before deferred scripts
    run — the same race as the filter store above, and it fails harder here: a
@@ -283,6 +283,14 @@ return p.join(" ");};</script>
       </div><!-- /panes -->
     </main><!-- /workspace -->
   </div>
+
+  {{/* The key bar: one 28px bar at the foot of every page (boards Sqs-02-Pick,
+       Sqs-03-Create, Main, Wire-*). It is outside #workspace, so a boosted
+       navigation does not replace it; shell.js draws it from the page's last
+       visible data-keys (keys.go) after every swap, and draws only keys that
+       script binds. What is written here is the floor, the one key every page
+       answers to, for the instant before the script runs. */}}
+  <footer class="keys" id="keybar" aria-label="Keyboard shortcuts"><span><span class="k">⌘K</span>jump or act</span></footer>
 
   <!-- command palette (vanilla — survives every swap since it's outside #workspace) -->
   <div class="overlay palette-overlay" id="palette" role="dialog" aria-modal="true" aria-label="Jump or act" hidden>

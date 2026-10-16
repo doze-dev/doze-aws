@@ -757,16 +757,219 @@
   });
 
   // ---------- keyboard ----------
+  // KEYBAR is every key the console binds, by the name the key bar draws it
+  // with, and what it does. The bar (below) draws only keys that are in this
+  // table, and a page names its keys in data-keys (keys.go), so a page cannot
+  // promise a key that does nothing: the audit that found seven of them
+  // (plan/03-shell-fidelity.md 2.4) is why. A handler returns true when it did
+  // something. The browser spec (shell.spec.ts, "the key bar") drives every
+  // key a bar names, and listpane_keys_test.go checks every name in a template
+  // against the keys of this table, so keep one key to a line.
+  var KEYBAR = {
+    "j": function () { return wireOn() ? wireMove(1) : moveCursor(1); },
+    "k": function () { return wireOn() ? wireMove(-1) : moveCursor(-1); },
+    "⏎": function () { return wireOn() ? wireOpen() : openCursorRow(); },
+    "/": function () { return focusFilter(); },
+    "c": function () { return wireInspecting() ? wireCopyCurl() : clickNew(); },
+    "→": function () { return wireFollow(); },
+    "esc": function () { return wireClose() || cancelPage(); },
+    "⌘K": function () { openPalette(); return true; },
+    "tab": function () { return false; /* the browser's own: the next field */ }
+  };
+  // What a keydown is called on a bar. ⌘K is matched before this table.
+  var KEYCAP = { j: "j", k: "k", Enter: "⏎", "/": "/", c: "c", ArrowRight: "→", Escape: "esc" };
+
   var cursor = -1;
   function listRows() { return Array.prototype.slice.call(document.querySelectorAll(".listpane .li[href]")); }
   function resetListCursor() { cursor = -1; }
   function moveCursor(d) {
     var rows = listRows();
-    if (!rows.length) return;
+    if (!rows.length) return false;
     cursor = Math.min(rows.length - 1, Math.max(0, cursor + d));
     rows.forEach(function (r, i) { r.classList.toggle("cursor", i === cursor); });
     rows[cursor].scrollIntoView({ block: "nearest" });
+    return true;
   }
+  function openCursorRow() {
+    if (cursor < 0) return false;
+    var r = listRows()[cursor];
+    if (r) r.click();
+    return !!r;
+  }
+  function clickNew() {
+    var nb = document.querySelector(".listpane .new-link");
+    if (nb) nb.click();
+    return !!nb;
+  }
+  function focusFilter() {
+    var f = document.querySelector(".listpane .filter input");
+    // The wire has no list pane: its filter is the service select above the rows.
+    // (select.js hides the native select behind a button with the same label.)
+    if (!f && wireOn()) {
+      f = document.querySelector("#workspace button[aria-label='Filter by service']") ||
+        document.querySelector("#workspace select[aria-label='Filter by service']");
+    }
+    if (f) { f.focus(); return true; }
+    openPalette();
+    return true;
+  }
+  function isShown(el) { return !!el && el.getClientRects().length > 0; }
+
+  // The wire (traffic.html): the rows are a list too, with a cursor of their own
+  // and an inspector. The cursor is a call's sequence number, not an index, and
+  // is painted again after every poll, because the feed morphs each tick and a
+  // morph removes a class the server did not write.
+  var wireSeq = null;
+  function wireOn() { return !!document.getElementById("traffic-feed"); }
+  function wireRows() {
+    return Array.prototype.slice.call(document.querySelectorAll("#traffic-feed .tr-row")).filter(isShown);
+  }
+  function wireInspecting() { return !!document.querySelector(".tr-wrap.open") && isShown(document.querySelector(".t-drawer")); }
+  function wirePaint() {
+    if (!wireOn()) { wireSeq = null; return; }
+    wireRows().forEach(function (r) { r.classList.toggle("cursor", wireSeq !== null && r.getAttribute("data-seq") === wireSeq); });
+  }
+  function wireMove(d) {
+    var rows = wireRows();
+    if (!rows.length) return false;
+    var at = -1;
+    rows.forEach(function (r, i) {
+      if (wireInspecting() ? r.classList.contains("sel") : r.getAttribute("data-seq") === wireSeq) at = i;
+    });
+    var next = Math.min(rows.length - 1, Math.max(0, at + d));
+    wireSeq = rows[next].getAttribute("data-seq");
+    wirePaint();
+    rows[next].scrollIntoView({ block: "nearest" });
+    // With a call open, moving is reading the next one.
+    if (wireInspecting() && !rows[next].classList.contains("sel")) rows[next].click();
+    return true;
+  }
+  function wireOpen() {
+    var row = wireRows().filter(function (r) { return r.getAttribute("data-seq") === wireSeq; })[0];
+    if (!row) return false;
+    if (!row.classList.contains("sel")) row.click();
+    return true;
+  }
+  function wireCopyCurl() {
+    var b = document.querySelector(".t-drawer .td-h .copy-btn");
+    if (b) b.click();
+    return !!b;
+  }
+  function wireFollow() {
+    if (!wireInspecting()) return false;
+    var a = document.querySelector("#traffic-feed .tr-row.sel .res-link");
+    if (a) a.click();
+    return !!a;
+  }
+  function wireClose() {
+    if (!wireInspecting()) return false;
+    try { window.Alpine.$data(document.querySelector(".tr-wrap")).sel = null; } catch (e) { return false; }
+    return true;
+  }
+
+  // Escape on a create page leaves the form: the page's own Cancel link if it
+  // has one, else the service's home (the rail's active item), else back. Not
+  // "back" first: a create page opened from a bookmark, or by the palette,
+  // would leave the console.
+  function cancelPage() {
+    var page = document.querySelector("#workspace [data-esc-back]");
+    if (!page) return false;
+    var link = Array.prototype.slice.call(page.querySelectorAll("a.btn")).filter(function (a) { return /^\s*cancel\s*$/i.test(a.textContent); })[0] ||
+      document.querySelector(".rail .ri.on");
+    if (link) link.click(); else history.back();
+    return true;
+  }
+  // A dialog, drawer or palette on top has its own Escape; the page behind must
+  // not also leave.
+  function overlayOpen() {
+    var o = document.querySelectorAll(".overlay, [role=dialog], [role=alertdialog]");
+    for (var i = 0; i < o.length; i++) if (!o[i].hidden && isShown(o[i])) return true;
+    return !!document.querySelector(".CodeMirror-hints");
+  }
+
+  // ---------- the key bar ----------
+  // One 28px bar at the foot of every page (#keybar, layout.html), drawn from
+  // the last visible data-keys in the workspace: a create form's beats its
+  // list pane's, an open inspector's beats the wire's. It is rebuilt when the
+  // workspace is swapped and when a declaration appears, changes or is hidden,
+  // and only keys in KEYBAR are drawn. "⌘K" is the floor: a page that declares
+  // nothing still answers to the palette.
+  var KEYS_FLOOR = "⌘K=jump or act";
+  function declaredKeys() {
+    var els = document.querySelectorAll("#workspace [data-keys]");
+    for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) return els[i].getAttribute("data-keys") || KEYS_FLOOR;
+    return KEYS_FLOOR;
+  }
+  function parseKeys(spec) {
+    var out = [];
+    spec.split("|").forEach(function (item) {
+      var eq = item.indexOf("=");
+      if (eq < 0) return;
+      var caps = item.slice(0, eq).split(" ").filter(Boolean);
+      if (!caps.length || !caps.every(function (c) { return Object.prototype.hasOwnProperty.call(KEYBAR, c); })) {
+        if (window.console) console.warn("the key bar was asked to name a key that is not bound:", item);
+        return;
+      }
+      out.push({ caps: caps, label: item.slice(eq + 1) });
+    });
+    return out;
+  }
+  function drawKeyBar() {
+    var bar = document.getElementById("keybar");
+    if (!bar) return;
+    var spec = declaredKeys();
+    if (bar.getAttribute("data-spec") === spec) return;
+    bar.setAttribute("data-spec", spec);
+    bar.textContent = "";
+    parseKeys(spec).forEach(function (it) {
+      var span = document.createElement("span");
+      it.caps.forEach(function (c) {
+        var k = document.createElement("span");
+        k.className = "k";
+        k.textContent = c;
+        span.appendChild(k);
+      });
+      span.appendChild(document.createTextNode(it.label));
+      bar.appendChild(span);
+    });
+  }
+  var keyBarQueued = false;
+  function syncKeyBar() {
+    if (keyBarQueued) return;
+    keyBarQueued = true;
+    requestAnimationFrame(function () {
+      keyBarQueued = false;
+      drawKeyBar();
+      wirePaint();
+      syncGhost();
+    });
+  }
+  var keyBarWatch = null;
+  function watchKeyBar() {
+    var root = document.querySelector(".body");
+    if (!root || keyBarWatch) { syncKeyBar(); return; }
+    keyBarWatch = new MutationObserver(syncKeyBar);
+    // Attributes that move a declaration in or out of view: its own value, and
+    // the style/hidden an x-show or a drawer toggles. Not class: wirePaint
+    // writes classes, and watching them would be watching itself.
+    keyBarWatch.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-keys", "style", "hidden"] });
+    syncKeyBar();
+  }
+  document.addEventListener("DOMContentLoaded", watchKeyBar);
+  document.addEventListener("htmx:after:swap", syncKeyBar);
+
+  // The Create board's ghost row: the thing being made, in the list while its
+  // name is typed. Any input with data-ghost feeds the store the row reads.
+  function syncGhost() {
+    try {
+      var src = document.querySelector("#workspace [data-ghost]");
+      window.Alpine.store("ghost").name = src ? src.value : "";
+    } catch (e) {}
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.matches && e.target.matches("[data-ghost]")) syncGhost();
+  });
+
   document.addEventListener("keydown", function (e) {
     palRefs();
     var inPal = !!pal && !pal.hidden;
@@ -778,7 +981,7 @@
       else if (e.key === "Enter") { var it = items[palSel]; if (it) location.href = it.u; e.preventDefault(); }
       return;
     }
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); openPalette(); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); KEYBAR["⌘K"](); return; }
     // ⌘⏎ submits the composer you're typing in — send, publish, invoke, put.
     // Works from plain textareas and from inside CodeMirror editors alike.
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -793,17 +996,22 @@
       e.preventDefault();
       return;
     }
+    // Escape works from a field: a create page is cancelled from the name box it
+    // opens on, and an inspector closes wherever the focus is. A dialog or a
+    // drawer on top takes it first (each closes itself on Escape).
+    if (e.key === "Escape") {
+      if (!e.defaultPrevented && !overlayOpen() && KEYBAR.esc()) e.preventDefault();
+      return;
+    }
     var tag = document.activeElement.tagName;
     if (/(INPUT|TEXTAREA|SELECT)/.test(tag) || document.activeElement.closest(".CodeMirror")) return;
-    if (e.key === "/") {
-      var f = document.querySelector(".listpane .filter input");
-      if (f) { f.focus(); e.preventDefault(); } else openPalette();
-    } else if (e.key === "j") moveCursor(1);
-    else if (e.key === "k") moveCursor(-1);
-    else if (e.key === "Enter" && cursor >= 0) { var r = listRows()[cursor]; if (r) r.click(); }
-    else if (e.key === "c") { var nb = document.querySelector(".listpane .new-link"); if (nb) nb.click(); }
-    else if (e.key === "[") { setRail(!railSlim()); }
-    else if (e.key === "Escape") { var back = document.querySelector("[data-esc-back]"); if (back) history.back(); }
+    // A modified key is the browser's or the system's (⌘C is not "c").
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // Enter on a focused button or link presses it; it does not also open a row.
+    if (e.key === "Enter" && /^(A|BUTTON|SUMMARY)$/.test(tag)) return;
+    if (e.key === "[") { setRail(!railSlim()); return; }
+    var cap = KEYCAP[e.key];
+    if (cap && KEYBAR[cap]() ) e.preventDefault();
   });
 
   // ---------- live polling with change detection ----------

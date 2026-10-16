@@ -356,7 +356,7 @@
 
 {{define "lambda_create"}}{{template "shell_top" .}}
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  <section class="detail"><div class="form-page">
+  <section class="detail" data-keys="{{createKeys}}" data-esc-back><div class="form-page">
     <div class="det-title" style="font-size:18px;margin-bottom:2px">Create function</div>
     <p class="det-sub" style="margin-bottom:18px">Point at a build directory on disk — the <code class="mono">_local_</code> extension runs it in place, so you edit the code and re-invoke without a redeploy.</p>
     <form hx-post="{{.Prefix}}/lambda/create" hx-indicator="#submit-spin">

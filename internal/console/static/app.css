@@ -371,6 +371,20 @@ a { color: inherit; text-decoration: none; }
 }
 
 .body { flex: 1; display: flex; min-height: 0; }
+/* The key bar (con.css .keys): 28px at the foot of every page, under the rail
+   as well as the workspace, the keys this page answers to as a keycap and a
+   verb each. shell.js draws it from the page's data-keys. */
+.keys {
+  flex: 0 0 28px; height: 28px; display: flex; align-items: center; gap: 18px; padding: 0 14px;
+  background: var(--card); border-top: 1px solid var(--border);
+  color: var(--muted-foreground); font-size: var(--text-sm); white-space: nowrap; overflow: hidden;
+}
+.keys .k {
+  display: inline-block; min-width: 18px; padding: 0 5px; margin-right: 6px;
+  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius);
+  background: var(--well); color: var(--foreground);
+  font-family: var(--mono); font-size: var(--text-meta); font-weight: 500; line-height: 16px; text-align: center;
+}
 .side { width: 226px; flex: 0 0 226px; border-right: 1px solid var(--border); background: var(--card); padding: 12px 10px; display: flex; flex-direction: column; }
 .side-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-caps); color: var(--muted-foreground); padding: 10px 8px 5px; }
 .side nav { display: flex; flex-direction: column; gap: 1px; }
@@ -1088,66 +1102,59 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 12px 12px 8px; font-weight: 600; font-size: 14px;
 }
-/* No service icon here: the highlighted rail item beside it already shows
-   one, and the 30px it took is what "CloudWatch Logs (6)" needed to fit. */
-.lp-h .aws-ic { display: none; }
-/* min-width:0 + nowrap/ellipsis: a long service name (CloudFormation) was
-   pushing the New button past the pane edge, clipping it to "+ Ne…". The name
-   gives way; the action stays whole. */
+/* No service icon in the head: no board draws a mark there, and the highlighted
+   rail item beside the pane already shows the service's. The head is the
+   boards' head: the kind in the plural (the design's .h2) and a text New. */
 .lp-h .l { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-/* The NAME truncates; the count and the New button do not. Ellipsizing the
-   whole .l swallowed the count first ("CloudFormation" ate its own "(3)"),
-   which un-did the counts-in-headings guarantee for exactly the services
-   with long names. */
+/* The NAME truncates; the New button does not. "State machines" and "Log
+   groups" are the long ones, and they fit the 232px pane beside ⓘ and New. */
 .lp-h .lp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-h .lp-ct { flex-shrink: 0; }
-.lp-h .new-link { flex-shrink: 0; }
-/* The parens are CSS, not template text, so the slot's textContent stays a bare
-   number — the out-of-band patch writes "4", not "(4)", and cannot get the
-   punctuation wrong. Muted and normal-weight against the 600 heading: the name
-   is the heading, the count is an annotation on it. */
-.lp-h .lp-ct { font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+/* A count beside the heading, for a service whose board draws one (lp_head
+   "ShowCount"). The parens are CSS, not template text, so the slot's
+   textContent stays a bare number. Muted and normal-weight against the 600
+   heading: the name is the heading, the count is an annotation on it. */
+.lp-h .lp-ct { flex-shrink: 0; font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 .lp-h .lp-ct::before { content: "("; }
 .lp-h .lp-ct::after { content: ")"; }
-/* The one constructive action on a service page, at the weight AWS gives it.
-   It used to render in the LOWEST tier available — muted text inside a hairline
-   border — which put "create the thing this page is for" below every neutral
-   control on screen, and (since Delete is the one coloured thing in the detail
-   header) left the destructive action as the most prominent thing on the page.
-
-   The place was already right: AWS's filled primary is not on the details page
-   — that header is three bordered buttons — it is on the LIST page, which is
-   exactly where this sits. Only the weight was wrong.
-
-   --primary is our near-black, not AWS's #006CE0. That is deliberate: the brief
-   was AWS's structure at our density, not AWS's palette. This buys the tier
-   without repainting the console. */
+/* New is the boards' small button (con.css .btn.sm): 24px, outline, 12px/500.
+   Sqs-03 draws it at half strength on the create page, where you already are. */
 .new-link {
-  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
-  color: var(--primary-foreground); background: var(--primary);
-  border: 1px solid transparent; border-radius: var(--radius); padding: 3px 8px;
-  transition: opacity .12s;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  height: 24px; padding: 0 8px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  color: var(--foreground); background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  transition: background .12s;
 }
-.new-link:hover { opacity: 0.9; }
-.new-link .ic { width: 12px; height: 12px; }
-.lp-h .new-link { width: 26px; height: 26px; justify-content: center; padding: 0; }
-.lp-h .new-link .ic { width: 14px; height: 14px; }
-.listpane .filter { margin: 0 10px 8px; display: block; }
-.listpane .filter input { width: 100%; height: 30px; }
+.new-link:hover { background: var(--muted); }
+.new-link.is-current { opacity: .5; pointer-events: none; }
+/* The filter is kept although the boards draw none (see lp_head): drawn quietly,
+   a 28px box on the well colour with the lightest line, so the header stays the
+   boards' header and the box reads as a convenience, not as a control. */
+.listpane .filter { margin: 0 12px 8px; display: block; }
+.listpane .filter input { width: 100%; height: 28px; font-size: 12px; background: var(--well); border-color: var(--line2); }
+.listpane .filter input:focus { background: var(--card); border-color: var(--ring); }
+/* Rows are the boards' (con.css .list .li): 30px, a line2 hairline, the name
+   and then the count in mono at the right; the open one is the selected tone
+   and 600. */
 .listpane .li {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--foreground);
-  border-left: 2.5px solid transparent;
+  height: 30px; padding: 0 12px; font-size: 13px; font-weight: 400; color: var(--foreground);
+  border-bottom: 1px solid var(--line2);
 }
 .listpane .li:hover { background: var(--muted); }
-.listpane .li.on { background: var(--muted); border-left-color: var(--foreground); }
+.listpane .li.on { background: var(--muted); font-weight: 600; }
 .listpane .li.cursor { outline: 1.5px solid var(--ring); outline-offset: -1.5px; border-radius: var(--radius); }
 .listpane .li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.listpane .li .sb { flex: 0 0 auto; font-size: 11px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.listpane .li .sb { flex: 0 0 auto; font-family: var(--mono); font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+/* A count that needs a look: amber and bold (the DLQ's 3). Any service's list
+   asks for it with the one class; the colour rules are the service's stage's. */
+.listpane .li .sb.warn, .listpane .li .sb .warn { color: var(--warning); font-weight: 600; }
+/* The Create board's ghost row: what is being made, italic, tagged new. */
+.listpane .li.lp-ghost { font-style: italic; }
+.listpane .li .lp-new { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; font-weight: 500; font-style: normal; color: var(--muted-foreground); }
 .lp-group { padding: 7px 12px 3px; font-size: 10px; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ssm-group + .ssm-group { border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
 .listpane .li.ssm-leaf { padding-left: 22px; }
-.lp-f { margin-top: auto; padding: 9px 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 11px; }
 .lp-empty { padding: 26px 16px; text-align: center; color: var(--muted-foreground); font-size: 12px; }
 .lp-empty { color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
 .lp-empty-cta { display: block; margin-top: 8px; color: var(--foreground); font-weight: 500; text-decoration: none; }
@@ -2523,7 +2530,6 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .q-blank .kbd { margin: 0 3px 0 0; }
 .lp-scroll:has(> .q-lp-note) { display: flex; flex-direction: column; }
 .q-lp-note { margin: auto 0 0; padding: 14px 12px 10px; font-size: 12px; line-height: 20px; color: var(--muted-foreground); }
-.listpane .li .sb.q-dlq-n { color: var(--warning); font-weight: 600; }
 
 /* Create (boards Sqs-03, Sqs-04, Sqs-05) */
 .form-page.q-create { max-width: none; padding: 12px 28px 24px; }

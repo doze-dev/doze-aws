@@ -246,3 +246,86 @@ test.describe('accessibility and overflow', () => {
     expect(dupes, `ids htmx could target ambiguously:\n${dupes.join('\n')}`).toEqual([]);
   });
 });
+
+// The list pane and the key bar as the boards draw them (Sqs-02-Pick, Sqs-03,
+// Main), measured: plan/03-shell-fidelity.md 2.3, 2.4; pieces S4 and S5.
+test.describe('the list pane header and the key bar', () => {
+  test('the pane is headed by the plural noun and a text New, and ends with its rows', async ({ page, request, uniqueName }) => {
+    const main = await createQueue(request, uniqueName('e2e-lp'), { dlqMode: 'new' });
+    await postForm(request, `sqs/${main}-dlq/send`, { body: 'x' });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('sqs');
+
+    const head = page.locator('.listpane .lp-h');
+    await expect(head.locator('.lp-name')).toHaveText('Queues');
+    await expect(head.locator('.lp-ct')).toHaveCount(0);
+    const nw = head.locator('.new-link');
+    await expect(nw).toHaveText('New');
+    const nb = (await nw.boundingBox())!;
+    expect(nb.width, 'New is a text button, not a square +').toBeGreaterThan(nb.height + 8);
+    expect(nb.height).toBeLessThanOrEqual(28);
+
+    // No key line at the foot of the pane: the bar has it.
+    await expect(page.locator('.listpane .lp-f')).toHaveCount(0);
+    await expect(page.locator('.listpane')).not.toContainText('move ·');
+
+    // The filter is kept, and quiet: a 28px box, not the 38px the pane had.
+    const fb = (await page.locator('.listpane .filter input').boundingBox())!;
+    expect(fb.height).toBeLessThanOrEqual(30);
+
+    // The count sits at the right of its row; a dead-letter queue holding a
+    // message is warn and bold, one that is empty is neutral.
+    const pane = (await page.locator('.listpane').boundingBox())!;
+    const dlq = page.locator(`.listpane .li[data-name="${main}-dlq"] .sb`);
+    const plain = page.locator(`.listpane .li[data-name="${main}"] .sb`);
+    const db = (await dlq.boundingBox())!;
+    expect(pane.x + pane.width - (db.x + db.width)).toBeLessThanOrEqual(16);
+    await expect(dlq.locator('.warn')).toHaveText('1');
+    await expect(plain.locator('.warn')).toHaveCount(0);
+    const warnOf = dlq.locator('.warn');
+    const [wDlq, wPlain] = await Promise.all([
+      warnOf.evaluate((e) => getComputedStyle(e).color),
+      plain.evaluate((e) => getComputedStyle(e).color),
+    ]);
+    expect(wDlq).not.toBe(wPlain);
+    expect(Number(await warnOf.evaluate((e) => getComputedStyle(e).fontWeight))).toBeGreaterThanOrEqual(600);
+    // Mono at 12px, as the boards draw the number.
+    expect(await plain.evaluate((e) => getComputedStyle(e).fontFamily)).toContain('Plex Mono');
+    expect(await plain.evaluate((e) => getComputedStyle(e).fontSize)).toBe('12px');
+
+    // Row height 30 as the boards draw it.
+    const rb = (await page.locator(`.listpane .li[data-name="${main}"]`).boundingBox())!;
+    expect(Math.round(rb.height)).toBe(30);
+  });
+
+  test('the count follows the queue: the warn colour goes when the dead-letter queue is emptied', async ({ page, request, uniqueName }) => {
+    const main = await createQueue(request, uniqueName('e2e-lp'), { dlqMode: 'new' });
+    await postForm(request, `sqs/${main}-dlq/send`, { body: 'x' });
+    await page.goto(`sqs/${main}-dlq`);
+    const count = page.locator(`#lr-sqs-${main.replace(/[^a-zA-Z0-9_-]/g, '-')}-dlq`);
+    await expect(count.locator('.warn')).toHaveText('1');
+    await postForm(request, `sqs/${main}-dlq/purge`, {});
+    await expect(count).toHaveText('0', { timeout: 15_000 });
+    await expect(count.locator('.warn')).toHaveCount(0);
+  });
+
+  for (const width of [1440, 900]) {
+    test(`the key bar is the last 28px of the window at ${width} wide, on a short page and a long one`, async ({ page, request, uniqueName }) => {
+      await createQueue(request, uniqueName('e2e-bar'));
+      await page.setViewportSize({ width, height: 900 });
+      for (const surface of ['sqs', 'connect', 'iam', 'sqs/create', 'traffic']) {
+        await page.goto(surface);
+        const bar = page.locator('#keybar');
+        await expect(bar).toBeVisible();
+        const b = (await bar.boundingBox())!;
+        expect(Math.round(b.height), `${surface}: height`).toBe(28);
+        expect(Math.round(b.y + b.height), `${surface}: bottom edge`).toBe(900);
+        expect(Math.round(b.width), `${surface}: width`).toBe(width);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth), `${surface}: scrolls sideways`).toBeLessThanOrEqual(width);
+        // The bar does not hide the page: the workspace ends where it starts.
+        const ws = (await page.locator('#workspace').boundingBox())!;
+        expect(Math.round(ws.y + ws.height), `${surface}: workspace under the bar`).toBeLessThanOrEqual(Math.round(b.y));
+      }
+    });
+  }
+});
