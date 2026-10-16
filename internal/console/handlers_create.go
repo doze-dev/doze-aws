@@ -183,16 +183,26 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 // apiCounts feeds the rail's live per-service resource counts, polled every
 // few seconds in every open tab.
 //
-// It delegates to serviceCounts rather than keeping its own copy of the probe
+// It delegates to census rather than keeping its own copy of the probe
 // list. It DID keep its own copy, and the copy drifted: Step Functions and
 // CloudWatch Logs never appeared in it, so the rail's badges for those two
-// were right on first paint — the page render calls serviceCounts — and then
+// were right on first paint — the page render calls census — and then
 // went blank on the first poll. Two hand-maintained lists of the same services
 // end up as one complete list and one that is missing whatever landed last.
+//
+// The body is the counts, keyed by service, plus one more key: "warn", the
+// rail's status dots as {service: "warn" | "bad"}, empty when nothing needs a
+// look. It is additive, so a reader that takes the counts by service key never
+// sees it.
 func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
-	counts := c.serviceCounts(r.Context())
+	counts, warn := c.census(r.Context())
+	out := make(map[string]any, len(counts)+1)
+	for k, v := range counts {
+		out[k] = v
+	}
+	out["warn"] = warn
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(counts)
+	json.NewEncoder(w).Encode(out)
 }
 
 // apiPalette serves the catalogue the command palette navigates by. It used to

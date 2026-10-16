@@ -52,30 +52,73 @@
   document.addEventListener("htmx:after:history:restore", function () { applyMode(currentMode()); });
 
   // ---------- collapsible rail ----------
+  // The rail's state is <html data-rail="wide|slim">, and this is the one place
+  // that decides it. In order of authority:
+  //   1. the user's choice (localStorage "rail", written by the toggle and "["),
+  //      which wins everywhere and persists;
+  //   2. a window 1180px wide or narrower, where the names are the cheapest 152px
+  //      in the shell and the flyout carries the label instead;
+  //   3. the page's default, which the server wrote on #workspace
+  //      (data-rail-default: labelled on the wire, marks inside a service), with
+  //      one exception: on the wire, an open call collapses the rail to marks,
+  //      as Wire-Inspect draws it, so the inspector has the room.
+  // The pre-paint script in layout.html applies 1 and 2 before first paint; this
+  // keeps all three true afterwards: after a boosted navigation (which swaps
+  // #workspace and nothing else), on a resize, and as a call opens and closes.
+  var narrowMQ = window.matchMedia ? window.matchMedia("(max-width: 1180px)") : null;
+  function railChoice() {
+    try { var r = localStorage.getItem("rail"); return r === "slim" || r === "wide" ? r : ""; } catch (e) { return ""; }
+  }
+  function railWanted() {
+    var c = railChoice();
+    if (c) return c;
+    if (narrowMQ && narrowMQ.matches) return "slim";
+    var ws = document.getElementById("workspace");
+    var d = ws && ws.getAttribute("data-rail-default") === "wide" ? "wide" : "slim";
+    // .tr-wrap.open is the wire's own "a call is selected" class.
+    if (d === "wide" && document.querySelector("#workspace .tr-wrap.open")) return "slim";
+    return d;
+  }
+  function syncRailState() {
+    var want = railWanted();
+    if (document.documentElement.getAttribute("data-rail") !== want) document.documentElement.setAttribute("data-rail", want);
+  }
   function railSlim() { return document.documentElement.getAttribute("data-rail") === "slim"; }
   function setRail(slim) {
-    // "wide" is written explicitly rather than clearing the attribute, because
-    // below 1180px the stylesheet auto-slims the rail as a FLOOR — and someone
-    // who expanded it at 1100px meant it, so their choice has to be able to win.
-    if (slim) document.documentElement.setAttribute("data-rail", "slim");
-    else document.documentElement.setAttribute("data-rail", "wide");
+    // A choice is stored, not just applied: it is what wins over the default on
+    // every page and after a reload. Both values are written, because
+    // "expanded" at 1100px or on a service page is as deliberate as "collapsed".
     try { localStorage.setItem("rail", slim ? "slim" : "wide"); } catch (e) {}
+    document.documentElement.setAttribute("data-rail", slim ? "slim" : "wide");
   }
   document.addEventListener("click", function (e) {
     if (e.target.closest && e.target.closest("#rail-toggle")) setRail(!railSlim());
   });
-  // Flyout labels in slim mode: position fixed on hover so the rail's own
-  // scroll/overflow can never clip them.
-  document.addEventListener("mouseover", function (e) {
+  document.addEventListener("DOMContentLoaded", syncRailState);
+  document.addEventListener("htmx:after:swap", syncRailState);
+  window.addEventListener("popstate", syncRailState);
+  if (narrowMQ && narrowMQ.addEventListener) narrowMQ.addEventListener("change", syncRailState);
+  // An open call is an Alpine class toggle, with no event to hear, so the class
+  // is watched. One frame's mutations are one check.
+  var railFrame = 0;
+  new MutationObserver(function () {
+    if (railFrame) return;
+    railFrame = requestAnimationFrame(function () { railFrame = 0; syncRailState(); });
+  }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ["class"] });
+  // Flyout labels in slim mode: position fixed on hover and on keyboard focus so
+  // the rail's own scroll/overflow can never clip them.
+  function placeFlyout(target) {
     if (!railSlim()) return;
-    var ri = e.target.closest(".rail .ri");
+    var ri = target.closest && target.closest(".rail .ri");
     if (!ri) return;
     var fly = ri.querySelector(".ri-fly");
     if (!fly) return;
     var r = ri.getBoundingClientRect();
     fly.style.left = (r.right + 8) + "px";
     fly.style.top = (r.top + r.height / 2) + "px";
-  });
+  }
+  document.addEventListener("mouseover", function (e) { placeFlyout(e.target); });
+  document.addEventListener("focusin", function (e) { placeFlyout(e.target); });
   // Live per-service counts. The poll's job is now much narrower than it was:
   // the rail is server-rendered and every navigation repaints it out of band
   // (see the ri template), so this exists ONLY to catch mutations the console
@@ -110,6 +153,20 @@
         // A zero renders as nothing. Thirteen grey zeros on a fresh stack say
         // "empty" thirteen times; blank says "here is what you have".
         el.textContent = n ? String(n) : "";
+      });
+      // The status dots ride in the same response, as counts.warn: {svc: "warn"|"bad"}.
+      var warn = counts.warn || {};
+      document.querySelectorAll(".rail [data-dot]").forEach(function (el) {
+        if (Date.now() - (patchedAt[el.id] || 0) < 2500) return;
+        var level = warn[el.getAttribute("data-dot")] || "";
+        el.className = "ri-dot" + (level ? " " + level : "");
+        if (level) {
+          el.setAttribute("role", "img");
+          el.setAttribute("aria-label", level === "bad" ? "failing" : "needs a look");
+        } else {
+          el.removeAttribute("role");
+          el.removeAttribute("aria-label");
+        }
       });
     }).catch(function () {});
   }

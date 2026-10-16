@@ -338,23 +338,28 @@ a { color: inherit; text-decoration: none; }
    min-height would let content grow the shell and hand scrolling to the
    window, making every inner overflow-y:auto inert. */
 .app { height: 100vh; display: flex; flex-direction: column; }
+/* The top bar is the design's (con.css .top): 44px, the card colour, a hairline
+   under it. Left to right: the brand (the mark, the product, the instance's name
+   in a muted weight), the jump box, a spacer, the endpoint, the region and the
+   IAM mode as pills, and the theme switch at the right end. */
 .topbar {
-  height: 48px; flex: 0 0 48px; display: flex; align-items: center; gap: 14px;
-  padding: 0 14px; background: var(--background);
+  height: 44px; flex: 0 0 44px; display: flex; align-items: center; gap: 14px;
+  padding: 0 14px; background: var(--card);
   border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; padding-right: 4px; }
-.brand .dot { width: 15px; height: 15px; border-radius: var(--radius); background: var(--accent); }
-.brand .sub { color: var(--muted-foreground); font-weight: 500; }
-.tb-search {
-  flex: 1; max-width: 420px; display: flex; align-items: center; gap: 8px; height: 32px;
-  padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: color-mix(in srgb, var(--muted) 50%, transparent); color: var(--muted-foreground);
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; flex: none; max-width: 182px; min-width: 0; overflow: hidden; }
+.brand .logo {
+  flex: none; width: 18px; height: 18px; border-radius: var(--radius);
+  background: var(--ink); color: var(--card); display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: var(--text-meta); font-weight: 700; line-height: 1;
 }
-.tb-search input { flex: 1; border: 0; background: transparent; outline: none; font: inherit; color: var(--foreground); padding: 0; height: auto; }
-.tb-search .kbd { margin-left: auto; }
+.brand .inst { color: var(--muted-foreground); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* On the wire the rail is labelled and the brand takes its width, so the jump
+   box starts where the design starts it there; inside a service the rail is
+   marks and the jump box follows the brand. */
+:root[data-rail="wide"] .brand { width: 182px; }
 .tb-spacer { flex: 1; }
-.tb-right { display: flex; align-items: center; gap: 8px; }
+.tb-right { display: flex; align-items: center; gap: 14px; }
 .chip { font-size: 12px; padding: 3px 9px; border-radius: var(--radius); border: 1px solid var(--border); color: var(--muted-foreground); background: var(--card); }
 .chip.mono { font-family: var(--mono); }
 .chip .live { width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 6px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent); }
@@ -521,7 +526,16 @@ tr:hover .row-actions { opacity: 1; }
 .badge { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; font-size: 12px; font-weight: 600; border-radius: 999px; background: var(--secondary); color: var(--secondary-foreground); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .badge.ok { background: color-mix(in srgb, var(--success) 14.0%, transparent); color: var(--success); border-color: color-mix(in srgb, var(--success) 28.0%, transparent); }
 .badge.zero { color: var(--muted-foreground); }
-.pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; font-size: 12px; font-weight: 600; border-radius: 999px; background: var(--secondary); color: var(--secondary-foreground); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+/* The design's pill (con.css .pill): the top bar's endpoint, region and IAM mode.
+   Nothing else used the old round .pill, and the design's is square-cornered. */
+.pill { display: inline-flex; align-items: center; gap: 5px; flex: none; height: 20px; padding: 0 7px; font-size: 12px; font-weight: 400; border-radius: 3px; background: var(--card); color: var(--foreground); border: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pill.mono { font-family: var(--mono); }
+.pill .live { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+/* The IAM mode is purple, as the boards draw it, in soft and in enforce: it is
+   a fact about what the stack will do to a call, and refusals are that colour.
+   Off evaluates nothing, so it has no colour to give. */
+.pill.iam { background: var(--denybg); border-color: transparent; }
+.pill.iam.off { background: var(--card); border-color: var(--border); color: var(--muted-foreground); }
 
 /* ---------- breadcrumb ---------- */
 .bc { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted-foreground); margin-bottom: 12px; }
@@ -806,14 +820,30 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 .toast.err .ic { color: var(--destructive); }
 
 /* ---------- topbar palette trigger ---------- */
+/* The jump box is the design's (con.css .jump): 420 wide, 28 high, the well
+   colour, the words and the keycap, no icon. It gives up width before anything
+   else in the bar does, so a narrow window keeps the pills. */
 .tb-palette {
-  display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; min-width: 260px;
-  font: inherit; font-size: 13px; color: var(--muted-foreground); cursor: pointer;
-  background: color-mix(in srgb, var(--muted) 50%, transparent); border: 1px solid var(--border); border-radius: var(--radius);
+  display: flex; align-items: center; gap: 8px; flex: 0 1 420px; min-width: 160px; height: 28px; padding: 0 8px 0 10px;
+  font: inherit; font-size: 13px; color: var(--muted-foreground); cursor: pointer; text-align: left;
+  background: var(--well); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .tb-palette:hover { border-color: var(--ring); color: var(--foreground); }
-.tb-palette .ic { width: 14px; height: 14px; }
-.tb-palette .kbd { margin-left: auto; }
+.tb-palette .tb-jump { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-palette .tb-jump-short { display: none; }
+/* The keycap beside it is the design's .k: a thicker foot, the ink colour. */
+.tb-palette .kbd {
+  margin-left: auto; min-width: 18px; height: 19px; padding: 0 5px; justify-content: center;
+  color: var(--foreground); background: var(--well); border-bottom-width: 2px; border-radius: 3px;
+}
+/* Narrow draws "Jump or act…" at 300 (Narrow.dc.html, drawn at 1024). */
+@media (max-width: 1100px) {
+  /* ... and the rest of that top bar: no instance name, the endpoint as ":4566". */
+  .brand .inst, .pill .ep-host { display: none; }
+  .tb-palette { flex-basis: 300px; }
+  .tb-palette .tb-jump { display: none; }
+  .tb-palette .tb-jump-short { display: block; flex: 1; }
+}
 
 /* ---------- command palette ---------- */
 .palette-overlay { padding-top: 14vh; align-items: start; }
@@ -957,33 +987,21 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .lam-test .CodeMirror-scroll { max-height: 320px; }
 
 /* ═══════════ workbench shell ═══════════ */
-/* Collapsible rail: 208px (icon + name + live count) ⇄ 56px (icons + flyouts).
-   State lives on <html data-rail="slim">, set pre-paint from localStorage. */
+/* The rail is the design's rule (Anatomy, rule 1): "Full names on the wire, marks
+   only inside a service. The room goes to the work." Labelled it is 196px, as
+   Main draws it (names, group captions, live counts, status dots); marks only it
+   is 56px, not the design's 48, because the AWS icons are 24px and need the room.
+   State lives on <html data-rail="wide|slim"> and shell.js decides it: the
+   user's stored choice, then a window 1180px or narrower, then the page's own
+   default, with an open call on the wire collapsing the wire's. */
 .rail {
-  width: 208px; flex: 0 0 auto; border-right: 1px solid var(--border);
+  width: 196px; flex: 0 0 auto; border-right: 1px solid var(--border);
   background: var(--card); display: flex; flex-direction: column;
-  padding: 8px 8px 10px; gap: 1px; overflow-x: hidden; overflow-y: auto;
+  padding: 10px 8px; gap: 1px; overflow-x: hidden; overflow-y: auto;
   transition: width .15s ease;
 }
-:root[data-rail="slim"] .rail { width: 56px; padding-left: 6px; padding-right: 6px; }
+:root[data-rail="slim"] .rail { width: 56px; padding: 10px 0; align-items: center; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
-
-/* The shell yields. Below these widths the chrome was taking 440px that never
-   moved, so at a 768px viewport the detail pane was 328px and at 600px it was
-   160px — narrower than a single table column.
-
-   1180 = rail + list pane + ~740 of workable detail. The rail's names are the
-   cheapest 152px in the shell: the icons stay, and the hover flyout already
-   carries the label. This is a floor rather than an override — an explicit
-   [data-rail="wide"] still wins, because expanding the rail at 1100px is a
-   deliberate act. */
-@media (max-width: 1180px) {
-  :root:not([data-rail="wide"]) .rail { width: 56px; padding-left: 6px; padding-right: 6px; }
-  :root:not([data-rail="wide"]) .rail .rgroup { height: 9px; padding: 8px 0 0; overflow: hidden; visibility: hidden; }
-  :root:not([data-rail="wide"]) .rail .ri { justify-content: center; padding: 0; }
-  :root:not([data-rail="wide"]) .rail .ri-nm, :root:not([data-rail="wide"]) .rail .ri-ct { display: none; }
-  :root:not([data-rail="wide"]) .rail .ri:hover .ri-fly { display: block; }
-}
 
 /* 900: the list pane stops being a column and becomes a strip. 168px still
    shows ~20 characters instead of ~28, and hands 64px to the detail pane, which
@@ -992,51 +1010,67 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   .listpane { width: 168px; flex: 0 0 168px; }
 }
 .rail .rgroup {
-  font-size: 10px; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase;
-  color: var(--muted-foreground); padding: 12px 10px 4px; white-space: nowrap; /* full strength: at 80% the labels failed WCAG AA contrast */
+  font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: var(--track-caps); text-transform: uppercase;
+  color: var(--muted-foreground); padding: 10px 8px 3px; white-space: nowrap; /* full strength: at 80% the labels failed WCAG AA contrast */
 }
-.rail .rgroup:first-child { padding-top: 4px; }
-:root[data-rail="slim"] .rail .rgroup { height: 9px; padding: 8px 0 0; overflow: hidden; visibility: hidden; }
-:root[data-rail="slim"] .rail .rgroup::after { content: ""; }
+/* The marks-only rail draws no captions: the colour and the shape of each mark
+   are what tell the services apart there. */
+:root[data-rail="slim"] .rail .rgroup { display: none; }
 .rail .ri {
-  display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 8px;
-  border-radius: var(--radius); color: var(--foreground); font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 8px;
+  border-radius: var(--radius); color: var(--foreground); font-size: 13px; font-weight: 400;
   white-space: nowrap; position: relative; flex: none;
 }
 .rail .ri:hover { background: var(--muted); }
-.rail .ri.on { background: var(--muted); box-shadow: inset 2.5px 0 0 var(--accent); }
-.rail .ri .ri-ic { width: 24px; height: 24px; flex: none; display: grid; place-items: center; color: var(--muted-foreground); }
-.rail .ri .ri-ic .aws-ic { width: 24px; height: 24px; border-radius: var(--radius); }
-.rail .ri .ri-ic .ic { width: 17px; height: 17px; }
+/* Selected is a tinted row and bold, as the design draws it; the accent bar the
+   rail used to carry on its left edge is not in any board. */
+.rail .ri.on { background: var(--muted); font-weight: 600; }
+.rail .ri .ri-ic { width: 20px; height: 20px; flex: none; display: grid; place-items: center; color: var(--muted-foreground); }
+.rail .ri .ri-ic .aws-ic { width: 20px; height: 20px; border-radius: var(--radius); }
+.rail .ri .ri-ic .ic { width: 15px; height: 15px; }
 .rail .ri.on .ri-ic { color: var(--foreground); }
 .rail .ri .ri-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+/* The count is the design's .n: mono, muted, at the right, no pill. */
 .rail .ri .ri-ct {
-  font-size: 11px; font-family: var(--mono); color: var(--muted-foreground);
-  background: var(--muted); border: 1px solid var(--border);
-  border-radius: 999px; padding: 1px 7px; flex: none;
+  font-size: 11px; font-family: var(--mono); line-height: 1; color: var(--muted-foreground); flex: none;
 }
 .rail .ri .ri-ct:empty { display: none; }
-.rail .ri.on .ri-ct { background: var(--card); }
-/* slim mode: center icons, hide text, flyout name on hover */
-:root[data-rail="slim"] .rail .ri { justify-content: center; padding: 0; }
+/* The status dot (con.css .dot): a service with something to say. Seen only
+   when it has a level. */
+.rail .ri .ri-dot { display: none; flex: none; width: 7px; height: 7px; border-radius: 50%; }
+.rail .ri .ri-dot.warn { display: block; background: var(--warn); }
+.rail .ri .ri-dot.bad { display: block; background: var(--bad); }
+/* The wire and Connect are not services and have no mark when labelled; the
+   marks-only rail draws each as an ink tile, as the design draws the wire. */
+.rail .ri-plain .ri-ic { display: none; }
+:root[data-rail="slim"] .rail .ri-plain .ri-ic { display: grid; background: var(--ink); color: var(--card); border-radius: var(--radius); }
+:root[data-rail="slim"] .rail .ri-plain.on .ri-ic { color: var(--card); }
+/* Marks only: the mark alone, centred in a tile the selected one tints. */
+:root[data-rail="slim"] .rail .ri { justify-content: center; padding: 0; width: 40px; height: 32px; }
+:root[data-rail="slim"] .rail .ri .ri-ic { width: 24px; height: 24px; }
+:root[data-rail="slim"] .rail .ri .ri-ic .aws-ic { width: 24px; height: 24px; }
 :root[data-rail="slim"] .rail .ri-nm, :root[data-rail="slim"] .rail .ri-ct { display: none; }
-/* Flyout is position:fixed (placed by shell.js on hover) so the rail's own
-   overflow/scroll can never clip it. */
+/* The dot sits on the mark's corner, ringed in the rail's own colour. */
+:root[data-rail="slim"] .rail .ri .ri-dot.warn, :root[data-rail="slim"] .rail .ri .ri-dot.bad {
+  position: absolute; top: 3px; right: 3px; box-shadow: 0 0 0 2px var(--card);
+}
+/* Flyout is position:fixed (placed by shell.js on hover and focus) so the rail's
+   own overflow/scroll can never clip it. */
 .rail .ri .ri-fly {
   display: none; position: fixed; transform: translateY(-50%);
   background: var(--foreground); color: var(--background);
   font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: var(--radius); z-index: 60; pointer-events: none;
 }
-:root[data-rail="slim"] .rail .ri:hover .ri-fly { display: block; }
+:root[data-rail="slim"] .rail .ri:hover .ri-fly, :root[data-rail="slim"] .rail .ri:focus-visible .ri-fly { display: block; }
 .rail-toggle {
   margin-top: auto; display: flex; align-items: center; gap: 9px; height: 32px; padding: 0 8px;
   border: 0; border-top: 1px solid var(--border); border-radius: 0; background: none;
   color: var(--muted-foreground); font-size: 12px; cursor: pointer; white-space: nowrap; flex: none;
 }
 .rail-toggle:hover { color: var(--foreground); }
-.rail-toggle .rt-ic { width: 24px; flex: none; display: grid; place-items: center; }
+.rail-toggle .rt-ic { width: 20px; flex: none; display: grid; place-items: center; }
 .rail-toggle .rt-ic .ic { width: 15px; height: 15px; transform: rotate(180deg); transition: transform .15s; }
-:root[data-rail="slim"] .rail-toggle { justify-content: center; padding: 0; }
+:root[data-rail="slim"] .rail-toggle { justify-content: center; padding: 0; align-self: stretch; }
 :root[data-rail="slim"] .rail-toggle .ri-nm { display: none; }
 :root[data-rail="slim"] .rail-toggle .rt-ic .ic { transform: none; }
 
@@ -1531,6 +1565,11 @@ a.lo-card:hover { border-color: var(--accent); }
 .appearance button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
 .appearance button:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 .appearance .ic { width: 13px; height: 13px; }
+/* In the top bar it is as tall as the pills beside it (20px). The design draws
+   the theme as a card on one board and no switch in any bar; this control is
+   the page's own, kept (plan/03-shell-fidelity.md 2.5) and kept compact. */
+.topbar .appearance button { width: 24px; height: 18px; }
+.topbar .appearance .ic { width: 12px; height: 12px; }
 
 /* ---------- connect ---------- */
 .cn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }

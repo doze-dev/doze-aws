@@ -17,6 +17,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -56,7 +58,12 @@ type Console struct {
 	tmpl   *template.Template
 	prefix string
 	rec    *Recorder
+	name   string  // this instance's name, drawn in the top bar; empty draws none
 	held   heldSet // what the SQS Consume tab has received and not yet let go
+
+	chromeMu sync.Mutex
+	iamMode  string    // the IAM mode, read from the service once; "" until then
+	iamTried time.Time // when a read last failed, so a missing service is not asked on every render
 }
 
 // Options configures the console.
@@ -80,6 +87,10 @@ type Options struct {
 	// Prefix is the URL path the console is mounted under; defaults to
 	// "/_console".
 	Prefix string
+	// Name is this instance's name, which the top bar draws after the product's
+	// ("doze-aws harbour") so a person with two of them open can tell them
+	// apart. Empty draws nothing: a topology with no name to give says none.
+	Name string
 }
 
 // New builds a console over the given gateway handler.
@@ -94,7 +105,7 @@ func New(opts Options) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Console{be: newBackend(opts.Peers, opts.Identity, opts.Suffix), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
+	c := &Console{be: newBackend(opts.Peers, opts.Identity, opts.Suffix), tmpl: tmpl, prefix: prefix, rec: opts.Recorder, name: opts.Name}
 	c.routes()
 	return c, nil
 }
@@ -136,10 +147,24 @@ func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, da
 	data["Prefix"] = c.prefix
 	data["Page"] = page
 	data["Endpoint"] = endpointHost(r)
-	// The rail's counts ship with the markup instead of arriving up to five
-	// seconds later on a poll. Cheap enough to do on every render — see
-	// serviceCounts in live.go for the measurement.
-	data["Counts"] = c.serviceCounts(r.Context())
+	// The top bar's endpoint chip in two parts, because the narrow board draws
+	// it as ":4566": the host is what gives way first.
+	data["EndpointHost"], data["EndpointPort"] = splitEndpoint(endpointHost(r))
+	// The rail's counts and dots ship with the markup instead of arriving up to
+	// five seconds later on a poll. Cheap enough to do on every render — see
+	// census in live.go for the measurement.
+	data["Counts"], data["Warn"] = c.census(r.Context())
+	// The top bar: the instance's name, and the IAM mode, which is read from the
+	// service once (iamMode) because it cannot change while the process runs.
+	// Not "Name": a page's own data says Name for the resource it shows, and
+	// render writes after the page does.
+	data["InstanceName"] = c.name
+	data["IAMMode"] = c.iamModeCached(r.Context())
+	// The rail's default for this page. The wire is the one page that is
+	// labelled (Anatomy, rule 1: "Full names on the wire, marks only inside a
+	// service. The room goes to the work."); the user's choice overrides it in
+	// shell.js, and an open call collapses it there too.
+	data["RailDefault"] = railDefault(page)
 	if f := r.URL.Query().Get("flash"); f != "" {
 		data["Flash"] = f
 	}
@@ -234,6 +259,15 @@ func endpointHost(r *http.Request) string {
 	// a browser, which always sends Host; an empty one renders as empty, which
 	// is at least true.
 	return r.Host
+}
+
+// splitEndpoint cuts "127.0.0.1:4566" into "127.0.0.1" and ":4566". An address
+// with no port is all host.
+func splitEndpoint(ep string) (host, port string) {
+	if i := strings.LastIndex(ep, ":"); i >= 0 && !strings.Contains(ep[i:], "]") {
+		return ep[:i], ep[i:]
+	}
+	return ep, ""
 }
 
 // partial renders a single named template (for HTMX swaps).

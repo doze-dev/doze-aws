@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { createBucket, createQueue, postForm } from '../fixtures/api';
 import { BASE_URL } from '../playwright.config';
@@ -41,6 +42,213 @@ test.describe('rail', () => {
     await page.locator('body').click();
     await page.keyboard.press('[');
     await expect(html).not.toHaveAttribute('data-rail', 'slim');
+  });
+});
+
+// The shell's top bar and rail are the design's (plan/design: Main, Anatomy,
+// Sqs-02-Pick; plan/03-shell-fidelity.md 2.1, 2.2, D1, D9). What is asserted is
+// what is DRAWN, measured at the design's 1440 by 900.
+const GATEWAY_ROOT = new URL('/', BASE_URL).toString();
+
+const railWidth = (page: Page) =>
+  page.locator('.rail').evaluate((el) => Math.round(el.getBoundingClientRect().width));
+const box = (page: Page, sel: string) =>
+  page.locator(sel).first().evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x) };
+  });
+
+test.describe('top bar', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test('is 44 high, with the brand and instance name, a 420 jump box, the endpoint, the region', async ({ page }) => {
+    await page.goto('sqs');
+    expect((await box(page, '.topbar')).h).toBe(44);
+    const brand = page.locator('.topbar .brand');
+    await expect(brand).toContainText('doze-aws');
+    await expect(brand.locator('.inst')).toHaveText(/\S/); // the instance's name, whatever it is called
+    await expect(brand).not.toContainText('console');
+
+    const jump = page.locator('.topbar .tb-palette');
+    await expect(jump).toContainText('Jump to a resource, or do something…');
+    await expect(jump).toContainText('⌘K');
+    expect((await box(page, '.topbar .tb-palette')).w).toBe(420);
+
+    await expect(page.locator('.topbar .pill .live')).toBeVisible();
+    await expect(page.locator('.topbar')).toContainText('127.0.0.1');
+    // The region is a static chip: no board draws a selector and a selector
+    // would be a control that cannot work.
+    await expect(page.locator('.topbar .pill', { hasText: /^\s*[a-z]{2}-[a-z]+-\d\s*$/ })).toBeVisible();
+    await expect(page.locator('.topbar select')).toHaveCount(0);
+  });
+
+  test('at 1024 it is the Narrow board: no instance name, the endpoint as :port, a 300 jump box', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('sqs');
+    await expect(page.locator('.topbar .brand .inst')).toBeHidden();
+    await expect(page.locator('.topbar .pill', { has: page.locator('.live') })).toHaveText(/^\s*:\d+\s*$/, { useInnerText: true });
+    await expect(page.locator('.topbar .tb-palette')).toContainText('Jump or act…');
+    expect((await box(page, '.topbar .tb-palette')).w).toBe(300);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test('the IAM mode is on every page, in one wording', async ({ page }) => {
+    for (const path of ['', 'traffic', 'sqs', 's3', 'iam', 'connect', 'sqs/create', 'no-such-page']) {
+      await page.goto(path);
+      await expect(page.locator('.topbar .pill.iam'), path || '(home)').toHaveText(/^IAM (soft|enforce|off)$/);
+    }
+  });
+
+  test('the theme switch is a compact control at the right end', async ({ page }) => {
+    await page.goto('sqs');
+    const right = await box(page, '.topbar .appearance');
+    expect(right.x + right.w).toBeGreaterThan(1440 - 40);
+    expect(right.h).toBeLessThanOrEqual(28);
+  });
+
+  test('the jump box opens the palette', async ({ page, openPalette }) => {
+    await page.goto('sqs');
+    await openPalette();
+    await expect(page.locator('#pal-q')).toBeFocused();
+  });
+});
+
+test.describe('rail by context', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test('is labelled on the wire (196) and marks only inside a service (56)', async ({ page }) => {
+    await page.goto('');
+    expect(await railWidth(page)).toBe(196);
+    await expect(page.locator('.rail .ri', { hasText: 'SQS' }).locator('.ri-nm')).toBeVisible();
+    await expect(page.locator('.rail .rgroup', { hasText: 'Messaging' })).toBeVisible();
+
+    await page.goto('sqs');
+    expect(await railWidth(page)).toBe(56);
+    await expect(page.locator('.rail .ri', { hasText: 'SQS' }).locator('.ri-nm')).toBeHidden();
+    // Marks, not letters: each service keeps its AWS icon.
+    await expect(page.locator('.rail .ri .aws-ic').first()).toBeVisible();
+
+    for (const path of ['s3', 'connect', 'sqs/create', 'iam']) {
+      await page.goto(path);
+      expect(await railWidth(page), path).toBe(56);
+    }
+  });
+
+  test('a boosted navigation changes the default without a reload', async ({ page }) => {
+    await page.goto('');
+    expect(await railWidth(page)).toBe(196);
+    await page.locator('.rail .ri', { hasText: 'SQS' }).click();
+    await page.waitForURL(/\/sqs$/);
+    await expect.poll(() => railWidth(page)).toBe(56);
+    await page.locator('.rail .ri', { hasText: 'The wire' }).click();
+    await page.waitForURL((u) => !/\/sqs$/.test(u.pathname));
+    await expect.poll(() => railWidth(page)).toBe(196);
+  });
+
+  test("the user's choice wins over the default, everywhere, and persists", async ({ page }) => {
+    await page.goto('sqs');
+    expect(await railWidth(page)).toBe(56);
+    await page.locator('#rail-toggle').click();
+    await expect.poll(() => railWidth(page)).toBe(196);
+    // across a reload, and onto another service page
+    await page.reload();
+    expect(await railWidth(page)).toBe(196);
+    await page.goto('s3');
+    expect(await railWidth(page)).toBe(196);
+
+    // and the other way round on the wire
+    await page.evaluate(() => localStorage.removeItem('rail'));
+    await page.goto('');
+    expect(await railWidth(page)).toBe(196);
+    await page.locator('#rail-toggle').click();
+    await expect.poll(() => railWidth(page)).toBe(56);
+    await page.reload();
+    expect(await railWidth(page)).toBe(56);
+    await page.goto('sqs');
+    expect(await railWidth(page)).toBe(56);
+  });
+
+  test('narrow windows slim the rail by default, and an expanded rail stays', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.goto('');
+    expect(await railWidth(page)).toBe(56);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect.poll(() => railWidth(page)).toBe(196);
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.locator('#rail-toggle').click(); // the user expands it at 1100
+    await expect.poll(() => railWidth(page)).toBe(196);
+    await page.reload();
+    expect(await railWidth(page)).toBe(196);
+  });
+
+  test('a service name flies out beside its mark on hover and on focus', async ({ page }) => {
+    await page.goto('sqs');
+    const sqs = page.locator('.rail .ri', { hasText: 'SQS' });
+    await expect(sqs.locator('.ri-fly')).toBeHidden();
+    await sqs.hover();
+    await expect(sqs.locator('.ri-fly')).toBeVisible();
+    await expect(sqs.locator('.ri-fly')).toHaveText('SQS');
+    await page.mouse.move(700, 500);
+    await expect(sqs.locator('.ri-fly')).toBeHidden();
+    // and by keyboard: Tab until the SQS link has focus
+    for (let i = 0; i < 60; i++) {
+      await page.keyboard.press('Tab');
+      if (await sqs.evaluate((el) => el === document.activeElement)) break;
+    }
+    await expect(sqs.locator('.ri-fly')).toBeVisible();
+  });
+
+  test('on the wire, an open call collapses the rail to marks', async ({ page, request, uniqueName }) => {
+    const name = uniqueName('e2e-rail');
+    await request.post(GATEWAY_ROOT, {
+      headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'AmazonSQS.CreateQueue' },
+      data: JSON.stringify({ QueueName: name }),
+    });
+    await page.goto('');
+    expect(await railWidth(page)).toBe(196);
+    const row = page.locator('#traffic-feed .tr-row', { hasText: name }).first();
+    // Click the row's time, not its middle: once the inspector is open the row
+    // is narrower and its middle is the resource link, which navigates.
+    await expect(async () => {
+      await row.locator('.ts').click({ timeout: 2000 });
+      await expect(page.locator('.t-drawer')).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+    await expect.poll(() => railWidth(page)).toBe(56);
+    await row.locator('.ts').click(); // close it again
+    await expect.poll(() => railWidth(page)).toBe(196);
+  });
+
+  test("an open call does not override the user's expanded rail", async ({ page, request, uniqueName }) => {
+    const name = uniqueName('e2e-rail-user');
+    await request.post(GATEWAY_ROOT, {
+      headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'AmazonSQS.CreateQueue' },
+      data: JSON.stringify({ QueueName: name }),
+    });
+    await page.addInitScript(() => localStorage.setItem('rail', 'wide'));
+    await page.goto('');
+    const row = page.locator('#traffic-feed .tr-row', { hasText: name }).first();
+    await expect(async () => {
+      await row.locator('.ts').click({ timeout: 2000 });
+      await expect(page.locator('.t-drawer')).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+    expect(await railWidth(page)).toBe(196);
+  });
+
+  test('a service with a refused call in the last minute has a dot', async ({ page, request }) => {
+    await request.post(GATEWAY_ROOT, {
+      headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'DynamoDB_20120810.DescribeTable' },
+      data: JSON.stringify({ TableName: 'e2e-rail-no-such-table' }),
+    });
+    await page.goto('');
+    const dot = page.locator('.rail .ri', { hasText: 'DynamoDB' }).locator('.ri-dot');
+    await expect(dot).toHaveClass(/warn|bad/);
+    await expect(dot).toBeVisible();
+    // The wire has none of its own: only services have dots.
+    await expect(page.locator('.rail .ri', { hasText: 'Connect' }).locator('.ri-dot')).toHaveCount(0);
   });
 });
 
@@ -223,9 +431,12 @@ test.describe('history navigation', () => {
     await page.locator('#appearance button[data-mode="dark"]').click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await page.locator('#appearance button[data-mode="system"]').click();
+    // This is a service page, so the rail starts as marks (slim): the first
+    // press expands it, the second collapses it again.
+    await page.locator('#rail-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-rail', 'wide');
     await page.locator('#rail-toggle').click();
     await expect(page.locator('html')).toHaveAttribute('data-rail', 'slim');
-    await page.locator('#rail-toggle').click();
 
     // And the page is still one page: a restore that nested a copy of the
     // workspace inside itself would leave two.

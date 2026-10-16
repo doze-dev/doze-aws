@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// serviceCounts is the stack's census, keyed by console service key.
+// census is the stack's census, keyed by console service key.
 //
 // It exists because the rail's numbers used to arrive by a different route than
 // every other number on the page. The rail rendered EMPTY count slots and a 5s
@@ -27,8 +27,13 @@ import (
 //
 // Errors are swallowed per service, deliberately: one unreachable service should
 // blank its own badge, not fail the page it appears on.
-func (c *Console) serviceCounts(ctx context.Context) map[string]int {
+//
+// The second result is the rail's status dots, from facts already in hand: the
+// alarm list this pass reads anyway, the ring in memory, and one cached probe
+// for dead-letter queues (see railWarn). It is empty on a quiet stack.
+func (c *Console) census(ctx context.Context) (map[string]int, map[string]string) {
 	counts := map[string]int{}
+	firing := false
 	if v, err := c.be.ListBuckets(ctx); err == nil { // single call already
 		counts["s3"] = len(v)
 	}
@@ -67,6 +72,9 @@ func (c *Console) serviceCounts(ctx context.Context) map[string]int {
 	}
 	if alarms, err := c.be.ListAlarms(ctx); err == nil {
 		counts["cw"] = len(alarms)
+		for _, a := range alarms {
+			firing = firing || a.State == "ALARM"
+		}
 	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil {
 		counts["iam"] = n
@@ -77,7 +85,7 @@ func (c *Console) serviceCounts(ctx context.Context) map[string]int {
 	if v, err := c.be.ListSecrets(ctx); err == nil { // single call already
 		counts["sm"] = len(v)
 	}
-	return counts
+	return counts, c.railWarn(ctx, counts["sqs"] > 0, firing)
 }
 
 // resSlug makes a resource name safe to put in a DOM id AND safe to address

@@ -515,6 +515,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 			Suffix:   cfg.Suffix,
 			Peers:    peers.InProcess(stack.Service),
 			Recorder: rec,
+			// The top bar names the instance, so two consoles open side by
+			// side are told apart: the same name the registry claims.
+			Name: cfg.InstanceName(),
 		})
 		if err != nil {
 			return err

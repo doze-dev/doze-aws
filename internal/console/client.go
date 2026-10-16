@@ -46,6 +46,12 @@ type backend struct {
 	graphAt    time.Time
 	graphSnap  *FlowGraph
 	graphBuild chan struct{} // non-nil while one goroutine crawls (singleflight)
+
+	// dlqAt and dlqHeld cache the rail's "a dead-letter queue holds a message"
+	// (dlqHolds in chrome.go), under graphMu because bustGraph drops them with
+	// the graph: they go stale for the same reasons and on the same mutations.
+	dlqAt   time.Time
+	dlqHeld bool
 }
 
 const graphTTL = 5 * time.Second
@@ -97,6 +103,7 @@ func (b *backend) graphCached(ctx context.Context) FlowGraph {
 func (b *backend) bustGraph() {
 	b.graphMu.Lock()
 	b.graphSnap = nil
+	b.dlqAt = time.Time{}
 	b.graphMu.Unlock()
 }
 

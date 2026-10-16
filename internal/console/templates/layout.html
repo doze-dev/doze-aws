@@ -1,5 +1,5 @@
 {{define "shell_top"}}<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-rail="{{.RailDefault}}">
 <!-- the workbench shell: topstrip · rail · workspace(list+detail).
      The doctype has to lead: without it the browser falls into quirks mode,
      where a table does not inherit font-size from body and every .tbl cell
@@ -17,8 +17,16 @@
      colors) at equal specificity, so it must come later to win the cascade. -->
 <link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
-<script>(function(){try{var t=localStorage.getItem("theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t);
-var r=localStorage.getItem("rail");if(r==="slim"||r==="wide")document.documentElement.setAttribute("data-rail",r);}catch(e){}})();</script>
+{{/* data-rail on <html> is the rail's state, and it is set three ways, in this
+     order of authority: the user's stored choice, the window being 1180px or
+     narrower (the rail's names are the cheapest 152px in the shell), and the
+     page's own default, which the server wrote into the tag above. This script
+     applies the first two before paint so nothing flashes; shell.js keeps all
+     three after it, across navigation, resizing and an open call. */}}
+<script>(function(){try{var t=localStorage.getItem("theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t);}catch(e){}
+try{var r=localStorage.getItem("rail");var d=document.documentElement;
+if(r==="slim"||r==="wide")d.setAttribute("data-rail",r);
+else if(window.matchMedia&&matchMedia("(max-width: 1180px)").matches)d.setAttribute("data-rail","slim");}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
 /* kvEditor backs the secret editor's key/value builder. Inline rather than in
    deferred shell.js because Alpine evaluates x-data before deferred scripts
@@ -171,12 +179,24 @@ return p.join(" ");};</script>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>
-    <button class="tb-palette" id="palette-open">{{icon "search"}} <span>Jump or act…</span> <span class="kbd">⌘K</span></button>
+    {{/* The brand is the design's: the mark, the product, then this instance's
+         name in a muted weight ("doze-aws harbour"). */}}
+    <div class="brand"><span class="logo" aria-hidden="true">z</span><span>doze-aws</span>{{if .InstanceName}}<span class="inst">{{.InstanceName}}</span>{{end}}</div>
+    <button class="tb-palette" id="palette-open" aria-label="Jump to a resource, or do something"><span class="tb-jump">Jump to a resource, or do something…</span><span class="tb-jump-short">Jump or act…</span><span class="kbd">⌘K</span></button>
     <div class="tb-spacer"></div>
     <div class="tb-right">
-      <span class="chip mono"><span class="live"></span>{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</span>
-      <span class="chip">{{region}}</span>
+      <span class="pill mono"><span class="live"></span>{{if .Endpoint}}<span><span class="ep-host">{{.EndpointHost}}</span>{{.EndpointPort}}</span>{{else}}127.0.0.1:4566{{end}}</span>
+      {{/* The region is a static chip and stays one. No board draws a selector,
+           and a selector would be a control that cannot work: the region this
+           console shows is the one the instance was started with (-region),
+           every ARN and URL on every page was minted under it, and nothing in
+           the console can re-point a running stack at another. */}}
+      <span class="pill mono">{{region}}</span>
+      {{/* The IAM mode, on every page, in one wording. It is read from the
+           service once (iamModeCached), because the mode is fixed when the
+           stack starts. Purple, as the boards draw it: it is a fact about
+           what the stack will do to a call, the colour refusals use. */}}
+      <span class="pill iam {{.IAMMode}}" title="{{if eq .IAMMode "enforce"}}IAM is enforced: a call the policies do not allow is refused.{{else if eq .IAMMode "off"}}IAM is off: nothing is evaluated.{{else}}IAM is in soft mode: every call is checked and recorded, none refused.{{end}}">IAM {{.IAMMode}}</span>
       <div class="appearance" id="appearance" role="group" aria-label="Appearance">
         <button type="button" data-mode="light" title="Light" aria-label="Light">{{icon "sun"}}</button>
         <button type="button" data-mode="system" title="Match system" aria-label="Match system">{{icon "monitor"}}</button>
@@ -199,32 +219,32 @@ return p.join(" ");};</script>
            resources, and Connect is the one page a new user needs — it was filed
            under Observe, which is where you look at what happened, not where you
            learn how to point an SDK at it. */}}
-      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity"}}
-      {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal"}}
-      <div class="rgroup">Storage &amp; data</div>
-      {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3" "Ct" (index $.Counts "s3")}}
-      {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb" "Ct" (index $.Counts "ddb")}}
+      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity" "Plain" true}}
+      {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal" "Plain" true}}
+      <div class="rgroup">Storage and data</div>
+      {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3" "Ct" (index $.Counts "s3") "Dot" (index $.Warn "s3")}}
+      {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb" "Ct" (index $.Counts "ddb") "Dot" (index $.Warn "ddb")}}
       <div class="rgroup">Messaging</div>
-      {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs" "Ct" (index $.Counts "sqs")}}
-      {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns" "Ct" (index $.Counts "sns")}}
-      {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb" "Ct" (index $.Counts "eb")}}
-      {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis" "Ct" (index $.Counts "kinesis")}}
-      <div class="rgroup">Compute &amp; APIs</div>
-      {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda" "Ct" (index $.Counts "lambda")}}
-      {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw" "Ct" (index $.Counts "apigw")}}
-      {{template "ri" dict "P" .Prefix "URL" "/sfn" "On" (hasPrefix .Page "sfn") "Name" "Step Functions" "Svc" "sfn" "Ct" (index $.Counts "sfn")}}
-      {{template "ri" dict "P" .Prefix "URL" "/logs" "On" (hasPrefix .Page "logs") "Name" "CloudWatch Logs" "Svc" "logs" "Ct" (index $.Counts "logs")}}
-      {{template "ri" dict "P" .Prefix "URL" "/cw" "On" (hasPrefix .Page "cw") "Name" "CloudWatch" "Svc" "cw" "Ct" (index $.Counts "cw")}}
-      <div class="rgroup">Config &amp; secrets</div>
-      {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms" "Ct" (index $.Counts "kms")}}
-      {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm" "Ct" (index $.Counts "sm")}}
-      {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm" "Ct" (index $.Counts "ssm")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs" "Ct" (index $.Counts "sqs") "Dot" (index $.Warn "sqs")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns" "Ct" (index $.Counts "sns") "Dot" (index $.Warn "sns")}}
+      {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb" "Ct" (index $.Counts "eb") "Dot" (index $.Warn "eb")}}
+      {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis" "Ct" (index $.Counts "kinesis") "Dot" (index $.Warn "kinesis")}}
+      <div class="rgroup">Compute and APIs</div>
+      {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda" "Ct" (index $.Counts "lambda") "Dot" (index $.Warn "lambda")}}
+      {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw" "Ct" (index $.Counts "apigw") "Dot" (index $.Warn "apigw")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sfn" "On" (hasPrefix .Page "sfn") "Name" "Step Functions" "Svc" "sfn" "Ct" (index $.Counts "sfn") "Dot" (index $.Warn "sfn")}}
+      {{template "ri" dict "P" .Prefix "URL" "/logs" "On" (hasPrefix .Page "logs") "Name" "CloudWatch Logs" "Svc" "logs" "Ct" (index $.Counts "logs") "Dot" (index $.Warn "logs")}}
+      {{template "ri" dict "P" .Prefix "URL" "/cw" "On" (hasPrefix .Page "cw") "Name" "CloudWatch" "Svc" "cw" "Ct" (index $.Counts "cw") "Dot" (index $.Warn "cw")}}
+      <div class="rgroup">Config and secrets</div>
+      {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms" "Ct" (index $.Counts "kms") "Dot" (index $.Warn "kms")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm" "Ct" (index $.Counts "sm") "Dot" (index $.Warn "sm")}}
+      {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm" "Ct" (index $.Counts "ssm") "Dot" (index $.Warn "ssm")}}
       {{/* Facts about the whole stack rather than about one resource: what is
            allowed here, and what was deployed here. Both read-mostly, neither
            populated by hand. */}}
       <div class="rgroup">Stack-wide</div>
-      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam" "Ct" (index $.Counts "iam")}}
-      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn" "Ct" (index $.Counts "cfn")}}
+      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam" "Ct" (index $.Counts "iam") "Dot" (index $.Warn "iam")}}
+      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn" "Ct" (index $.Counts "cfn") "Dot" (index $.Warn "cfn")}}
       <button type="button" class="rail-toggle" id="rail-toggle" title="Collapse / expand ([)">
         <span class="rt-ic">{{icon "chevron"}}</span><span class="ri-nm">Collapse</span>
       </button>
@@ -245,7 +265,10 @@ return p.join(" ");};</script>
          sentinel because an empty value now short-circuits inheritance on its
          own — #attributeValue returns "" before it ever consults the parent,
          and the swap path treats "" as no-select. */}}
-    <main id="workspace" class="workspace" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
+    {{/* data-rail-default is this page's rail state when the user has not chosen
+         one. It rides in #workspace, not on <html>, because a boosted navigation
+         swaps this element and nothing else: shell.js reads it after every swap. */}}
+    <main id="workspace" class="workspace" data-rail-default="{{.RailDefault}}" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
       <div class="narrow-note" role="note">The console is built for a window 1024&nbsp;px wide or more, and phones are not supported. Everything still works here, but it will not fit well.</div>
       {{if .Flash}}
       <div class="flash anim" id="flashbar">
@@ -296,7 +319,11 @@ return p.join(" ");};</script>
 
 {{/* ri = one rail item. Svc → AWS icon + live count; Glyph → Lucide (surfaces). */}}
 {{define "ri"}}
-<a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}">
+<a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}{{if .Plain}} ri-plain{{end}}">
+  {{/* A service keeps its AWS icon in both rails: the labelled rail's names and
+       the marks-only rail's icons are the same row. The wire and Connect are not
+       services, so they are plain text when labelled, as the design draws them,
+       and an ink tile with a glyph when the rail is marks only. */}}
   <span class="ri-ic">{{if .Svc}}{{awsIcon .Svc}}{{else}}{{icon .Glyph}}{{end}}</span>
   <span class="ri-nm">{{.Name}}</span>
   {{/* The count is server-rendered AND out-of-band. Rendered, so it is right
@@ -315,6 +342,12 @@ return p.join(" ");};</script>
        grey zeros on a fresh stack say "empty" thirteen times, blank says
        "here is what you have". data-ct stays — the poll still writes it, and
        it remains the backstop for mutations made by the user's own app. */}}
+  {{/* The status dot, rendered and out-of-band like the count and for the same
+       reason. Empty and unseen for a service with nothing to say; "warn" or
+       "bad" from railWarn (chrome.go): a dead-letter queue holding a message, an
+       alarm in ALARM, a call refused or failed in the last minute. It sits
+       before the count, as the design draws it. */}}
+  {{if .Svc}}<span class="ri-dot{{if .Dot}} {{.Dot}}{{end}}" id="dot-{{.Svc}}" data-dot="{{.Svc}}" hx-swap-oob="true"{{if .Dot}} role="img" aria-label="{{if eq .Dot "bad"}}failing{{else}}needs a look{{end}}"{{end}}></span>{{end}}
   {{if .Svc}}<span class="ri-ct" id="ct-{{.Svc}}" data-ct="{{.Svc}}" hx-swap-oob="true">{{if .Ct}}{{.Ct}}{{end}}</span>{{end}}
   <span class="ri-fly">{{.Name}}</span>
 </a>
