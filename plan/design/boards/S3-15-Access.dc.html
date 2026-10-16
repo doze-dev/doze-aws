@@ -172,22 +172,22 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="card pad col g6">
 <div class="row sb ce"><span class="b">Block public access <span class="note m">PutPublicAccessBlock</span></span><div class="seg"><span class="on">on</span><span>off</span></div></div>
 <span class="note">All four settings on. A bucket policy that grants to everyone is refused while they are.</span>
-<span class="note m">BlockPublicPolicy <span class="ok">enforced</span> · the three ACL settings <span class="warn">stored, nothing to act on</span></span>
-<span class="note">ACLs are canned here, so those three have nothing to block. Off removes the whole configuration rather than setting four flags false. It applies as soon as the switch moves.</span>
+<span class="note m">BlockPublicPolicy <span class="ok">enforced</span> · BlockPublicAcls and IgnorePublicAcls <span class="warn">stored, nothing to act on</span> · RestrictPublicBuckets <span class="warn">stored, not applied</span></span>
+<span class="note">ACLs are canned here, so BlockPublicAcls and IgnorePublicAcls have nothing to block. RestrictPublicBuckets is a policy setting, stored and not applied. Off removes the whole configuration rather than setting four flags false. It applies as soon as the switch moves.</span>
 <span class="note">This bucket has no policy, so nothing is waiting to be refused.</span>
 </div>
 
 <div class="card pad col g6">
 <div class="row sb ce"><span class="b">Object lock <span class="note m">ObjectLockConfiguration</span></span><span class="pill ok">Enabled</span></div>
-<span class="note">Set when the bucket is created; this page only shows it.</span>
+<span class="note">Turned on at creation here; the API can turn it on later, and nothing turns it off. This page only shows it.</span>
 <div class="row g8" style="align-items: flex-end">
 <label class="col g4" style="width: 170px"><span class="note">Default retention</span><select class="inp m"><option>GOVERNANCE</option></select></label>
 <label class="col g4" style="width: 100px"><span class="note">Days</span><input class="inp m" value="30"></label>
 <button class="btn">Save</button>
 <span class="note">30 days</span>
 </div>
-<span class="note m">none · GOVERNANCE · COMPLIANCE · days ≥ 1 · <span class="warn">stored, not applied</span></span>
-<span class="note">AWS gives every new object version this retention when it arrives without its own. doze-aws stores the rule and does not apply it: set retention on the object, from its panel. A mode with 0 days stores no rule.</span>
+<span class="note m">none · GOVERNANCE · COMPLIANCE · days ≥ 1 · <span class="ok">enforced</span></span>
+<span class="note">AWS gives every new object version this retention when it arrives without its own, and so does doze-aws; an explicit retention on the object wins. A mode with 0 days stores no rule.</span>
 </div>
 </div>
 
@@ -195,7 +195,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="cap">How they fit</span>
 <div class="callout ok"><span class="b">Versioning and lock agree</span><span class="note">Lock needs versioning, so the switch is held on. That is the refusal on the left.</span></div>
 <div class="callout"><span class="b">Block public access and the policy</span><span class="note">If a public policy were put while this was off and it were then switched on, the policy would stay and the badge <span class="pill bad" style="height: 18px">Policy is public</span> would appear beside it.</span></div>
-<div class="callout"><span class="b">Default retention and your objects</span><span class="note">Writing a new object here leaves it with no retention at all, even though the default says 30 days. Read the object's own panel to see what it carries.</span></div>
+<div class="callout"><span class="b">Default retention and your objects</span><span class="note">Writing a new object here gives it the default's 30 days of retention, unless it carries its own, which wins. Read the object's own panel to see what it carries. <span class="tag new">new</span></span></div>
 <span class="note">Nothing on this card has a Save except the default retention. The two switches post the moment they move.</span>
 </div>
 

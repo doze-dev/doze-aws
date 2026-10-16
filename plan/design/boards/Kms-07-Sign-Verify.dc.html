@@ -168,10 +168,10 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <label class="col g4"><span class="note">Message · bytes</span>
 <pre class="code" style="min-height: 40px; padding: 6px 12px">hello doze</pre>
 <span class="note">Signed as RAW: the service hashes the message with the algorithm's SHA before signing.</span>
-<span class="note m">10 bytes · 1 – 4 096 on AWS · refused above 3 072 here</span></label>
+<span class="note m">10 bytes · 1 – 4 096</span></label>
 <label class="col g4"><span class="note">Algorithm · SigningAlgorithm</span>
 <select class="inp m"><option>RSASSA_PKCS1_V1_5_SHA_256</option></select>
-<span class="note">Padding, then hash. This key lists six: RSASSA_PSS and RSASSA_PKCS1_V1_5, each with SHA-256, 384 or 512. An ECC key lists the one ECDSA_SHA_* that matches its curve.</span></label>
+<span class="note">The name lists padding first; the message is hashed first. This key lists six: RSASSA_PSS and RSASSA_PKCS1_V1_5, each with SHA-256, 384 or 512. An ECC key lists the one ECDSA_SHA_* that matches its curve.</span></label>
 <div class="row" style="justify-content: flex-end"><button class="btn sm pri">Sign →</button></div>
 </div>
 

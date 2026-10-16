@@ -140,13 +140,13 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row ce g8"><span class="tag new">new</span><span class="h2">New, and buildable</span></div>
 <span class="note">Not there today. Each one names what it is built from.</span>
 <div class="col g6" style="padding-top: 4px">
-<span><span class="b">The map.</span> Built from the wiring graph the console already computes: S3, SQS, SNS, EventBridge rule and Lambda nodes, and the five kinds of wire between them, each marked hot or not. The old Flows page was deleted; the graph stayed, for each resource's neighbours.</span>
+<span><span class="b">The map.</span> Built from the wiring graph the console already computes: S3, SQS, SNS, EventBridge rule, Lambda, DynamoDB table and Kinesis stream nodes, and the seven kinds of wire between them, each marked hot or not. The old Flows page was deleted; the graph stayed, for each resource's neighbours.</span>
 <span><span class="b">The map at scale:</span> flows as cards, from the same graph's connected components.</span>
 <span><span class="b">Differences from AWS</span> inside the fidelity dialog. It is already written, per service, in docs/SUPPORT.md.</span>
 <span><span class="b">A "cannot reach doze-aws" banner</span>, when the console's own poll fails. Browser-side only.</span>
-<span><span class="b">Longer toasts</span> that wait while the pointer is on them. Today they last 3.2 s.</span>
-<span><span class="b">Create from ⌘K.</span> The create pages exist; the palette does not offer them yet.</span>
-<span><span class="b">Refused is purple, Denied is amber.</span> Today the console has them the other way round. A refusal is never red.</span>
+<span><span class="b">Longer toasts</span> that wait while the pointer is on them. They last 7 s (10 s for an error) and wait while the pointer or focus is on them.</span>
+<span><span class="b">Create from ⌘K.</span> The create pages exist and the palette offers them; it does not yet carry the name you typed.</span>
+<span><span class="b">Refused is purple, Denied is amber.</span> The console draws them this way now. A refusal is never red.</span>
 <span><span class="b">Settings that teach:</span> the five lines under a field, and the live strips. Each service page group carries them.</span>
 <span><span class="b">Layout choices you made:</span> panels open inline, a notice below 1024 px.</span>
 </div>

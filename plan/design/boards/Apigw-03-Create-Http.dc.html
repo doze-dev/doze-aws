@@ -161,8 +161,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 
 <div class="card pad col g8">
-<div class="row ce g8"><span class="btn sm">cli</span><span class="note">The aws call this form is. The CORS box is not in it: the form sends a CORS configuration the command leaves out.</span></div>
-<pre class="code" style="white-space: pre-wrap; word-break: break-all">aws --endpoint-url http://127.0.0.1:4566 apigatewayv2 create-api --name harbour-returns-hooks --protocol-type HTTP</pre>
+<div class="row ce g8"><span class="btn sm">cli</span><span class="note">The aws call this form is. With the CORS box ticked, the command carries it as --cors-configuration.</span></div>
+<pre class="code" style="white-space: pre-wrap; word-break: break-all">aws --endpoint-url http://127.0.0.1:4566 apigatewayv2 create-api --name harbour-returns-hooks --protocol-type HTTP --cors-configuration 'AllowOrigins=*,AllowMethods=*,AllowHeaders=*'</pre>
 </div>
 
 <div class="row g8"><a class="btn" href="Apigw-Home.dc.html">Cancel</a><a class="btn pri" href="Apigw-20-Http-No-Stage.dc.html">Create API</a></div>

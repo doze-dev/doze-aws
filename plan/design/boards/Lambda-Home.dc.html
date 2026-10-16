@@ -179,7 +179,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="card pad col g8 grow" style="flex: 1.3 1 0">
 <span class="h2">Publish a layer version</span>
 <div class="row g12">
-<label class="col g4 grow"><span class="note">Layer name</span><input class="inp m" placeholder="shared-utils"><span class="note">Letters, digits, hyphens and underscores, up to 64.</span></label>
+<label class="col g4 grow"><span class="note">Layer name</span><input class="inp m" placeholder="shared-utils"><span class="note">Letters, digits, hyphens and underscores.</span></label>
 <label class="col g4 grow"><span class="note">Compatible runtimes · optional</span><input class="inp m" placeholder="python3.12, nodejs20.x"><span class="note">Comma separated. Each is checked against AWS's runtime list.</span></label>
 </div>
 <label class="col g4"><span class="note">Content path</span><input class="inp m" placeholder="/path/to/layer.zip"><span class="note">A zip or a directory on this machine, used in place. Lay it out as AWS does: <span class="m">python/</span>, <span class="m">nodejs/node_modules</span>, <span class="m">bin/</span>. doze-aws puts those on the function's search paths; code that opens <span class="m">/opt/…</span> by literal path will not find it.</span></label>

@@ -173,7 +173,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="note">A policy decided this, not the input — the request was well formed. The function's resource policy has no statement for API Gateway, and under enforce the call is not made. The fix is the policy: a Lambda permission for <span class="m">apigateway.amazonaws.com</span>, as an <span class="m">AWS::Lambda::Permission</span> in a template would give. <a class="m" href="Iam-Home.dc.html">Access log →</a></span>
 </div>
 
-<span class="note" style="max-width: 860px">The API Gateway page has no part in this; the call that was refused is the one the gateway makes to the function on your behalf. Wiring an integration here does not add that permission. Under soft mode the same send goes through and is only recorded.</span>
+<span class="note" style="max-width: 860px">The Invoke tab does not show this denial: it calls as root, so the function runs. It is what an outside caller (curl, an SDK) gets, and what the Wire page and the access log carry. The API Gateway page has no part in this; the call that was refused is the one the gateway makes to the function on your behalf. Wiring an integration here does not add that permission. Under soft mode the same send goes through and is only recorded.</span>
 </main>
 
 </div>

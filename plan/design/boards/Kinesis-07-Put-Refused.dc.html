@@ -172,7 +172,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidArgumentException</span></div>
 <span class="m">record 0: data of 1048577 bytes exceeds the 1048576 byte limit</span>
-<span class="note">One byte over 1 MiB. A single put says "record 0" because it travels the same path as a batch.</span>
+<span class="note">One byte over the 1 MiB default; the partition key counts toward it too. A single put says "record 0" because it travels the same path as a batch.</span>
 </div>
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ResourceNotFoundException</span></div>
@@ -196,7 +196,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="m">RetentionPeriodHours must be between 24 and 8760</span>
 <span class="note">8 760 hours is 365 days. A value below 24 gets the same refusal.</span>
 </div>
-<span class="note">Applying the number it already has is not refused: nothing is sent and the page says it was set.</span>
+<span class="note">Applying the number it already has sends nothing and the page says it was set; AWS would refuse it, since the value must be more or less than the current one.</span>
 </div>
 </div>
 

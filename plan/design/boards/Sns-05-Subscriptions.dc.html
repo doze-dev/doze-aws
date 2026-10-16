@@ -189,7 +189,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="r"><span class="row g6 ce"><span class="sv sm c-lam">λ</span><a class="m el" href="Lambda-Home.dc.html">harbour-dispatch-notifier</a></span><span class="m">lambda</span><span class="m mut">none</span><span class="m mut">—</span><span><span class="pill ok" style="height: 18px">confirmed</span></span><span class="ra"><a class="btn sm ghost" href="Sns-07-Sub-Settings.dc.html">Settings</a><a class="btn sm ghost" href="Sns-17-Confirms.dc.html">Unsubscribe</a></span></div>
 <div class="r"><span class="m el">http://localhost:9000/hooks/orders</span><span class="m">http</span><span class="m mut">none</span><span class="m">off</span><span><span class="pill warn" style="height: 18px">pending</span></span><span class="ra note">confirm it first</span></div>
 </div>
-<span class="note">The real page shows the filter and raw state as small badges. The filter column is the same policy summarised the way an EventBridge rule's pattern is, read from the attributes the page already fetches for each subscription. SNS lists a pending subscription as PendingConfirmation, with no ARN to address, so it has no settings and nothing to unsubscribe until it is confirmed.</span>
+<span class="note">The real page shows the filter and raw state as small badges. The filter column is the same policy summarised the way an EventBridge rule's pattern is, read from the attributes the page already fetches for each subscription. SNS lists a pending subscription as PendingConfirmation, with no ARN in the list (Subscribe returns it when asked), so it has no settings and nothing to unsubscribe until it is confirmed.</span>
 </div>
 
 <div class="row g8 ce" style="margin-top: 2px">

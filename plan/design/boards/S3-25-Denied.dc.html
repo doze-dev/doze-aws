@@ -172,8 +172,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 
 <div class="callout" style="max-width: 900px">
-<span class="b">One statement can lock the page out of its own fix</span>
-<span class="note">A Deny of <span class="m">s3:*</span> to everyone also denies <span class="m">s3:PutBucketPolicy</span> and <span class="m">s3:DeleteBucketPolicy</span>, so saving or removing the policy comes back Denied by the very statement being removed. Restart doze-aws under another IAM mode and remove it there.</span>
+<span class="b">One statement cannot lock the page out of its own fix</span>
+<span class="note">A Deny of <span class="m">s3:*</span> to everyone also denies <span class="m">s3:PutBucketPolicy</span> and <span class="m">s3:DeleteBucketPolicy</span> to other callers, but the bucket owner's root can always read, replace and delete the bucket policy, so saving or removing it still works from this page.</span>
 </div>
 </main>
 

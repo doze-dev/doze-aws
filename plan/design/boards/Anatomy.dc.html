@@ -151,7 +151,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="well row ce g8 grow" style="padding: 5px 10px"><span class="note">fed by</span><span class="sv sm" style="--c: #a83bf0">SN</span><span class="m">harbour-orders-topic</span><span class="mut">→</span><span class="b">this queue</span><span class="mut">→</span><span class="note">read by</span><span class="sv sm" style="--c: #e77610">λ</span><span class="m">harbour-order-validator</span></div></div>
 
 <div class="row ce g8"><span class="num">6</span>
-<div class="tabs grow"><a class="tab on" href="#">Messages</a><a class="tab" href="#">Settings</a><a class="tab" href="#">Access</a><a class="tab" href="#">Tags</a></div></div>
+<div class="tabs grow"><a class="tab on" href="#">Messages</a><a class="tab" href="#">Consume</a><a class="tab" href="#">Configuration</a><a class="tab" href="#">Tags</a></div></div>
 
 <div class="card grow" style="--c: 22px 1fr 110px 86px">
 <div class="r h"><span></span><span>Body</span><span>Received</span><span>Hidden for</span></div>
@@ -165,7 +165,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="dock" style="margin: 0 -18px; border-top: 1px solid var(--line)">
 <div class="dh"><span class="num">8</span><span class="b">The wire</span><span class="note">calls that touched this queue</span><span class="grow"></span><span class="pill ok" style="height: 18px"><span class="dot"></span>live</span></div>
 <div class="r kid" style="--c: 96px 200px 1fr 60px"><span class="m">14:36:21.402</span><span class="b" style="color: var(--ink)">SendMessage</span><span class="m">harbour-checkout-orders</span><span class="m ok">200</span></div>
-<div class="r kid" style="--c: 96px 200px 1fr 60px"><span class="m">14:36:19.870</span><span class="b" style="color: var(--ink)">SendMessage</span><span class="m">MessageGroupId is only valid on a FIFO queue</span><span class="m deny">400</span></div>
+<div class="r kid" style="--c: 96px 200px 1fr 60px"><span class="m">14:36:19.870</span><span class="b" style="color: var(--ink)">SendMessage</span><span class="m">MessageDeduplicationId belongs to FIFO queues</span><span class="m deny">400</span></div>
 </div>
 </main>
 

@@ -154,7 +154,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row sb ce"><span class="h2">Logs</span><span class="note">logging is off for this machine</span></div>
 <div class="well pad col g8">
 <span class="note">A Standard machine's history is on each execution's page. To vend it to CloudWatch Logs as well, set a <span class="m">loggingConfiguration</span> with a level and a log group destination on the machine, with the SDK, SAM's <span class="m">Logging</span>, or the CDK's <span class="m">logs</span> property.</span>
-<span class="note">An Express machine writes to <span class="m">/aws/vendedlogs/states/harbour-order-fulfilment</span> even with logging off, because that is its only record.</span>
+<span class="note">doze-aws writes an Express machine's runs to <span class="m">/aws/vendedlogs/states/harbour-order-fulfilment</span> even with logging off, because that is its only record here; on AWS, level OFF logs nothing.</span>
 </div>
 </div>
 <div class="callout">

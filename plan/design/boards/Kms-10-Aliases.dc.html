@@ -162,7 +162,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g16" style="align-items: flex-start">
 
 <div class="col" style="flex: 1.3 1 0; gap: 10px">
-<div class="col"><span class="h2">Aliases</span><span class="note">Names that resolve to this key. A call can name the key by id, ARN, alias name or alias ARN.</span></div>
+<div class="col"><span class="h2">Aliases</span><span class="note">Names that resolve to this key. Some calls can name the key by id, ARN, alias name or alias ARN; others take only the id or ARN.</span></div>
 <div class="card" style="--c: 1fr 90px">
 <div class="r"><span class="m">alias/harbour-checkout</span><span class="ra"><a class="btn sm ghost" href="Kms-13-Confirms.dc.html">Remove</a></span></div>
 <div class="r"><span class="m">alias/checkout-orders</span><span class="ra"><a class="btn sm ghost" href="Kms-13-Confirms.dc.html">Remove</a></span></div>
@@ -172,7 +172,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="h2">Add an alias</span>
 <div class="row g8 ce"><span class="m mut">alias/</span><input class="inp m" value="harbour-signing"><button class="btn sm">Add</button></div>
 <span class="note">One name points at one key; a key can have several. Names under alias/aws/ are reserved for AWS-managed keys.</span>
-<span class="note m">letters, digits, / _ - · up to 250 · <span class="ok">enforced</span></span>
+<span class="note m">letters, digits, : / _ - · up to 250 · <span class="ok">enforced</span></span>
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">AlreadyExistsException</span></div>
 <span class="m">alias/harbour-signing already exists</span>

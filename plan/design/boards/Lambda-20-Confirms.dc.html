@@ -120,7 +120,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="cap">From the function's header · Delete</span>
 <div class="card pad col g8" style="box-shadow: 0 10px 28px rgba(0,0,0,.14)">
 <span class="h2">Delete function “harbour-order-validator”?</span>
-<span class="mut">The function, its versions and its aliases are removed. Its event source mappings are not: the poller and the mapping stay behind.</span>
+<span class="mut">The function, its versions and its aliases are removed. Its event source mappings are not: they stay, and are removed on their own.</span>
 <div class="callout warn" style="padding: 8px 10px">
 <div class="row ce g8"><span class="b">1 trigger is still wired</span><span class="tag new">new</span></div>
 <span class="note"><span class="m">harbour-checkout-orders</span>. Remove it first on the Triggers tab. Built from the function's mappings, which the page already has.</span>
@@ -147,7 +147,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="mut">The address stops answering. The function itself is not touched.</span>
 <div class="row g8" style="justify-content: flex-end"><button class="btn">Keep it</button><button class="btn danger">Remove URL</button></div>
 </div>
-<span class="note">After it: the panel offers Create function URL again. The address is derived from the function's name, so a new one is the same address.</span>
+<span class="note">After it: the panel offers Create function URL again. doze-aws derives the address from the function's name, so a new one is the same address; AWS gives a new function URL a different address.</span>
 </div>
 
 </div>

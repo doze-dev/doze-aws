@@ -172,7 +172,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8"><input class="inp m" value="port" style="max-width: 200px"><input class="inp m" value="5432"><button class="btn ghost sm" aria-label="Remove this pair">🗑</button></div>
 <div><button class="btn sm">Add pair</button></div>
 </div>
-<span class="note">Rows save every value as a string, so <span class="m">5432</span> is stored as <span class="m">"5432"</span>. Plaintext keeps a number a number, and is the way to write a nested object.</span>
+<span class="note">Each row keeps the JSON type it arrived with, so <span class="m">5432</span> stays a number. The menu beside a row changes its type on purpose, and a number row holding words is saved as text and says so. Plaintext is the way to write a nested object.</span>
 
 <div class="row ce g8" style="justify-content: flex-end">
 <span class="note" style="margin-right: auto">● unsaved changes</span>

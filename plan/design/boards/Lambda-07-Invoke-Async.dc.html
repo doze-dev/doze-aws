@@ -194,7 +194,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <span class="cap" style="padding-top: 8px">If it fails</span>
 <div class="card pad col g8">
-<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">Tried up to 3 times</span><span class="note">The first run, then <span class="m">2</span> retries. Each is a full invoke with the same event.</span></div></div>
+<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">Tried up to 3 times</span><span class="note">The first run, then <span class="m">2</span> retries. Each is a full invoke with the same event. doze-aws retries at once; AWS waits one minute, then two.</span></div></div>
 <div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">Then handed on</span><span class="note">To the on-failure destination, <a class="m" href="Sqs-02-Pick.dc.html">harbour-checkout-orders-dlq</a>, as a record holding <span class="m">requestContext</span>, <span class="m">requestPayload</span> and <span class="m">responsePayload</span>.</span></div></div>
 <div class="row g8"><span class="dot off" style="margin-top: 7px"></span><div class="col"><span class="b">If it succeeds</span><span class="note">Nothing is sent: this function has no on-success destination.</span></div></div>
 </div>

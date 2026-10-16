@@ -115,7 +115,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="card pad col g8">
 <div class="row sb ce"><span class="h2">It worked</span><span class="tag">toast</span></div>
-<span class="mut">Bottom right. Long enough to read, and the next one replaces it. Today it stays 3.2 seconds; this makes it longer and holds it while the pointer is on it.</span>
+<span class="mut">Bottom right. Long enough to read, and the next one replaces it. It stays 7 seconds (10 for an error) and is held while the pointer or focus is on it.</span>
 <div class="grow"></div>
 <div class="row g8 ce" style="align-self: flex-end; border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; background: var(--card); box-shadow: 0 6px 18px rgba(0,0,0,.12)">
 <span class="ok b">✓</span><span>Sent to harbour-checkout-orders</span><button class="btn ghost sm" aria-label="Dismiss">×</button>
@@ -130,11 +130,11 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <label class="col g4"><span class="b">Visibility timeout</span><input class="inp" style="border-color: var(--bad)" value="90000"></label>
 <div class="callout bad">
 <span class="m b">InvalidAttributeValue</span>
-<span>Invalid value for the parameter VisibilityTimeout. It can be 0 to 43200 seconds.</span>
+<span>Value for parameter VisibilityTimeout is invalid. Reason: must be between 0 and 43200.</span>
 </div>
 </div>
 <div class="grow"></div>
-<span class="note">AWS's code and AWS's sentence, placed beside the control that caused it. The form keeps what was typed.</span>
+<span class="note">The code and the sentence the service answered with, placed beside the control that caused it. The form keeps what was typed.</span>
 </div>
 
 <div class="card pad col g8">
@@ -164,8 +164,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row sb ce"><span class="h2">There is nothing here</span><span class="tag">empty</span></div>
 <span class="mut">Says what would put something here, and offers the one way to do it by hand.</span>
 <div class="well col ce g8 grow" style="justify-content: center; text-align: center; padding: 18px">
-<span class="b">No messages are waiting.</span>
-<span class="mut" style="max-width: 300px">Nothing feeds this queue yet. A message sent by your app, or from the box below, lands here.</span>
+<span class="b">No visible messages.</span>
+<span class="mut" style="max-width: 300px">Send one below — it lands here.</span>
 <button class="btn">Send one now</button>
 </div>
 </div>

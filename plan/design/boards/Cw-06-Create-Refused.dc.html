@@ -156,7 +156,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidParameterValueException</span></div>
-<span class="m">The parameter Period must be 1, 5, 10, 20, 30, or a multiple of 60.</span>
+<span class="m">The parameter Period must be 10, 20, 30, or a multiple of 60.</span>
 <span class="note">doze-aws refuses this because AWS does — the rule comes from AWS's own service model, so the same call would have failed on deploy.</span>
 </div>
 
@@ -177,7 +177,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <label class="col g4 grow"><span class="note">Threshold</span><input class="inp m" value="300"></label>
 </div>
 <div class="row g12">
-<label class="col g4 grow"><span class="note">Period · s</span><input class="inp m" value="45" style="border-color: var(--deny)" aria-invalid="true"><span class="note">45 seconds is none of 1, 5, 10, 20, 30, and not a whole number of minutes.</span></label>
+<label class="col g4 grow"><span class="note">Period · s</span><input class="inp m" value="45" style="border-color: var(--deny)" aria-invalid="true"><span class="note">45 seconds is none of 10, 20, 30, and not a whole number of minutes.</span></label>
 <label class="col g4 grow"><span class="note">Evaluation periods</span><input class="inp m" value="1"></label>
 <label class="col g4 grow"><span class="note">Datapoints to alarm</span><input class="inp m" placeholder="1"></label>
 </div>
@@ -194,8 +194,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidParameterValueException</span></div>
-<span class="m">The evaluation window (Period × EvaluationPeriods = 90000 seconds) exceeds the maximum of 86400.</span>
-<span class="note">3 600 s × 25 periods. A day of periods is the most an alarm may look back over.</span>
+<span class="m">The evaluation window (Period × EvaluationPeriods = 86460 seconds) exceeds the maximum of 86400.</span>
+<span class="note">60 s × 1 441 periods. Under an hour of period, a day of periods is the most an alarm may look back over; from an hour up it is 604 800 s.</span>
 </div>
 
 <div class="callout deny">

@@ -161,7 +161,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="h2">Shard count</span>
 <div class="row g12" style="align-items: flex-start">
 <label class="col g4" style="width: 180px"><span class="note">Target shards · TargetShardCount</span><input class="inp m" value="4"><span class="note">4 shards, a quarter of the key space each</span></label>
-<div class="col g4 grow"><span class="note">Uniform scaling: every open shard closes and a new set opens, tiling the key space evenly. Records already written stay where they are, in shards that close.</span><span class="note m">1 and up · UNIFORM_SCALING only · <span class="ok">enforced</span></span></div>
+<div class="col g4 grow"><span class="note">Uniform scaling: every open shard closes and a new set opens, tiling the key space evenly. Records already written stay where they are, in shards that close.</span><span class="note m">1 and up, at most double and at least half the current count · UNIFORM_SCALING only ·<span class="ok">enforced</span></span></div>
 </div>
 <div class="callout ok"><span class="note"><a class="m" href="Lambda-Home.dc.html">harbour-stock-forecast</a> reads each shard separately. After a rescale it follows the new shards without being restarted.</span></div>
 
@@ -192,12 +192,12 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8 ce"><label class="col g4" style="width: 220px"><span class="note">Stream mode · StreamModeDetails</span><select class="inp m"><option>PROVISIONED</option><option>ON_DEMAND</option></select></label><span class="grow"></span><button class="btn sm" style="align-self: flex-end">Set mode</button></div>
 <span class="note">PROVISIONED lets you own the shard layout: split, merge and scale by hand. ON_DEMAND hands that back to the service.</span>
 <span class="note m">PROVISIONED | ON_DEMAND · <span class="ok">enforced</span></span>
-<span class="note">Switching keeps the shards you have. A stream created on-demand through the API starts with 4.</span>
+<span class="note">Switching keeps the shards you have. A stream created on-demand through the API starts with 4 here.</span>
 </div>
 
 <div class="callout">
 <span class="b">On an on-demand stream</span>
-<span class="note">The console hides Merge and Scale, and doze-aws refuses UpdateShardCount. Nothing resizes the stream by itself here.</span>
+<span class="note">The console hides Split, Merge and Scale, and doze-aws refuses SplitShard, MergeShards and UpdateShardCount. Nothing resizes the stream by itself here.</span>
 </div>
 
 <span class="cap">Refusals these controls can come back with</span>

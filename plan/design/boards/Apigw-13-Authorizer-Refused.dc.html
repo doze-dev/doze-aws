@@ -159,7 +159,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ConflictException</span></div>
 <span class="m">Authorizer name must be unique. Authorizer harbour-token-gate already exists in this RestApi.</span>
-<span class="note">doze-aws refuses this because AWS does — the rule comes from AWS's own service model, so the same call would have failed on deploy.</span>
+<span class="note">doze-aws refused the request: it breaks a rule of the service. The input is what to change.</span>
 </div>
 <div class="row g8">
 <label class="col g4 grow"><span class="note">Name</span><input class="inp m" style="border-color: var(--deny)" value="harbour-token-gate"></label>

@@ -169,7 +169,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="callout deny">
 <span class="m b">InvalidParameterValue</span>
-<span>Value harbour-orders for parameter MessageGroupId is invalid. Reason: The request includes a parameter that is not valid for this queue type.</span>
+<span>The request include parameter that is not valid for this queue type: MessageDeduplicationId belongs to FIFO queues.</span>
 </div>
 
 <div class="col g6">
@@ -177,7 +177,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <pre class="code">{
   <span class="kw">"QueueUrl"</span>: <span class="s">"…/harbour-checkout-orders"</span>,
   <span class="kw">"MessageBody"</span>: <span class="s">"{\"orderId\":\"HRB-2026-04810\"}"</span>,
-  <span class="kw">"MessageGroupId"</span>: <span class="s">"harbour-orders"</span>
+  <span class="kw">"MessageDeduplicationId"</span>: <span class="s">"harbour-orders"</span>
 }</pre>
 </div>
 

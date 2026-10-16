@@ -172,8 +172,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <pre class="code" style="min-height: 52px">{ <span class="kw">"van"</span>: <span class="s">"V-17"</span>, <span class="kw">"depot"</span>: <span class="s">"north"</span> }</pre></label>
 
 <div class="row g12">
-<label class="col g4 grow"><span class="note">Message group ID <span class="tag new">new</span></span><input class="inp m" style="border-color: var(--deny)" placeholder="V-17"><span class="note">Messages with the same group are delivered in the order sent; groups do not wait for each other. Required on a FIFO topic, any non-empty text.</span></label>
-<label class="col g4 grow"><span class="note">Deduplication ID · optional <span class="tag new">new</span></span><input class="inp m" placeholder="dispatch-V-17-0001"><span class="note">Required here, because content-based deduplication is off. The same ID within 5 minutes is dropped by the queue.</span></label>
+<label class="col g4 grow"><span class="note">Message group ID <span class="tag new">new</span></span><input class="inp m" style="border-color: var(--deny)" placeholder="V-17"><span class="note">Messages with the same group are delivered in the order sent; groups do not wait for each other. Required on a FIFO topic, up to 128 alphanumeric and punctuation characters.</span></label>
+<label class="col g4 grow"><span class="note">Deduplication ID · optional <span class="tag new">new</span></span><input class="inp m" placeholder="dispatch-V-17-0001"><span class="note">Required here, because content-based deduplication is off. The topic deduplicates: the same ID within 5 minutes is accepted again and delivered to nobody.</span></label>
 </div>
 
 <div class="row g12 ce">

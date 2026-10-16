@@ -221,7 +221,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8"><span class="m b">1</span><span class="note"><span class="b">A managed policy changes by publishing.</span> A new version is added beside the others; none is edited in place. Roll back by making an older one the default.</span></div>
 <div class="row g8"><span class="m b">2</span><span class="note"><span class="b">The default is what is evaluated.</span> Every attachment above reads it from the next request on. Publishing a version does not change a thing until it is the default.</span></div>
 <div class="row g8"><span class="m b">3</span><span class="note"><span class="b">Up to 5 versions.</span> The default cannot be deleted. Delete an old one before publishing a sixth.</span></div>
-<div class="row g8"><span class="m b">4</span><span class="note"><span class="b">Delete the policy last.</span> It is refused while anything holds it. Detach it from each of the principals above first.</span></div>
+<div class="row g8"><span class="m b">4</span><span class="note"><span class="b">Delete the policy last.</span> It is refused while anything holds it, or while it has versions beside the default. Detach it from each of the principals above first, and delete its other versions.</span></div>
 </div>
 
 </div>

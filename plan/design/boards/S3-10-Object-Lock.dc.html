@@ -168,12 +168,12 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="kv" style="--c: 120px 1fr; row-gap: 8px">
 <span>Legal hold</span><span class="note">A flag with no date. While it is ON the version cannot be deleted; you release it.</span>
 <span>GOVERNANCE</span><span class="note">Retained until a date. The date can be shortened or removed by someone allowed to bypass it.</span>
-<span>COMPLIANCE</span><span class="note">Retained until a date, and nobody can shorten it: <span class="m">existing retention cannot be shortened</span>.</span>
+<span>COMPLIANCE</span><span class="note">Retained until a date, and nobody can shorten it or change its mode, not even the account's root user: <span class="m">existing retention cannot be shortened</span>.</span>
 <span>Enforced</span><span class="note">Deleting a protected version is refused, in every IAM mode. A plain delete still works, because it only adds a delete marker.</span>
 </div>
 <div class="callout" style="margin-top: 2px">
-<span class="b">The bucket default is not applied here</span>
-<span class="note">This bucket's default retention is GOVERNANCE for <span class="m">30</span> days, yet this object came in with none. doze-aws stores the default and does not apply it to new objects; set retention by hand, as on the right.</span>
+<span class="b">The bucket default is applied here</span>
+<span class="note">This bucket's default retention is GOVERNANCE for <span class="m">30</span> days, which every new version gets when it arrives without its own; an explicit retention on the object wins, as on the right.</span>
 </div>
 </div>
 </main>

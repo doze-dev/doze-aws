@@ -198,7 +198,7 @@ x-amz-sns-message-type: SubscriptionConfirmation
 <div class="col g4">
 <span class="note">Your endpoint can confirm itself by fetching <span class="m">SubscribeURL</span>, or you paste the <span class="m">Token</span> here. Either one flips the subscription.</span>
 <span class="note">Lost the token? Subscribe the same endpoint again. It is the same subscription with the same token, and the confirmation is sent again.</span>
-<span class="note"><span class="m">sqs</span> and <span class="m">lambda</span> never wait: they are confirmed on subscribe. An <span class="m">email</span>, <span class="m">sms</span>, <span class="m">application</span> or <span class="m">firehose</span> subscription made through the SDK stays pending, because nothing is sent to it and so there is no token to hand back.</span>
+<span class="note"><span class="m">sqs</span>, <span class="m">lambda</span>, <span class="m">sms</span>, <span class="m">application</span> and <span class="m">firehose</span> never wait: they are confirmed on subscribe. An <span class="m">email</span> or <span class="m">email-json</span> subscription made through the SDK stays pending, because nothing is sent to it and so there is no token to hand back.</span>
 </div>
 </div>
 

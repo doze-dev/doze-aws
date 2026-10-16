@@ -181,9 +181,9 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="card pad col g8">
 <div class="col"><span class="b">Prefix <span class="note m">Prefix</span></span><span class="note">Only keys that begin with it. Empty means the whole bucket. <span class="ok">enforced</span></span></div>
 <div class="col"><span class="b">Status <span class="note m">Status</span></span><span class="note">Enabled or Disabled; left empty it is Enabled, and an empty Id becomes <span class="m">rule-1</span>, <span class="m">rule-2</span>. A disabled rule is skipped. <span class="ok">enforced</span></span></div>
-<div class="col"><span class="b">Expire (d) <span class="note m">Expiration.Days</span></span><span class="note">A current object older than this many days, from its last-modified time, is deleted; on a versioned bucket that adds a delete marker. <span class="ok">enforced</span></span></div>
-<div class="col"><span class="b">Noncurrent (d) <span class="note m">NoncurrentVersionExpiration</span></span><span class="note">A version that is no longer current and is older than this many days is removed for good. <span class="ok">enforced</span></span></div>
-<div class="col"><span class="note">The janitor looks once a minute. Days are whole days, so a 1-day rule has nothing to do until tomorrow.</span></div>
+<div class="col"><span class="b">Expire (d) <span class="note m">Expiration.Days</span></span><span class="note">A current object is deleted this many days after it was written, rounded up to the next midnight UTC; on a versioned bucket that adds a delete marker. <span class="ok">enforced</span></span></div>
+<div class="col"><span class="b">Noncurrent (d) <span class="note m">NoncurrentVersionExpiration</span></span><span class="note">A version that is no longer current is removed for good this many days after the next version was written, rounded up to the next midnight UTC. <span class="ok">enforced</span></span></div>
+<div class="col"><span class="note">The janitor looks once a minute. A rule's time is rounded up to the next midnight UTC, so it never acts before the midnight after its days have passed.</span></div>
 </div>
 
 <div class="callout ok"><span class="b">prune-old fits this bucket</span><span class="note">Versioning is on, so there are noncurrent versions for a noncurrent rule to remove.</span></div>

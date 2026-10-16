@@ -166,7 +166,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="note m">7 offered · also over the API: ECC_NIST_P521, HMAC_224 / 384 / 512 · <span class="ok">enforced</span></span></label>
 <label class="col g4 grow"><span class="note">Usage · KeyUsage</span>
 <select class="inp m"><option>SIGN_VERIFY</option></select>
-<span class="note">An RSA key can do either job. Left on Default for spec, this key would encrypt and decrypt instead of signing.</span>
+<span class="note">An RSA key can do either job. Left on Default for spec, this key would encrypt and decrypt instead of signing. AWS has no default for RSA and requires KeyUsage; Default for spec is a doze-aws convenience.</span>
 <span class="note m">RSA_2048: ENCRYPT_DECRYPT or SIGN_VERIFY · <span class="ok">enforced</span></span></label>
 </div>
 </div>
@@ -177,7 +177,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <label class="col g4 grow"><span class="note">Alias · optional</span>
 <div class="row ce g4"><span class="m mut">alias/</span><input class="inp m" value="harbour-signing"></div>
 <span class="note">A name to use instead of the key id. One key can have several; creating one is a second call after the key exists.</span>
-<span class="note m">letters, digits, / _ - · up to 250 · <span class="ok">enforced</span></span></label>
+<span class="note m">letters, digits, : / _ - · up to 250 · <span class="ok">enforced</span></span></label>
 <label class="col g4 grow"><span class="note">Description · optional</span>
 <input class="inp" value="Signs outbound webhook payloads">
 <span class="note">The only human-readable thing about a key besides its alias. It can be corrected later.</span>

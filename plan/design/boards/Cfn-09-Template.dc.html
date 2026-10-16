@@ -163,7 +163,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g12">
 <div class="callout grow" style="flex: 1 1 0">
 <span class="b"><span class="m">AccrueRole</span> is accepted and not made</span>
-<span class="note">An IAM role has no local analogue: no IAM evaluation during apply. It resolves for <span class="m">!GetAtt</span>, and it has no row under Resources.</span>
+<span class="note">A stack does not make IAM resources here: no IAM evaluation during apply, and the iam service is not asked. It resolves for <span class="m">!GetAtt</span>, and it has no row under Resources.</span>
 </div>
 <div class="callout grow" style="flex: 1 1 0">
 <span class="b"><span class="m">Statements</span> is Retain</span>

@@ -158,7 +158,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
       <span class="kw">"Resource"</span>: <span class="s">"arn:aws:states:::ecs:runTask.sync"</span>, …</pre>
 <span class="note ok b">✓ Definition is valid — AWS would accept it too.</span>
 <div class="callout deny" role="alert">
-<div class="row ce g8"><span class="b">Refused</span><span class="m">UnsupportedOperationException</span><span class="note">pressing Save definition after that</span></div>
+<div class="row ce g8"><span class="b">Not built</span><span class="m">UnsupportedOperationException</span><span class="note">pressing Save definition after that</span></div>
 <span class="m">Resource arn:aws:states:::ecs:runTask.sync is not supported by doze-aws yet: "arn:aws:states:::ecs:runTask.sync": .sync waits for a job on a service that does not run locally; only states:startExecution.sync is supported</span>
 <span class="note">AWS would accept this. Validate looked at the shape, Save looked at the resource. <span class="tag new">new</span></span>
 </div>
@@ -204,9 +204,9 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="m bad">Lambda.ServiceException</span><span class="m">throttled</span>
 </div>
 <div class="card pad col g6">
-<div class="row ce g8"><span class="m b">Reserve stock</span><span class="pill bad">CAUGHT_ERROR</span><span class="note">next <span class="m">Rejected</span></span></div>
+<div class="row ce g8"><span class="m b">Reserve stock</span><span class="pill bad">FAILED</span><span class="note">next <span class="mut">end</span></span></div>
 <span class="m bad">States.Runtime</span><span class="m">.waitForTaskToken is not available to this execution type</span>
-<span class="note">Mocked or not. Its Catch ran, so it reads as caught.</span>
+<span class="note">A bug, not the model: TestState supports a mocked .waitForTaskToken Task, so this should not fail (SFN-35). Where it does fail, a Catch on States.ALL does not catch States.Runtime (SFN-49), so it is not caught.</span>
 </div>
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ValidationException</span></div>

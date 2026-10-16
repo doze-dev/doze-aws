@@ -150,13 +150,13 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ValidationException</span></div>
 <span class="m" style="white-space: normal">Parameter name: can't be prefixed with "aws" or "ssm" (case-insensitive). If formed as a path, it can consist of sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following 3 symbols .-_</span>
-<span class="note">doze-aws refuses this because AWS does. These are AWS's own name rules; the service model does not carry them, so doze-aws checks them by hand, with AWS's wording.</span>
+<span class="note">doze-aws refuses this because AWS does. These are AWS's own name rules; the service model states them in its documentation text, so doze-aws checks them by hand. The wording of the refusal is recalled, not the model's.</span>
 </div>
 
 <div class="card pad col g8">
 <span class="h2">General</span>
 <label class="col g4"><span class="note">Name · path</span><input class="inp m" style="border-color: var(--deny)" value="/harbour/my param" aria-invalid="true">
-<span class="note m">1 – 2 048 characters · up to 15 levels · letters, digits and . - _ in each level · not starting aws or ssm · <span class="ok">enforced</span></span></label>
+<span class="note m">1 – 1 011 characters, the ARN prefix included · up to 15 levels · letters, digits and . - _ in each level · not starting aws or ssm · <span class="ok">enforced</span></span></label>
 <div class="row g8">
 <div class="well pad col grow" style="border-color: var(--ink)"><span class="b">String</span></div>
 <div class="well pad col grow"><span class="b">StringList</span></div>

@@ -177,10 +177,9 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span>shard limit</span><span>10000</span>
 <span>open shards, all streams</span><span>7</span>
 <span>on-demand streams</span><span>0 / 50</span>
-<span>max record size</span><span>1048576 bytes</span>
-<span>default stream mode</span><span>PROVISIONED</span>
+<span>MinimumThroughputBillingCommitment</span><span>DISABLED</span>
 </div>
-<span class="note">Fixed locally. UpdateAccountSettings and UpdateMaxRecordSize are accepted so SDK code does not break, and discarded.</span>
+<span class="note">Fixed locally. UpdateAccountSettings sets the minimum throughput billing commitment and it is read back. The record size limit belongs to each stream (UpdateMaxRecordSize), not the account.</span>
 </div>
 </div>
 
@@ -201,7 +200,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ResourceInUseException</span></div>
 <span class="m" style="white-space: normal">consumer analytics-worker is already registered on harbour-stock-events</span>
 </div>
-<span class="note">Registration is real and lists back. Data delivery is not: SubscribeToShard answers <span class="m">doze-aws does not implement SubscribeToShard: enhanced fan-out delivers over an HTTP/2 event stream; use GetRecords, or register the consumer and poll</span>.</span>
+<span class="note">Registration is real and lists back. Data delivery is not: SubscribeToShard answers <span class="m">501 NotImplemented: doze-aws does not implement SubscribeToShard: enhanced fan-out delivers over an HTTP/2 event stream; use GetRecords, or register the consumer and poll</span>.</span>
 </div>
 
 <div class="card pad col g6">

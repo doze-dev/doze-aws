@@ -182,9 +182,9 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="card pad col g6">
 <span class="h2">How it reads</span>
-<span class="note">A <span class="m">&lt;name&gt;</span> is replaced by the value at its path. A string goes in as it is, so the quotes are yours to write; anything else goes in as JSON.</span>
-<span class="note">A path is <span class="m">$</span> then dotted keys. No array index, no wildcard. A path that finds nothing becomes an empty string.</span>
-<span class="note">doze-aws replaces only the names you map. A predefined name such as <span class="m">&lt;aws.events.rule-name&gt;</span> is left as written.</span>
+<span class="note">A <span class="m">&lt;name&gt;</span> is replaced by the value at its path. A string is quoted for you where the template needs JSON; an object or an array is not.</span>
+<span class="note">A path is <span class="m">$</span> then dotted keys; array indices and wildcards are part of the path syntax.</span>
+<span class="note">Five predefined names are reserved and are not to be mapped: <span class="m">&lt;aws.events.rule-name&gt;</span>, <span class="m">&lt;aws.events.rule-arn&gt;</span>, <span class="m">&lt;aws.events.event.json&gt;</span>, <span class="m">&lt;aws.events.event&gt;</span> and <span class="m">&lt;aws.events.event.ingestion-time&gt;</span>.</span>
 <span class="note">With <span class="b">Part of it</span> (up to 256 characters), a path that finds nothing means the event is not delivered at all. A <span class="b">constant</span> (up to 8 192) is sent as it is.</span>
 </div>
 </div>

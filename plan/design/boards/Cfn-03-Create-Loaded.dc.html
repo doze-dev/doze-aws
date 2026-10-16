@@ -181,7 +181,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="card pad col g6">
 <div class="row sb ce"><div class="col"><span class="b">Create a change set instead</span><span class="note">The stack materialises in REVIEW_IN_PROGRESS; nothing deploys until you execute the reviewed diff</span></div><div class="seg"><span class="on">off</span><span>on</span></div></div>
-<div class="row g8" style="align-items: flex-start"><span class="btn sm" style="border-color: var(--ink)">cli</span><div class="code grow" style="white-space: normal; padding: 5px 10px; overflow: hidden"><span class="c">aws --endpoint-url http://127.0.0.1:4566 cloudformation create-stack --stack-name harbour-loyalty --template-body 'AWSTemplateFormatVersion: "2010-09-09" …'</span></div></div>
+<div class="row g8" style="align-items: flex-start"><span class="btn sm" style="border-color: var(--ink)">cli</span><div class="code grow" style="white-space: normal; padding: 5px 10px; overflow: hidden"><span class="c">aws --endpoint-url http://127.0.0.1:4566 cloudformation create-stack --stack-name harbour-loyalty --capabilities CAPABILITY_IAM --template-body 'AWSTemplateFormatVersion: "2010-09-09" …'</span></div></div>
 </div>
 </div>
 
@@ -198,7 +198,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 <div class="col" style="gap: 3px; padding-top: 2px">
 <div class="row g8"><span class="m b" style="width: 16px">1</span><span class="b">is accepted, with no local effect</span></div>
-<span class="note" style="padding-left: 24px"><span class="m">AccrueRole</span> · IAM role. No IAM evaluation during apply, so it is not made and is not listed under Resources.</span>
+<span class="note" style="padding-left: 24px"><span class="m">AccrueRole</span> · IAM role. AWS asks for <span class="m">CAPABILITY_IAM</span> and the form carries the acknowledgement <span class="tag new">new</span>. No IAM evaluation during apply, so it is not made and is not listed under Resources.</span>
 </div>
 <div class="row g8" style="padding-top: 2px"><span class="m b mut" style="width: 16px">0</span><span class="b">would be refused</span></div>
 </div>

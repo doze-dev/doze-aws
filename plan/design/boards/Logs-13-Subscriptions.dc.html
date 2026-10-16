@@ -162,8 +162,8 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row sb ce"><div class="row ce g8"><span class="h2">Subscription filters</span><span class="pill">2</span></div><span class="note">matching lines go to a Lambda function or a Kinesis stream, gzip-wrapped as on AWS</span></div>
 <div class="card" style="--c: 150px 1fr 1.1fr 36px">
 <div class="r h"><span>Filter</span><span>Pattern</span><span>Destination</span><span></span></div>
-<div class="r"><span class="m el">errors-to-notifier</span><span class="m mut el">{ $.level = "error" }</span><span class="row ce g6"><span class="sv sm c-lam">λ</span><a class="m el" href="Lambda-Home.dc.html">harbour-alert-notifier</a></span><a class="btn sm ghost" href="Logs-17-Confirms.dc.html" aria-label="Remove subscription filter errors-to-notifier">🗑</a></div>
 <div class="r"><span class="m el">archive</span><span class="m mut el">everything</span><span class="row ce g6"><span class="sv sm c-kin">KN</span><a class="m el" href="Kinesis-Home.dc.html">harbour-log-archive</a></span><a class="btn sm ghost" href="Logs-17-Confirms.dc.html" aria-label="Remove subscription filter archive">🗑</a></div>
+<div class="r"><span class="m el">errors-to-notifier</span><span class="m mut el">{ $.level = "error" }</span><span class="row ce g6"><span class="sv sm c-lam">λ</span><a class="m el" href="Lambda-Home.dc.html">harbour-alert-notifier</a></span><a class="btn sm ghost" href="Logs-17-Confirms.dc.html" aria-label="Remove subscription filter errors-to-notifier">🗑</a></div>
 </div>
 
 <div class="card pad col g8">
@@ -183,7 +183,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="card pad col g8">
 <div class="kv" style="--c: 80px 1fr; row-gap: 8px">
 <span class="b" style="color: var(--ink)">Lambda</span><span class="note">An asynchronous invoke. The payload is <span class="m">awslogs.data</span>: base64 of a gzip-compressed JSON envelope, the shape a function written against AWS already unpacks.</span>
-<span class="b" style="color: var(--ink)">Kinesis</span><span class="note">One record of raw gzip bytes. Keyed by a random value, so it spreads across shards.</span>
+<span class="b" style="color: var(--ink)">Kinesis</span><span class="note">One record of raw gzip bytes. Keyed by the log stream by default (distribution ByLogStream), or by a random value with distribution Random, which spreads across shards.</span>
 </div>
 <span class="note">The envelope carries <span class="m">logGroup</span>, <span class="m">logStream</span>, the filter's name and each line's id, timestamp and message.</span>
 </div>

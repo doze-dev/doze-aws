@@ -184,7 +184,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="col" style="flex: 1 1 0; gap: 10px">
 <div class="card pad col g8">
 <span class="h2">What just happened</span>
-<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">The policy was saved</span><span class="note">PutKeyPolicy went through, and the toast said so. Only an Allow for the account root lets the console in, and this one names alice.</span></div></div>
+<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">The policy was saved</span><span class="note">PutKeyPolicy went through, and the toast said so. Only an Allow for the account root lets the console in, and this one names alice. AWS refuses such a policy unless the request sets BypassPolicyLockoutSafetyCheck, so the console asks for that choice on Save key policy.</span></div></div>
 <div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">The page's next read was denied</span><span class="note">The editor redraws itself from DescribeKey, and root is no longer admitted. That denial is what you see on the left.</span></div></div>
 <div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">The key is out of reach</span><span class="note">It drops out of the list, its address answers Denied, and PutKeyPolicy is denied as well, so this page cannot write a better policy.</span></div></div>
 </div>

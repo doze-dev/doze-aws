@@ -177,7 +177,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ValidationException</span></div>
 <span class="m" style="white-space: normal">1 validation error detected: Value 'bad!key' at 'tags.1.key' failed to satisfy constraint: Member must satisfy regular expression pattern: ^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$</span>
-<span class="note">doze-aws refuses this because AWS does. Tags written before the refused one in the same Save stay written; the list below is what you typed.</span>
+<span class="note">doze-aws refuses this because AWS does. Nothing was changed. Refused: writing "bad!key". The editor redraws from the parameter.</span>
 </div>
 
 <div class="card pad col g8">
@@ -200,7 +200,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="col grow" style="flex: 1 1 0; gap: 8px">
 <span class="h2">What a tag may hold</span>
 <div class="card pad col g8">
-<span class="note">Key · 1 – 128 characters. Value · 0 – 256 characters.</span>
+<span class="note">Key · 1 – 128 characters. Value · 0 – 256 characters. At most 50 tags on a parameter.</span>
 <span class="note m">letters, digits, spaces and _ . : / = + - @ · <span class="ok">enforced</span></span>
 <span class="note">Tags belong to the parameter, not to a version, so a save or a label does not touch them.</span>
 </div>

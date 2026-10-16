@@ -197,7 +197,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="r"><span class="m">7c1e9a4b…</span><span><span class="pill ok" style="height: 18px">AWSCURRENT</span></span><span class="note">still what readers get</span></div>
 <div class="r"><span class="m">2b8d05f3…</span><span><span class="pill" style="height: 18px">AWSPREVIOUS</span></span><span class="note"></span></div>
 </div>
-<span class="note">If the function had already written its AWSPENDING version, it stays there. Readers are unaffected, because AWSCURRENT never moved. Running rotation again writes a fresh pending version and takes the label off this one, since a label names one version.</span>
+<span class="note">If the function had already written its AWSPENDING version, it stays there. Readers are unaffected, because AWSCURRENT never moved. Running rotation again is refused while that label stays on a version that is not current: AWS reads it as a rotation still in progress. The label has to come off first.</span>
 </div>
 </div>
 

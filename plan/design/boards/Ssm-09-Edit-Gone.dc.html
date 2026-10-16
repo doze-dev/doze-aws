@@ -198,7 +198,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="h2">How a parameter disappears under you</span>
 <div class="card" style="--c: 1fr">
 <div class="r" style="height: auto; padding: 8px 12px"><span class="note" style="white-space: normal">Deleted from another tab, or by a path delete: <a href="Ssm-14-Path.dc.html">Delete everything under a path</a>.</span></div>
-<div class="r" style="height: auto; padding: 8px 12px"><span class="note" style="white-space: normal">Deleted by your own code or the CLI: DeleteParameter and DeleteParameters take effect at once.</span></div>
+<div class="r" style="height: auto; padding: 8px 12px"><span class="note" style="white-space: normal">Deleted by your own code or the CLI: DeleteParameter and DeleteParameters take effect at once. AWS asks for 30 seconds before the name is reused.</span></div>
 <div class="r" style="height: auto; padding: 8px 12px"><span class="note" style="white-space: normal">Its Expiration policy passed. From that moment reads answer ParameterNotFound, and the sweep, which runs every minute, deletes it.</span></div>
 </div>
 <span class="note">Create it again from <a href="Ssm-02-Create.dc.html">New parameter</a>; the version count starts again at 1.</span>

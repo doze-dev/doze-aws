@@ -120,7 +120,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="cap">Machine header · Delete</span>
 <div class="card pad col g8" style="box-shadow: 0 10px 28px rgba(0,0,0,.14)">
 <span class="h2">Delete state machine “harbour-order-fulfilment”?</span>
-<span class="mut">Its 2 versions and 2 aliases are removed with it. Its 4 execution records are kept, and still open by their address. <span class="tag new">new</span></span>
+<span class="mut">Its 2 versions and 2 aliases are removed with it. The machine is set to DELETING and deleted only when its executions are complete; running ones are terminated on their next state transition. <span class="tag new">new</span></span>
 <div class="row g8" style="justify-content: flex-end"><a class="btn" href="Sfn-05-Executions.dc.html">Keep it</a><button class="btn danger">Delete</button></div>
 </div>
 <span class="note">After it: back to the list, with a toast. The confirm today says the executions go too; they do not. Counts built from the machine's own lists.</span>
@@ -133,7 +133,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="mut">It ends ABORTED and runs no further. Redrive can start it again from the state it was in.</span>
 <div class="row g8" style="justify-content: flex-end"><a class="btn" href="Sfn-16-Execution-Running.dc.html">Keep running</a><button class="btn danger">Stop</button></div>
 </div>
-<span class="note">A Map Run it owns is aborted with it. A child it started with .sync keeps running, as on AWS.</span>
+<span class="note">A Map Run it owns is aborted with it. A child it started with .sync keeps running: doze-aws; not established for AWS.</span>
 </div>
 
 <div class="col grow" style="flex: 1 1 0; min-width: 0; gap: 8px">

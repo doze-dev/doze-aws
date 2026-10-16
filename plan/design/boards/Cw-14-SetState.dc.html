@@ -185,7 +185,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">Next ten-second pass</span><span class="note">The evaluator reads the metric and lets your state stand, once.</span></div></div>
 <div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">The pass after</span><span class="note">The metric's own verdict returns: ALARM to OK. Nothing is set for OK here, so that is silent.</span></div></div>
 </div>
-<span class="note">Setting the state the alarm already has still counts as a change and runs the actions again.</span>
+<span class="note">Setting the state the alarm already has runs no actions: AWS invokes them only when the new state differs from the previous one.</span>
 </div>
 
 <div class="card pad col g8">

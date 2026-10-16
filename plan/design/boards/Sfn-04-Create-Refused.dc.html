@@ -178,7 +178,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny" role="alert">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidDefinition</span><span class="note">what Create answers instead</span></div>
 <span class="m">Invalid State Machine Definition: 'States.Reserve stock.Retry[0]: States.ALL matches every error, so nothing after it can ever run (and 4 more)'</span>
-<span class="note">doze-aws refuses this because AWS does — the rule comes from AWS's own service model, so the same call would have failed on deploy.</span>
+<span class="note">doze-aws refuses this because these are States Language rules, in doze-aws's wording; the service model carries none of them.</span>
 </div>
 
 </div>
@@ -191,7 +191,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">StateMachineAlreadyExists</span></div>
 <span class="m">State Machine Already Exists: 'arn:aws:states:us-east-1:000000000000:stateMachine:harbour-order-fulfilment'</span>
-<span class="note">Same name, a different definition. The same name with an identical definition is accepted, so an unchanged redeploy goes through.</span>
+<span class="note">Same name, with a different definition, type, logging, tracing or encryption configuration (the model's idempotency check also includes publish and versionDescription). An identical repeat is accepted, and a different role or different tags alone are ignored.</span>
 </div>
 <div class="callout deny">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidArn</span></div>
@@ -202,7 +202,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="m">Invalid Name: ''harbour&amp;orders' contains a character that is not allowed'</span>
 </div>
 <div class="callout deny">
-<div class="row ce g8"><span class="b">Refused</span><span class="m">UnsupportedOperationException</span></div>
+<div class="row ce g8"><span class="b">Not built</span><span class="m">UnsupportedOperationException</span></div>
 <span class="m">Resource arn:aws:states:::ecs:runTask.sync is not supported by doze-aws yet: "arn:aws:states:::ecs:runTask.sync": .sync waits for a job on a service that does not run locally; only states:startExecution.sync is supported</span>
 <span class="note">AWS would accept this definition. doze-aws does not run the integration, and says so now rather than on the first execution. Validate does not look at resources, so it passes. <span class="tag new">new</span></span>
 </div>

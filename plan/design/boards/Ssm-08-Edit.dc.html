@@ -185,14 +185,14 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="col g4">
 <div class="row sb ce"><span class="note ok m">✓ valid JSON</span><button class="btn sm">Format</button></div>
 <pre class="code">{
-  <span class="kw">"retries"</span>: <span class="s">"4"</span>,
-  <span class="kw">"backoffMs"</span>: <span class="s">"200"</span>,
-  <span class="kw">"timeoutMs"</span>: <span class="s">"2500"</span>,
-  <span class="kw">"jitter"</span>: <span class="s">"true"</span>
+  <span class="kw">"retries"</span>: <span class="n">4</span>,
+  <span class="kw">"backoffMs"</span>: <span class="n">200</span>,
+  <span class="kw">"timeoutMs"</span>: <span class="n">2500</span>,
+  <span class="kw">"jitter"</span>: <span class="n">true</span>
 }</pre>
 </div>
 <div class="callout">
-<span class="note">Key/value rows save every value as a JSON string: <span class="m">5</span> becomes <span class="m">"5"</span> and <span class="m">true</span> becomes <span class="m">"true"</span>. Switch to Plaintext to keep numbers and booleans as they are.</span>
+<span class="note">Key/value rows keep the JSON type each value arrived with: <span class="m">5</span> stays a number and <span class="m">true</span> stays a boolean.</span>
 </div>
 
 <div class="card pad row ce g8">
@@ -219,10 +219,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="note">The rows you touched, against what is saved now. Built from the form and the current value.</span>
 <div class="kv m" style="--c: 100px 1fr; row-gap: 6px">
 <span>Version</span><span>2 <span class="mut">→</span> <span class="b">3</span></span>
-<span>retries</span><span>5 <span class="mut">→</span> <span class="b">"4"</span></span>
-<span>backoffMs</span><span>200 <span class="mut">→</span> <span class="b">"200"</span></span>
-<span>timeoutMs</span><span>2500 <span class="mut">→</span> <span class="b">"2500"</span></span>
-<span>jitter</span><span>true <span class="mut">→</span> <span class="b">"true"</span></span>
+<span>retries</span><span>5 <span class="mut">→</span> <span class="b">4</span></span>
 </div>
 </div>
 </div>

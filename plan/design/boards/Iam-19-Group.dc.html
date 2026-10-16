@@ -198,7 +198,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="card pad col g8">
 <div class="row g8"><span class="m b">1</span><span class="note"><span class="b">A group is not a caller.</span> It has no keys and signs nothing. Its policies reach a request through the users in it.</span></div>
 <div class="row g8"><span class="m b">2</span><span class="note"><span class="b">Membership is read at request time.</span> A user is judged by its own inline and attached policies together with every policy on each group it belongs to. An explicit Deny on the group beats an Allow on the user.</span></div>
-<div class="row g8"><span class="m b">3</span><span class="note"><span class="b">Only users join.</span> A role cannot be a member. Members keep their own permissions when the group is deleted; they lose the group's.</span></div>
+<div class="row g8"><span class="m b">3</span><span class="note"><span class="b">Only users join.</span> A role cannot be a member. A group that still has users, or attached policies, cannot be deleted.</span></div>
 </div>
 
 <span class="h2">Rename</span>

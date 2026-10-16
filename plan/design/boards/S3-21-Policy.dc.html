@@ -184,7 +184,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 <div class="callout">
 <span class="b">Mind a Deny of s3:*</span>
-<span class="note">A statement that denies everyone <span class="m">s3:*</span> also denies <span class="m">s3:PutBucketPolicy</span> and <span class="m">s3:DeleteBucketPolicy</span>. Under enforce this page could not take it back; the way out is restarting with another IAM mode.</span>
+<span class="note">A statement that denies everyone <span class="m">s3:*</span> also denies <span class="m">s3:PutBucketPolicy</span> and <span class="m">s3:DeleteBucketPolicy</span> to other callers, but the bucket owner's root can always read, replace and delete the bucket policy, so this page can take it back.</span>
 </div>
 </div>
 

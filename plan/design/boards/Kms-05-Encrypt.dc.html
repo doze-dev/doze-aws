@@ -166,7 +166,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="h2">Encrypt</span>
 <label class="col g4"><span class="note">Plaintext · bytes</span>
 <pre class="code" style="min-height: 40px; padding: 6px 12px">{<span class="kw">"orderId"</span>:<span class="s">"HRB-2026-04814"</span>}</pre>
-<span class="note m">28 bytes · 1 – 4 096 on AWS · refused above 3 072 here</span></label>
+<span class="note m">28 bytes · 1 – 4 096</span></label>
 <div class="col g4">
 <div class="row ce g8"><button class="btn sm">cli</button><span class="note">the aws CLI call this form maps to, as it stands now</span></div>
 <pre class="code" style="white-space: pre-wrap; padding: 8px 12px">aws --endpoint-url http://127.0.0.1:4566 kms encrypt --key-id 8c1f4a3e-52b7-4d0a-9e6b-7a2d19f0c5b3 --plaintext '{"orderId":"HRB-2026-04814"}' --cli-binary-format raw-in-base64-out</pre>

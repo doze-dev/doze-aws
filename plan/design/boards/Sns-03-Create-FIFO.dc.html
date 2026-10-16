@@ -186,10 +186,10 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">A message group ID</span><span class="note">Always. A publish without one is refused.</span></div></div>
 <div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">A way to deduplicate</span><span class="note">A dedup ID you give, since content-based is off. Without one the publish is refused.</span></div></div>
 <div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">Each FIFO queue subscribed</span><span class="note">gets the message with that group and dedup ID.</span></div></div>
-<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">The queue does the rest</span><span class="note">It orders by group, and drops a dedup ID it has seen in the last 5 minutes.</span></div></div>
+<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">The topic does the rest</span><span class="note">The queue orders by group. A dedup ID the topic has seen in the last 5 minutes is accepted again and delivered to nobody, across the topic or within a group by FifoThroughputScope.</span></div></div>
 </div>
 </div>
-<span class="note">Deduplication happens per subscribed queue, not at the topic. A standard queue subscribed to this topic gets neither ID.</span>
+<span class="note">Deduplication happens at the topic, not per subscribed queue. A standard queue subscribed to this topic gets neither ID.</span>
 </div>
 
 </div>

@@ -210,7 +210,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="callout deny grow">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidCiphertextException</span></div>
 <span class="m">the key this ciphertext was encrypted under no longer exists</span>
-<span class="note">Decrypt, after the deletion window has ended and the key is gone.</span>
+<span class="note">Decrypt, after the deletion window has ended and the key is gone. Whether AWS answers this code for a deleted key's ciphertext is not established.</span>
 </div>
 <div class="callout deny grow">
 <div class="row ce g8"><span class="b">Refused</span><span class="m">ValidationException</span></div>
@@ -230,7 +230,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="note">The same, for a key scheduled for deletion. <a href="Kms-15-Pending-Deletion.dc.html">A pending key →</a></span>
 </div>
 <div class="callout deny grow">
-<div class="row ce g8"><span class="b">Refused</span><span class="m">ValidationException</span></div>
+<div class="row ce g8"><span class="b">Refused</span><span class="m">InvalidKeyUsageException</span></div>
 <span class="m">SYMMETRIC_DEFAULT is not valid for key spec RSA_3072</span>
 <span class="note">Encrypt or Re-encrypt to an RSA key. <a href="Kms-16-Rsa-Encrypt.dc.html">An RSA key →</a></span>
 </div>
