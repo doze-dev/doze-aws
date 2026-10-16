@@ -25,10 +25,10 @@
       },
       "internal/console/static": {
         "bytes": {
-          "measured": 1053321,
+          "measured": 901252,
           "ceiling": 1316864
         },
-        "files": 36
+        "files": 44
       },
       "internal/console/templates": {
         "bytes": {

@@ -144,7 +144,7 @@ func TestTemplateTokensAreDefined(t *testing.T) {
 // legible as a census.
 func TestTypeScaleIsClosed(t *testing.T) {
 	// Strip comments first. The prose in this file talks ABOUT sizes and
-	// weights — the @font-face note names "font-weight: 550" — and a census
+	// weights — a note about a retired weight names "font-weight: 550" — and a census
 	// that reads its own documentation reports the documentation.
 	css := regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(readAll(t, "static/app.css"), " ")
 
@@ -157,30 +157,39 @@ func TestTypeScaleIsClosed(t *testing.T) {
 		}
 	}
 
-	sizes := map[string]bool{"10px": true, "11px": true, "12px": true, "13px": true,
-		"14px": true, "16px": true, "18px": true, "20px": true}
 	for _, m := range regexp.MustCompile(`font-size:\s*([^;}]+)`).FindAllStringSubmatch(css, -1) {
 		v := strings.TrimSpace(m[1])
 		if strings.HasPrefix(v, "var(") || strings.HasPrefix(v, "inherit") {
 			continue
 		}
-		if !sizes[v] {
-			t.Errorf("font-size: %s is off the scale (10/11/12/13/14/16/18/20)", v)
+		if !typeLadder[v] {
+			t.Errorf("font-size: %s is off the scale (10/11/12/13/14/18)", v)
 		}
 	}
 
-	weights := map[string]bool{"400": true, "500": true, "550": true, "600": true, "700": true,
-		"100 900": true /* the variable-font @font-face range */}
 	for _, m := range regexp.MustCompile(`font-weight:\s*([^;}]+)`).FindAllStringSubmatch(css, -1) {
 		v := strings.TrimSpace(m[1])
 		if strings.HasPrefix(v, "var(") || v == "inherit" || v == "bold" || v == "normal" {
 			continue
 		}
-		if !weights[v] {
-			t.Errorf("font-weight: %s is off the scale (400/500/550/600/700)", v)
+		if !typeWeights[v] {
+			t.Errorf("font-weight: %s is off the scale (400/500/600/700)", v)
 		}
 	}
 }
+
+// The ladder is the design's (plan/design/boards/con.css), not a scale of the
+// console's own: 13 body and controls, 12 notes and mono, 11 mono metadata, 10
+// the uppercase caption, 14 the .h2 title, 18 the .h1 title. TestTypeScaleIsTheDesigns
+// checks every step against con.css, so adding one here that the design does
+// not use fails there. The weights are the ones IBM Plex is embedded in: 400,
+// 500 and 600 for Sans, 400, 500 and 700 for Mono (a 600 on Mono resolves to 700).
+var (
+	typeLadder = map[string]bool{"10px": true, "11px": true, "12px": true, "13px": true,
+		"14px": true, "18px": true}
+	typeWeights = map[string]bool{"400": true, "500": true, "600": true, "700": true,
+		"400 500": true /* the Arial stand-in's regular face, which covers both */}
+)
 
 // inlineBudget is a RATCHET, not a ceiling. Going over fails, and so does going
 // under — with the new number to write down. That is what makes it tighten
