@@ -51,7 +51,7 @@ func (s *store) GetVersion(name string, n int) (*function, error) {
 		if err := json.Unmarshal(raw, &f); err != nil {
 			return err
 		}
-		out = &f
+		out = s.stamp(&f)
 		return nil
 	})
 	return out, err
@@ -72,7 +72,7 @@ func (s *store) ListVersions(name string) ([]*function, error) {
 			if err := json.Unmarshal(v, &f); err != nil {
 				return err
 			}
-			out = append(out, &f)
+			out = append(out, s.stamp(&f))
 		}
 		return nil
 	})

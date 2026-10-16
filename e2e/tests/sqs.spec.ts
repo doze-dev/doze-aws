@@ -775,7 +775,7 @@ test.describe('create form', () => {
     await expect(err).toContainText("queue name may contain only alphanumeric characters, hyphens and underscores, and got '.'");
     await name.fill('orders.fifo'); // FIFO is off
     await submit();
-    await expect(err).toContainText('FIFO queue names must end in .fifo and only FIFO queues may');
+    await expect(err).toContainText('FIFO queue names must end in .fifo, and only a FIFO queue may use that ending');
     // The suffix counts toward 80: 75 + ".fifo" is the longest.
     await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
     await name.fill('a'.repeat(76) + '.fifo');

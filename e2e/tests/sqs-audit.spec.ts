@@ -193,6 +193,9 @@ test.describe('one tab stop per select', () => {
       const q = await createQueue(request, uniqueName('e2e-aud-tabs'));
       await page.goto(url.replace('{q}', q));
       if (url.includes('config')) await page.getByRole('button', { name: 'Edit settings' }).click();
+      // Under load the read view can still be on screen for a frame after the click;
+      // a Tab pressed then rests on its copy buttons, which are about to be hidden.
+      if (url.includes('config')) await expect(page.locator('#sqs-config .q-ids')).toBeHidden();
       await page.locator(url.includes('config') ? '#sqs-config input[name=visibility]' : 'input[name=name]').focus();
       for (let i = 0; i < 40; i++) {
         await page.keyboard.press('Tab');
@@ -293,5 +296,92 @@ test.describe('the States board', () => {
     await expect(n).toHaveAttribute('aria-disabled', 'true');
     await page.goto('sqs');
     await expect(page.locator('.listpane .new-link')).not.toHaveClass(/is-current/);
+  });
+});
+
+// The third audit (2026-10-16, after the second round's fixes).
+
+test.describe('under a dialog', () => {
+  test('the key bar names only what the dialog answers to, and j, k and / stay quiet behind it', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-aud-dlg'), { dlqMode: 'new' });
+    const dlq = `${name}-dlq`;
+    await postForm(request, `sqs/${dlq}/send`, { body: 'one' });
+    await page.goto(`sqs/${dlq}`);
+    const bar = page.locator('#keybar');
+    await expect(bar).toContainText('j');
+    await page.getByRole('button', { name: /^Redrive/ }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Redrive messages' })).toBeVisible();
+    await expect(bar).not.toContainText('⌘⏎');
+    await expect(bar).not.toContainText('/');
+    await expect(bar).toContainText('esc');
+    // The page behind keeps its cursor and its focus.
+    const behind = () => page.evaluate(() => ({
+      cursor: document.querySelectorAll('.listpane .li.cursor').length,
+      filter: document.activeElement?.closest('.listpane .filter') ? 1 : 0,
+    }));
+    const before = await behind();
+    await page.keyboard.press('j');
+    await page.keyboard.press('k');
+    await page.keyboard.press('/');
+    expect(await behind()).toEqual(before);
+    // And the bar comes back when the dialog goes.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Redrive messages' })).toBeHidden();
+    await expect(bar).toContainText('⌘K');
+    await expect(bar).toContainText('j');
+  });
+
+  test('a delete confirm does the same', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-aud-dlg2'));
+    await page.goto(`sqs/${name}`);
+    await page.getByRole('button', { name: /^Delete/ }).first().click();
+    await expect(page.locator('#confirm')).toBeVisible();
+    await expect(page.locator('#keybar')).not.toContainText('⌘⏎');
+    await page.keyboard.press('/');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('.listpane .filter'))).toBe(false);
+    await page.locator('#confirm-no').click();
+    await expect(page.locator('#keybar')).toContainText('j');
+  });
+});
+
+test.describe('configuration edit on a queue with no dead-letter queue', () => {
+  test('offers no count it would drop', async ({ page, request, uniqueName, waitForToast }) => {
+    const name = await createQueue(request, uniqueName('e2e-aud-nodlq'), { dlqMode: 'none' });
+    const other = await createQueue(request, uniqueName('e2e-aud-nodlq-t'), { dlqMode: 'none' });
+    await page.goto(`sqs/${name}?tab=config`);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await expect(page.locator('#sqs-config select[name=dlq]')).toHaveValue('keep');
+    await expect(page.locator('#sqs-config input[name=max_receive]')).toBeDisabled();
+    await expect(page.locator('#sqs-config .cfg-after')).toBeHidden();
+    // Choosing a queue to dead-letter to makes the count real.
+    await page.locator('#sqs-config select[name=dlq]').selectOption(other);
+    await expect(page.locator('#sqs-config input[name=max_receive]')).toBeEnabled();
+    await expect(page.locator('#sqs-config .cfg-after')).toBeVisible();
+    // And choosing none switches it off again.
+    await page.locator('#sqs-config select[name=dlq]').selectOption('none');
+    await expect(page.locator('#sqs-config input[name=max_receive]')).toBeDisabled();
+  });
+});
+
+test.describe('the wire page', () => {
+  test('shows a lone slow call when it finishes, with nothing else running', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-aud-slow'));
+    await page.goto('');
+    await expect(page.locator('#traffic-feed')).toBeVisible();
+    expect(await page.locator('#traffic-feed').innerText()).not.toContain(name);
+    // A long-polling receive on an empty queue takes its full wait.
+    await sqsCall(request, 'ReceiveMessage', { QueueUrl: queueUrl(name), WaitTimeSeconds: 2 });
+    await expect.poll(async () => (await page.locator('#traffic-feed').innerText()).includes(name), { timeout: 8000 }).toBe(true);
+  });
+});
+
+test.describe('the not-found page', () => {
+  test('reads as sentences', async ({ page }) => {
+    await page.goto('no-such-page-here');
+    const empty = page.locator('.empty');
+    await expect(empty).toContainText('That address does not exist.');
+    // The jump hint is one line, not a line per fragment.
+    const h = await empty.locator('span', { hasText: 'to jump to anything' }).first().evaluate((e) => e.getBoundingClientRect().height);
+    expect(h).toBeLessThan(40);
   });
 });

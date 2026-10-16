@@ -518,6 +518,8 @@ test.describe('API Gateway deployment guard', () => {
     await page.getByRole('button', { name: 'Deploy API' }).click();
     await waitForToast();
     const depTable = page.locator('table.tbl:has(th:text("Description"))');
+    // The row can still say "No deployments yet." for a moment after the toast.
+    await expect(depTable.locator('tbody tr').first()).not.toContainText('No deployments yet');
     const dep = (await depTable.locator('tbody tr').first().locator('td').first().textContent())!.trim();
     await depTable.getByRole('button', { name: `Delete deployment ${dep}` }).click();
     await confirmDialog('accept');

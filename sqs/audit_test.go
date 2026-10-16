@@ -445,3 +445,43 @@ func TestRequiredListsAreAlwaysThereOnTheJSONWire(t *testing.T) {
 		t.Errorf("ListDeadLetterSourceQueues with no sources has no queueUrls: %s", got)
 	}
 }
+
+// A re-create is held against the queue that is there, and what it is held
+// against is the values, not whether the queue they point at still exists: the
+// same RedrivePolicy asked again after its dead-letter queue was deleted is the
+// same ask. Refusing it was stricter than the model, which says only that the
+// exact same names and values return the existing queue.
+func TestRecreatingAQueueWhoseDeadLetterQueueIsGoneIsTheSameAsk(t *testing.T) {
+	ts := testServer(t)
+	jsonCall(t, ts.URL, "CreateQueue", `{"QueueName":"orphan-dlq"}`)
+	rp := `{"QueueName":"orphan","Attributes":{"RedrivePolicy":"{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:000000000000:orphan-dlq\",\"maxReceiveCount\":4}"}}`
+	jsonCall(t, ts.URL, "CreateQueue", rp)
+	jsonCall(t, ts.URL, "DeleteQueue", `{"QueueUrl":"`+ts.URL+`/000000000000/orphan-dlq"}`)
+	if code, body := jsonBody(t, ts.URL, "CreateQueue", rp); code != 200 {
+		t.Errorf("JSON: the same CreateQueue after the dead-letter queue went answered %d: %s", code, body)
+	}
+	if code, body := formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"orphan"},
+		"Attribute.1.Name": {"RedrivePolicy"}, "Attribute.1.Value": {`{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:000000000000:orphan-dlq","maxReceiveCount":4}`}}); code != 200 {
+		t.Errorf("Query: %d %s", code, body)
+	}
+	// A different value is still the conflict, whether or not the target exists.
+	if code, body := jsonBody(t, ts.URL, "CreateQueue", `{"QueueName":"orphan","Attributes":{"RedrivePolicy":"{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:000000000000:orphan-dlq\",\"maxReceiveCount\":5}"}}`); code != 400 {
+		t.Errorf("a different maxReceiveCount answered %d %s, want the conflict", code, body)
+	}
+}
+
+// A Query batch is read by the indices that are there. Entries 1 and 3 with no
+// 2 answered 200 with entry 1 only and said nothing of entry 3: neither sent
+// nor failed. (The model is silent on gaps; losing an entry unannounced is
+// wrong whichever way AWS answers, and this reads every entry given.)
+func TestAQueryBatchWithAGapInItsIndicesLosesNoEntry(t *testing.T) {
+	ts := testServer(t)
+	formPost(t, ts.URL, url.Values{"Action": {"CreateQueue"}, "QueueName": {"gappy"}})
+	code, body := formPost(t, ts.URL, url.Values{"Action": {"SendMessageBatch"}, "QueueUrl": {ts.URL + "/000000000000/gappy"},
+		"SendMessageBatchRequestEntry.1.Id": {"a"}, "SendMessageBatchRequestEntry.1.MessageBody": {"one"},
+		"SendMessageBatchRequestEntry.3.Id": {"c"}, "SendMessageBatchRequestEntry.3.MessageBody": {"three"}})
+	if code != 200 || strings.Count(body, "<SendMessageBatchResultEntry>")+strings.Count(body, "<BatchResultErrorEntry>") != 2 ||
+		!strings.Contains(body, "<Id>c</Id>") {
+		t.Errorf("entry c after a gap was lost: %d %s", code, body)
+	}
+}

@@ -190,7 +190,7 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 	}
 	fifoAttr := attrs["FifoQueue"] == "true"
 	if strings.HasSuffix(name, ".fifo") != fifoAttr && (fifoAttr || strings.HasSuffix(name, ".fifo")) {
-		return nil, errInvalid("FIFO queue names must end in .fifo and only FIFO queues may")
+		return nil, errInvalid("FIFO queue names must end in .fifo, and only a FIFO queue may use that ending")
 	}
 	var out *queue
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -204,7 +204,7 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 			// (a RedrivePolicy with no maxReceiveCount reads back as 10).
 			cand := &queue{Name: name, FIFO: fifoAttr, VisibilityTimeout: defVisibilityTimeout,
 				RetentionPeriod: defRetentionPeriod, MaxMessageSize: defMaxMessageSize}
-			if err := applyAttrs(cand, attrs, s.lookupIn(tx)); err != nil {
+			if err := applyAttrs(cand, attrs, queueLookup{}); err != nil {
 				return err
 			}
 			want := s.configuredAttrs(cand)

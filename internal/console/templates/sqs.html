@@ -322,20 +322,20 @@
         <b>Shorter than the reader's timeout</b>
         <template x-for="r in short" :key="r.n"><span class="q-note"><a class="mono" :href="r.u" x-text="r.n"></a> may run for <span class="mono" x-text="s(r.t)"></span>. A message received at the start comes back after <span x-text="s(v)"></span> and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be <span x-text="s(6*r.t)"></span>. doze-aws does not check this when the trigger is created.</span></template>
       </div>{{end}}
-      <div class="q-stack q-tight" x-data="{v:'{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}'}">
+      <div class="q-stack q-tight" x-data="{v:'{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}', d:'keep', has:{{if .Config.DLQ}}true{{else}}false{{end}}, on(){ return this.d==='none' ? false : this.d==='keep' ? this.has : true }}">
       <div class="q-fields q-21">
         <div class="field"><label>Dead-letter queue</label>
-          <select class="input mono" name="dlq" data-param="RedrivePolicy|dead-letter">
+          <select class="input mono" name="dlq" data-param="RedrivePolicy|dead-letter" x-model="d">
             <option value="keep">— keep current{{if .Config.DLQ}} ({{.Config.DLQ}}){{end}} —</option>
             <option value="none">none — retry forever</option>
             {{range .AllQueues}}{{if ne .Name $.Queue}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}
           </select>
         </div>
         <div class="field"><label>After receives</label>
-          <input class="input mono" name="max_receive" type="number" inputmode="numeric" data-param="maxReceiveCount" x-model="v">
+          <input class="input mono" name="max_receive" type="number" inputmode="numeric" data-param="maxReceiveCount" x-model="v" :disabled="!on()">
           <span class="setting-meta">{{grouped (setting "sqs" "maxReceiveCount").Min}} – {{grouped (setting "sqs" "maxReceiveCount").Max}} · <span class="enf-ok">enforced</span></span></div>
       </div>
-      <span class="q-note cfg-after">With <span x-text="v||'…'"></span>, a message that keeps coming back is delivered <span x-text="v||'…'"></span> <span x-text="v==1 ? 'time' : 'times'">times</span>; the next receive sets it aside.</span>
+      <span class="q-note cfg-after" x-show="on()">With <span x-text="v||'…'"></span>, a message that keeps coming back is delivered <span x-text="v||'…'"></span> <span x-text="v==1 ? 'time' : 'times'">times</span>; the next receive sets it aside.</span>
       </div>
       <div class="q-fields q-2">
         {{template "setting_field" (dict "Svc" "sqs" "Name" "ReceiveMessageWaitTimeSeconds" "Field" "receive_wait" "Label" "Receive wait" "LabelNote" "long polling" "Value" (index .Attrs "ReceiveMessageWaitTimeSeconds") "Teach" "0 = short polling: a receive returns immediately, empty or not. Up to 20 makes a consumer wait for a message instead of asking again.")}}

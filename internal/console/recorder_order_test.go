@@ -51,3 +51,23 @@ func TestEntriesSinceReturnsASlowCallRecordedLate(t *testing.T) {
 		t.Errorf("Entries(1) = seqs %v, want 2 and 3 and not 1", seen)
 	}
 }
+
+// The live wire asks "did the ring change?" before it renders. A call takes its
+// number when it STARTS, so a hash taken from the number alone moves at the
+// start of a slow call and never again when the call lands: a lone 3 s
+// ReceiveMessage stayed invisible until some other call came along.
+func TestTheRingsChangeMarkMovesWhenASlowCallLands(t *testing.T) {
+	rec := NewRecorder(nil, awsident.Default())
+	before := rec.Changes()
+	seq := rec.reserve() // the slow call starts
+	started := rec.Changes()
+	rec.addAt(seq, TrafficEntry{At: time.Now(), Service: "sqs", Action: "ReceiveMessage", Status: 200})
+	landed := rec.Changes()
+	if landed == started {
+		t.Fatalf("the change mark did not move when the call landed (before %d, started %d, landed %d)", before, started, landed)
+	}
+	rec.Clear()
+	if rec.Changes() == landed {
+		t.Error("the change mark did not move on Clear")
+	}
+}

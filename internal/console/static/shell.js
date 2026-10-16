@@ -1196,7 +1196,12 @@
   // and only keys in KEYBAR are drawn. "⌘K" is the floor: a page that declares
   // nothing still answers to the palette.
   var KEYS_FLOOR = "⌘K=jump or act";
+  // Under a dialog, a drawer or the palette the page behind is not the page: j,
+  // k, / and ⌘⏎ would move a cursor or a focus the dialog hides, so the bar
+  // names only what the dialog answers to.
+  var KEYS_OVERLAY = "esc=close|⌘K=jump or act";
   function declaredKeys() {
+    if (overlayOpen()) return KEYS_OVERLAY;
     var els = document.querySelectorAll("#workspace [data-keys]");
     for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) return els[i].getAttribute("data-keys") || KEYS_FLOOR;
     return KEYS_FLOOR;
@@ -1254,6 +1259,12 @@
     // the style/hidden an x-show or a drawer toggles. Not class: wirePaint
     // writes classes, and watching them would be watching itself.
     keyBarWatch.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-keys", "style", "hidden"] });
+    // The confirm and the palette sit outside .body; their hidden attribute is the
+    // only thing that says a dialog is on top.
+    ["confirm", "palette"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) keyBarWatch.observe(el, { attributes: true, attributeFilter: ["hidden"] });
+    });
     syncKeyBar();
   }
   document.addEventListener("DOMContentLoaded", watchKeyBar);
@@ -1322,6 +1333,8 @@
       if (!e.defaultPrevented && !overlayOpen() && KEYBAR.esc()) e.preventDefault();
       return;
     }
+    // A dialog on top owns the keyboard: the page's single keys stay quiet.
+    if (overlayOpen()) return;
     var tag = document.activeElement.tagName;
     if (/(INPUT|TEXTAREA|SELECT)/.test(tag) || document.activeElement.closest(".CodeMirror")) return;
     // A modified key is the browser's or the system's (⌘C is not "c").

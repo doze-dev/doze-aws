@@ -25,15 +25,16 @@ import (
 // in-process client bypasses it (it talks to the raw gateway), so the tail only
 // shows the app's traffic — the answer to "what did my app just do?".
 type Recorder struct {
-	next  http.Handler
-	runID string
-	ops   OpResolver
-	id    awsident.Identity // the identity the stack behind this recorder mints ARNs for
-	mu    sync.Mutex
-	buf   []TrafficEntry
-	head  int
-	seq   int64
-	full  bool
+	next    http.Handler
+	runID   string
+	ops     OpResolver
+	id      awsident.Identity // the identity the stack behind this recorder mints ARNs for
+	mu      sync.Mutex
+	buf     []TrafficEntry
+	head    int
+	seq     int64
+	changed int64 // bumped when an entry lands or the ring clears; seq moves when a call STARTS
+	full    bool
 }
 
 // OpResolver names the AWS operation a request addresses, keyed by the
@@ -226,6 +227,7 @@ func (rec *Recorder) addAt(seq int64, e TrafficEntry) {
 	defer rec.mu.Unlock()
 	e.Seq = seq
 	rec.buf[rec.head] = e
+	rec.changed++
 	rec.head = (rec.head + 1) % trafficCap
 	if rec.head == 0 {
 		rec.full = true
@@ -276,6 +278,16 @@ func (rec *Recorder) LastSeq() int64 {
 	return rec.seq
 }
 
+// Changes is the live poll's hash: it moves when a call is RECORDED (or the ring
+// clears), not when one starts. A call is numbered at its start, so a hash taken
+// from the number alone would move once, before a slow call had a row to show,
+// and never again when the row appeared.
+func (rec *Recorder) Changes() int64 {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	return rec.changed
+}
+
 // Get returns the entry with the given sequence number, if it is still in the
 // ring (the inspector drawer loads entries by seq).
 func (rec *Recorder) Get(seq int64) (TrafficEntry, bool) {
@@ -305,7 +317,8 @@ func (rec *Recorder) Clear() {
 	rec.buf = make([]TrafficEntry, trafficCap)
 	rec.head = 0
 	rec.full = false
-	rec.seq++ // the tail visibly changed; move the hash
+	rec.seq++
+	rec.changed++ // the tail visibly changed; move the hash
 }
 
 // Entries returns recorded calls, newest first, with Seq > sinceSeq.

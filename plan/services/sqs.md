@@ -131,7 +131,14 @@ correct caller exactly as "more forgiving" breaks a deploy.
 | SQS-43 | P2 | **Closed 2026-10-16.** Wrong codes: `GetQueueAttributes` with an unknown name answered `ValidationException`/`ValidationError` (model: `InvalidAttributeName`); a `RedrivePolicy` that is not JSON answered `InvalidParameterValue` (every sibling refusal: `InvalidAttributeValue`); `ChangeMessageVisibility` on a deleted message answered `InvalidParameterValue` (model: `MessageNotInflight`); a Query batch entry with an empty `Id` ended the list and answered `EmptyBatchRequest` (JSON: `InvalidBatchEntryId`). | wrong code | model: the operations' `errors` |
 | SQS-44 | P2 | **Closed 2026-10-16** (`TestEveryQueryCodeHasItsShapeNameOnTheJSONWire`, reading the model). `MessageNotInflight`, `BatchRequestTooLong` and `UnsupportedOperation` answered their Query codes (`AWS.SimpleQueueService.…`) as the JSON `__type`, so `errors.As(&types.MessageNotInflight{})` did not match. Every code the model gives that prefix is checked against its shape name. | wrong code | model: the error shapes |
 | SQS-45 | P3 | **Closed 2026-10-16** (`TestRequiredListsAreAlwaysThereOnTheJSONWire`). The batch results' `Successful` and `Failed` and `ListDeadLetterSourceQueues`' `queueUrls` are required members; JSON omitted them when empty. | wrong shape | model: `required` |
-| SQS-46 | — | **Open, not established** (found 2026-10-16; each is `memory` or the model is silent, so none is changed): `ChangeMessageVisibility` with a stale receipt handle succeeds and re-hides the message (the model is silent; `DeleteMessage` with one is documented); an `AWSTraceHeader` value is not format-checked ("a correctly formatted X-Ray trace header string": the format is not in the model); `maxReceiveCount` is held to 1–1,000 and a standard queue named `*.fifo` is refused, neither stated by the model; `SetQueueAttributes` ignores read-only names; a running move task survives an orderly restart as a `CANCELLED` record (a failed record would also fit the model). Queued for recording. | — | memory |
+| SQS-46 | — | **Open, not established** (found 2026-10-16; each is `memory` or the model is silent, so none is changed): `ChangeMessageVisibility` with a stale receipt handle succeeds and re-hides the message (the model is silent; `DeleteMessage` with one is documented); an `AWSTraceHeader` value is not format-checked ("a correctly formatted X-Ray trace header string": the format is not in the model); `maxReceiveCount` is held to 1–1,000 and a standard queue named `*.fifo` is refused, neither stated by the model; `SetQueueAttributes` ignores read-only names; a running move task survives an orderly restart as a `CANCELLED` record (a failed record would also fit the model); a Query batch with a gap in its indices (SQS-53). Queued for recording. | — | memory |
+| SQS-47 | P2 | **Closed 2026-10-17** (`TestEveryReadOfAPublishedVersionCarriesTheConfiguredIdentity`; found by the third audit). Under `-account-id`, a repeat `PublishVersion`, `ListVersionsByFunction` and a `Qualifier` read of a Lambda version named `000000000000` and `us-east-1`: the 2026-10-16 fix stamped the live record but not the versions read back from their own bucket. The store now stamps both reads. | wrong identity | model: `FunctionArn` |
+| SQS-48 | P2 | **Closed 2026-10-17** (`TestTheRingsChangeMarkMovesWhenASlowCallLands`; e2e "shows a lone slow call"). The wire's live poll hashed the number a call takes when it STARTS, so a lone 3 s `ReceiveMessage` stayed off the wire until another call came along. The hash is now a count of calls recorded. | wrong | the console, not the model |
+| SQS-49 | P2 | **Closed 2026-10-17** (`TestAPrettyBodyIsTheBodyWithOnlyItsWhitespaceMoved`, red first). The expanded message and "Copy body" went through a decode and encode: keys sorted, `12345678901234567890` became `…567000`, `1.10` became `1.1`, `<` was escaped and the first of two duplicate keys was dropped. `prettyJSON` only moves whitespace now, which also corrects the policy, Lambda payload, S3 object and Step Functions views. | wrong | the API returns the original bytes |
+| SQS-50 | P3 | **Closed 2026-10-17** (e2e "under a dialog", two tests, red first). Under a confirm or the redrive dialog the key bar still named `j k`, `⌘⏎` and `/`, and `j` and `/` acted on the page behind. The bar names `esc` and `⌘K` only while a dialog is on top, and single keys stay quiet. | wrong | the design: a key named does something |
+| SQS-51 | P3 | **Closed 2026-10-17** (e2e "offers no count it would drop", red first). Edit on a queue with no dead-letter queue showed "After receives" prefilled with 3 and a sentence about it; saving dropped it. The count is off until a dead-letter queue is chosen or kept. | wrong | the page promised a setting it did not keep |
+| SQS-52 | P3 | **Closed 2026-10-17** (`TestRecreatingAQueueWhoseDeadLetterQueueIsGoneIsTheSameAsk`). An identical `CreateQueue` after the dead-letter queue was deleted answered `InvalidAttributeValue`. The idempotent branch now compares values and does not look the target up. | stricter | model: "the exact same names and values" |
+| SQS-53 | P3 | **Closed 2026-10-17, direction not established** (`TestAQueryBatchWithAGapInItsIndicesLosesNoEntry`). A Query batch with entries 1 and 3 answered 200 for entry 1 and said nothing of entry 3. Every index present is read now, in order. The model is silent on gaps; added to SQS-46's recording queue. | wrong whichever way AWS answers | memory |
 
 
 **Moved into this stage from other services.** They keep their own ids, and
@@ -493,12 +500,15 @@ On top of every box in the protocol.
       attribute reads as cosmetic in the create form and the Configuration tab.
 - [ ] All 19 boards implemented from the foundation's shell with no SQS-only
       chrome, and each `new` item reads only the data named for it.
-      **The body: 19 of 19 on 2026-10-12** (section 6a, after an audit found 3
-      of 19 behind a claim of "21 of 21"). **The shell: no.** The rail, top
-      bar, header strip, key bar, wire dock and type are not the boards', on
-      SQS's pages as on every other; that is
-      [03-shell-fidelity.md](../03-shell-fidelity.md), and this box stays open
-      until it is built and SQS's 19 are rendered again inside it.
+      **19 of 19 inside the built shell on 2026-10-17** (`console:fidelity -- sqs`;
+      the shell is S1-S12 of [03-shell-fidelity.md](../03-shell-fidelity.md), the
+      history is section 6a). Left open on purpose: the third independent audit
+      (2026-10-17) found seven defects after the second round's fixes, all now
+      closed (SQS-47 to SQS-53), and this box ticks only when a fourth look at
+      the final tree finds none. Still the owner's: Sqs-04's open Advanced
+      section pushes Create and Cancel below the fold, and the foundation D
+      pages (wire page, Connect, map, fidelity dialog, cannot-reach banner) are
+      unbuilt, so the 13 cross-cutting boards read 0 of 13.
 - [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
 - [x] The three confirms say only what the code does (delete queue, purge, delete message; and the redrive confirm, corrected).
 - [x] The reader check appears in both states and names the real function.

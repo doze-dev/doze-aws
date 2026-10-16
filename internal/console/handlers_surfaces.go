@@ -120,7 +120,7 @@ func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
 	// format the whole ring just to throw it away on a 204.
 	hash := "0"
 	if c.rec != nil {
-		if s := c.rec.LastSeq(); s > 0 {
+		if s := c.rec.Changes(); s > 0 {
 			hash = strconv.FormatInt(s, 10)
 		}
 	}
@@ -146,7 +146,7 @@ func (c *Console) trafficFor(w http.ResponseWriter, r *http.Request) {
 	svc, res := q.Get("svc"), q.Get("res")
 	hash := "0"
 	if c.rec != nil {
-		if s := c.rec.LastSeq(); s > 0 {
+		if s := c.rec.Changes(); s > 0 {
 			hash = strconv.FormatInt(s, 10)
 		}
 	}
@@ -529,7 +529,7 @@ func (c *Console) deckData(r *http.Request) deckView {
 	for _, s := range g.Services {
 		total += s.Calls
 	}
-	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.LastSeq() == 0)
+	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.Changes() == 0)
 	v.Hash = deckHash(g)
 	v.Updated = clock(time.Now())
 	return v

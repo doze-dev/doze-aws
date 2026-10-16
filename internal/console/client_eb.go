@@ -1,10 +1,12 @@
 package console
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // ---- EventBridge (JSON 1.1, AWSEvents) ----
@@ -392,19 +394,18 @@ func (b *backend) archiveARN(name string) string { return b.id.ARN("events", "ar
 func (b *backend) busARN(name string) string { return b.id.ARN("events", "event-bus/"+name) }
 
 // prettyJSON re-indents a compact JSON string for display; non-JSON passes through.
+// It only moves whitespace. Decoding and re-encoding would sort the keys, keep
+// one of two duplicate keys, round a big number and escape "<", and the page
+// would show (and "Copy body" copy) a body the application never sent.
 func prettyJSON(s string) string {
 	if s == "" {
 		return ""
 	}
-	var v any
-	if json.Unmarshal([]byte(s), &v) != nil {
+	var out bytes.Buffer
+	if json.Indent(&out, []byte(s), "", "  ") != nil {
 		return s
 	}
-	out, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return s
-	}
-	return string(out)
+	return strings.TrimSpace(out.String())
 }
 
 // The describe operations, and archive updating.

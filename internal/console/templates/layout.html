@@ -434,8 +434,8 @@ return p.join(" ");};</script>
   <div class="det-b">
     <div class="empty">
       <b>That address does not exist.</b>
-      {{if .Guess}}Did you mean <a href="{{.Guess}}">{{.GuessName}}</a>?<br>{{end}}
-      Press <span class="kbd">⌘K</span> to jump to anything, or go back to <a href="{{.Prefix}}/">the wire</a>.
+      {{if .Guess}}<span>Did you mean <a href="{{.Guess}}">{{.GuessName}}</a>?</span>{{end}}
+      <span>Press <span class="kbd">⌘K</span> to jump to anything, or go back to <a href="{{.Prefix}}/">the wire</a>.</span>
     </div>
   </div>
 </section>

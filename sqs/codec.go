@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -229,12 +230,9 @@ type delEntry struct {
 func (p params) sendBatchEntries() []sendEntry {
 	var out []sendEntry
 	if p.form != nil {
-		for i := 1; ; i++ {
+		for _, i := range formIndices(p.form, "SendMessageBatchRequestEntry") {
 			base := "SendMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if !p.hasFormPrefix(base) {
-				break // an entry with an empty Id is an entry (and an invalid one), not the end
-			}
 			e := sendEntry{
 				ID:      id,
 				Body:    p.form.Get(base + "MessageBody"),
@@ -277,12 +275,9 @@ func (p params) sendBatchEntries() []sendEntry {
 func (p params) deleteBatchEntries() []delEntry {
 	var out []delEntry
 	if p.form != nil {
-		for i := 1; ; i++ {
+		for _, i := range formIndices(p.form, "DeleteMessageBatchRequestEntry") {
 			base := "DeleteMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if !p.hasFormPrefix(base) {
-				break
-			}
 			out = append(out, delEntry{ID: id, ReceiptHandle: p.form.Get(base + "ReceiptHandle")})
 		}
 		return out
@@ -310,12 +305,9 @@ type visEntry struct {
 func (p params) visibilityBatchEntries() []visEntry {
 	var out []visEntry
 	if p.form != nil {
-		for i := 1; ; i++ {
+		for _, i := range formIndices(p.form, "ChangeMessageVisibilityBatchRequestEntry") {
 			base := "ChangeMessageVisibilityBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
-			if !p.hasFormPrefix(base) {
-				break
-			}
 			timeout, _ := strconv.Atoi(p.form.Get(base + "VisibilityTimeout"))
 			out = append(out, visEntry{
 				ID: id, ReceiptHandle: p.form.Get(base + "ReceiptHandle"), Timeout: timeout,
@@ -736,16 +728,13 @@ func queryFlatMap(form url.Values, prefix, keyField string) map[string]any {
 // with its own attribute maps in the JSON spelling.
 func queryEntries(form url.Values, prefix string) []any {
 	var out []any
-	for i := 1; ; i++ {
+	for _, i := range formIndices(form, prefix) {
 		base := prefix + "." + strconv.Itoa(i) + "."
 		sub := url.Values{}
 		for k, v := range form {
 			if strings.HasPrefix(k, base) {
 				sub[strings.TrimPrefix(k, base)] = v
 			}
-		}
-		if len(sub) == 0 {
-			return out
 		}
 		elem := modelcheck.FromQuery(sub)
 		delete(elem, "MessageAttribute")
@@ -758,4 +747,29 @@ func queryEntries(form url.Values, prefix string) []any {
 		}
 		out = append(out, elem)
 	}
+	return out
+}
+
+// formIndices lists, in order, the N of every prefix.N.* key a Query request
+// carries — the entries that are there, not the run that starts at 1. A batch
+// with entries 1 and 3 had its third dropped, neither sent nor failed.
+func formIndices(form url.Values, prefix string) []int {
+	var idx []int
+	seen := map[int]bool{}
+	for k := range form {
+		rest, ok := strings.CutPrefix(k, prefix+".")
+		if !ok {
+			continue
+		}
+		n, _, ok := strings.Cut(rest, ".")
+		if !ok {
+			continue
+		}
+		if i, err := strconv.Atoi(n); err == nil && i > 0 && !seen[i] {
+			seen[i] = true
+			idx = append(idx, i)
+		}
+	}
+	sort.Ints(idx)
+	return idx
 }
