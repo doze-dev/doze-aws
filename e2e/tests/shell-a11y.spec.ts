@@ -15,6 +15,15 @@ import { fileURLToPath } from 'node:url';
 const AXE = fileURLToPath(new URL('../node_modules/axe-core/axe.min.js', import.meta.url));
 
 async function violations(page: any) {
+  // A dialog or the palette fades in, and axe reads the colour of a half-drawn
+  // one: let every animation that ends, end (the live dot's pulse never does).
+  await page.evaluate(() =>
+    Promise.all(
+      document.getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => {})),
+    ),
+  );
   await page.addScriptTag({ path: AXE });
   const res = await page.evaluate(async () => (window as any).axe.run(document, { resultTypes: ['violations'] }));
   return res.violations
