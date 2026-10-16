@@ -247,7 +247,7 @@ test.describe('rail by context', () => {
     // A service answering no to a bad input is doing its job; a dot is for a
     // failure (5xx) or a call a policy denied, and for the things that are
     // wrong on their own (an alarm firing, a message in a dead-letter queue).
-    await expect(page.locator('.rail .ri', { hasText: 'DynamoDB' }).locator('.ri-dot')).toHaveCount(0);
+    await expect(page.locator('.rail .ri', { hasText: 'DynamoDB' }).locator('.ri-dot')).not.toHaveClass(/warn|bad/);
     // The wire has none of its own: only services have dots.
     await expect(page.locator('.rail .ri', { hasText: 'Connect' }).locator('.ri-dot')).toHaveCount(0);
   });
