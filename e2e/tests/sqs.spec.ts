@@ -1052,7 +1052,7 @@ test.describe('configuration tab', () => {
     await page.locator('.acts').getByRole('button', { name: 'Delete queue' }).click();
     await expect(page.locator('#confirm-title')).toContainText(`Delete queue “${queue}”`);
     await expect(page.locator('#confirm-msg')).toContainText('removed from this machine');
-    await expect(page.locator('#confirm-msg')).toContainText('NonExistentQueue');
+    await expect(page.locator('#confirm-msg')).toContainText('QueueDoesNotExist');
     await expect(page.locator('#confirm-no')).toHaveText('Keep it');
     await expect(page.locator('#confirm-yes')).toHaveText('Delete queue');
     await expect(page.locator('#confirm-yes')).toHaveClass(/\bdanger\b/);

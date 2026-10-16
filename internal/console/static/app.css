@@ -1137,9 +1137,13 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .panes { flex: 1; display: flex; min-height: 0; }
 
 .listpane {
-  width: 232px; flex: 0 0 232px; border-right: 1px solid var(--border);
+  width: 262px; flex: 0 0 262px; border-right: 1px solid var(--border);
   background: var(--card); display: flex; flex-direction: column; overflow: hidden;
 }
+/* 262 is the width the boards draw the list in (every Sqs board, Queue, Main).
+   IAM's boards draw it at 232, and its pane keeps that. From 1100 down the pane
+   is a strip, and the narrow rules below win. */
+@media (min-width: 1101px) { .listpane.lp-iam { width: 232px; flex-basis: 232px; } }
 /* Only the rows scroll — header, filter, and the keyboard footer stay put. */
 .lp-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .lp-h {
@@ -1151,7 +1155,7 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
    boards' head: the kind in the plural (the design's .h2) and a text New. */
 .lp-h .l { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 /* The NAME truncates; the New button does not. "State machines" and "Log
-   groups" are the long ones, and they fit the 232px pane beside ⓘ and New. */
+   groups" are the long ones, and they fit the 262px pane beside ⓘ and New. */
 .lp-h .lp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* A count beside the heading, for a service whose board draws one (lp_head
    "ShowCount"). The parens are CSS, not template text, so the slot's
@@ -1276,6 +1280,9 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .conn[data-nb] .nb-self { font-weight: 600; }
 .conn[data-nb] .nb-link { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: var(--text-sm); }
 .conn[data-nb] .nb-link .aws-ic { width: 14px; height: 14px; border-radius: 3px; }
+/* A mapping that is disabled: wired, and reading nothing. The name stays a link
+   (it is where to enable it) and is drawn as the quiet half of the strip. */
+.conn[data-nb] .nb-link.nb-off { color: var(--muted-foreground); }
 .det-sub { color: var(--muted-foreground); font-size: 12px; margin-top: 2px; }
 .det-h .chips { margin-top: 8px; }
 .det-h .tabbar { margin: 12px 0 0; }
@@ -1424,6 +1431,13 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
    the body and the bar goes to its foot. */
 .det-b.has-dock > .sqs-work { flex: 1; display: flex; flex-direction: column; }
 .det-b.has-dock > .sqs-work > .composer-dock { margin-top: auto; padding-bottom: 4px; }
+/* The bar is flush with the foot of the scrolling body. A sticky element sticks
+   to the scrollport's padding edge, so the body's own 8px of bottom padding was
+   a strip under the bar that rows scrolled through. The body has none here; the
+   bar carries the spacing, in its own (opaque) ground, so nothing shows below it. */
+.detail.wired > .det-b.has-dock { padding-bottom: 0; }
+.detail.wired > .det-b.has-dock > .composer-dock { padding-bottom: 22px; }
+.detail.wired > .det-b.has-dock > .sqs-work > .composer-dock { padding-bottom: 12px; }
 .composer-dock {
   position: sticky; bottom: 0; z-index: 2; margin-top: 12px;
   /* padding-top, not just margin: while the list scrolls, rows pass UNDER the
@@ -2598,6 +2612,7 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .q-table .mm-chips { margin-top: 8px; }
 .q-emptycard { padding: 36px; }
 .q-emptycard p { margin: 0; }
+.q-emptycard .q-b { font-weight: 600; color: var(--foreground); }
 
 /* the composer (boards Sqs-08, Sqs-09, Sqs-20) */
 .composer-dock .dock-bar { gap: 8px; padding: 12px 14px; color: var(--foreground); }
@@ -2613,7 +2628,7 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .q-attrs .attr-row { grid-template-columns: 1.2fr 110px 1.6fr auto; gap: 8px; margin-top: 0; }
 .q-clirow { display: flex; align-items: center; gap: 8px; }
 .sqs-compose .cli-out { margin-top: 0; }
-.sqs-compose [aria-invalid="true"] + .CodeMirror, .q-create [aria-invalid="true"], #sqs-config [aria-invalid="true"], #sqs-consume [aria-invalid="true"], .sqs-compose [aria-invalid="true"] { border-color: var(--refused); }
+.sqs-compose [aria-invalid="true"] ~ .CodeMirror, .q-create [aria-invalid="true"], #sqs-config [aria-invalid="true"], #sqs-consume [aria-invalid="true"], .sqs-compose [aria-invalid="true"] { border-color: var(--refused); }
 
 /* the redrive dialog (board Sqs-14): centred, 500 wide, no footer strip */
 .overlay.q-center { place-items: center; padding-top: 0; }

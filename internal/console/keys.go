@@ -63,3 +63,43 @@ func listKeys(svc string) string {
 	item := itemFor(svc)
 	return strings.Join([]string{"j k=" + item, "⏎=open", "/=filter", "c=new " + item, keyPalette}, "|")
 }
+
+// The queue page's sets, one per state, as the boards draw them (Queue,
+// Sqs-08, Sqs-10, Sqs-17, Sqs-18, Sqs-19). A state declares its own from its
+// template (data-keys), and the bar draws the last visible declaration, so the
+// composer and the edit form, which sit inside the page, replace the page's.
+//
+// "⏎ open a message" (Queue) is not named: there is no message cursor, so ⏎ on
+// this page would open nothing. ⌘⏎ is on the Messages tab because it opens the
+// composer there and sends from it (shell.js, KEYBAR).
+const (
+	sqsMessagesKeys = "j k=queue|⌘⏎=send|/=filter|" + keyPalette
+	sqsComposeKeys  = "⌘⏎=send|esc=close|" + keyPalette
+	sqsConsumeKeys  = "⏎=receive|" + keyPalette
+	sqsConfigKeys   = "j k=queue|" + keyPalette
+	sqsEditKeys     = "tab=next field|esc=cancel|" + keyPalette
+	sqsTagsKeys     = "tab=next field|" + keyPalette
+)
+
+// sqsKeys is the set of one tab of a queue's page.
+func sqsKeys(tab string) string {
+	switch tab {
+	case "consume":
+		return sqsConsumeKeys
+	case "config":
+		return sqsConfigKeys
+	case "tags":
+		return sqsTagsKeys
+	}
+	return sqsMessagesKeys
+}
+
+// emptyListKeys is the set of a list pane with nothing in it (board
+// Sqs-01-None): there is no row to move over, open or filter, so only the key
+// that makes the first one (when the service has a create) and the palette.
+func emptyListKeys(svc string, canNew bool) string {
+	if !canNew {
+		return keyPalette
+	}
+	return "c=new " + itemFor(svc) + "|" + keyPalette
+}

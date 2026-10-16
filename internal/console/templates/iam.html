@@ -2,7 +2,7 @@
      to answer "what can this do", policies are documents you look at to answer
      "what does this grant". Mixing them in one flat list loses that. */}}
 {{define "iam_lp"}}
-<aside class="listpane" data-keys="{{listKeys "iam"}}">
+<aside class="listpane lp-iam" data-keys="{{listKeys "iam"}}">
   <div class="lp-h">
     <span class="l"><span class="lp-name">{{plural "iam"}}</span>{{template "lp_switch" dict "Svc" "iam"}}</span>
     {{template "info_button" dict "Svc" "iam" "Prefix" .Prefix}}

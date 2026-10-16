@@ -133,7 +133,7 @@ func TestTheQueueWireIsPinnedOutsideTheScrollingBody(t *testing.T) {
 	create(t, h, "/_console/sqs/create", url.Values{"name": {"pinned"}, "dlq_mode": {"none"}})
 	for _, tab := range []string{"", "?tab=consume", "?tab=config", "?tab=tags"} {
 		page := req(t, h, "GET", "/_console/sqs/pinned"+tab, nil).Body.String()
-		if !strings.Contains(page, `<section class="detail wired">`) {
+		if !strings.Contains(page, `<section class="detail wired"`) {
 			t.Errorf("%q: the pane does not say it carries a pinned wire", tab)
 		}
 		// The body closes, then the slot, then the pane closes: the slot is the

@@ -644,7 +644,8 @@ func (c *Console) sqsReaders(ctx context.Context, conn Neighborhood, visibility 
 	}
 	var out []sqsReader
 	for _, n := range conn.Downstream {
-		if n.Kind != "esm" || n.Svc != "lambda" {
+		// A Disabled mapping reads nothing: no reader, so nothing to compare.
+		if n.Kind != "esm" || n.Svc != "lambda" || n.Off {
 			continue
 		}
 		fn, err := c.be.GetFunction(ctx, n.Name)
@@ -908,7 +909,7 @@ func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Message sent")
+	toast(w, "Sent to "+name)
 	c.sqsMessages(w, r)
 }
 
@@ -981,6 +982,15 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 	// (re)wires it with the given max-receive count.
 	switch dlq := r.FormValue("dlq"); dlq {
 	case "", "keep":
+		// "Keep current" keeps the target, not the count: the count is a field of
+		// its own on the form, and a change to it applies to the policy the queue
+		// has (keep the target, change the count). A queue with no policy has no
+		// count to change, and none is invented.
+		if maxr := strings.TrimSpace(r.FormValue("max_receive")); maxr != "" {
+			if rp, ok := c.keptRedrive(r.Context(), name, maxr); ok {
+				attrs["RedrivePolicy"] = rp
+			}
+		}
 	case "none":
 		attrs["RedrivePolicy"] = ""
 	default:
@@ -1002,6 +1012,29 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Queue settings saved")
 	c.sqsConfigPartial(w, r, name)
+}
+
+// keptRedrive is the queue's stored RedrivePolicy with maxReceiveCount set to
+// what was typed (as typed: the service decides whether it is a count). It
+// reports false when the queue has no policy, or the count is already the one
+// stored, so a save that changes nothing sends nothing.
+func (c *Console) keptRedrive(ctx context.Context, name, maxr string) (string, bool) {
+	attrs, err := c.be.queueAttrs(ctx, name)
+	if err != nil {
+		return "", false
+	}
+	var rp struct {
+		Arn   string          `json:"deadLetterTargetArn"`
+		Count json.RawMessage `json:"maxReceiveCount"`
+	}
+	if json.Unmarshal([]byte(attrs["RedrivePolicy"]), &rp) != nil || rp.Arn == "" {
+		return "", false
+	}
+	if strings.Trim(string(rp.Count), `"`) == maxr {
+		return "", false
+	}
+	out, _ := json.Marshal(map[string]string{"deadLetterTargetArn": rp.Arn, "maxReceiveCount": maxr})
+	return string(out), true
 }
 
 // sqsConfigPartial re-renders the Configuration tab. Shared by the settings

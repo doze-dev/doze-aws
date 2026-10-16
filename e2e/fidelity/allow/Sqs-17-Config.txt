@@ -1,2 +1,7 @@
 # See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
 …-orders-dlq # decision: the board shortens the dead-letter ARN with an ellipsis to fit its column; the page prints the whole ARN
+# The four lines below are the "In this stack" reader block. The harness fixture's event source mapping is disabled (an enabled one would receive the fixture's waiting messages), and a disabled mapping reads nothing, so the page draws no reader for it. The block itself is built and is held by e2e/tests/sqs.spec.ts ("In this stack" says whether the queue hides a message as long as the reader runs), which creates an enabled mapping.
+in this stack # data: no reader is drawn for a disabled mapping (see the note above)
+reader: harbour-order-validator # data: no reader is drawn for a disabled mapping (see the note above)
+its timeout is 30 s and a received message stays hidden 60 s, so one run finishes before the message returns. # data: no reader is drawn for a disabled mapping (see the note above)
+read from the wiring: the function is the queue's event source mapping. AWS also advises six times a function's timeout for Lambda, which here would be 180 s. # data: no reader is drawn for a disabled mapping (see the note above)

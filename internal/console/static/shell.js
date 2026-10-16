@@ -920,13 +920,13 @@
   var KEYBAR = {
     "j": function () { return wireOn() ? wireMove(1) : moveCursor(1); },
     "k": function () { return wireOn() ? wireMove(-1) : moveCursor(-1); },
-    "⏎": function () { return wireOn() ? wireOpen() : openCursorRow(); },
+    "⏎": function () { return wireOn() ? wireOpen() : (openCursorRow() || enterSubmit()); },
     "/": function () { return focusFilter(); },
     "c": function () { return wireInspecting() ? wireCopyCurl() : clickNew(); },
     "→": function () { return wireFollow(); },
-    "esc": function () { return wireClose() || cancelPage(); },
+    "esc": function () { return wireClose() || closeOpenPart() || cancelPage(); },
     "⌘K": function () { openPalette(); return true; },
-    "⌘⏎": function () { return submitCreate(); },
+    "⌘⏎": function () { return submitCreate() || submitComposer() || openComposer(); },
     "tab": function () { return false; /* the browser's own: the next field */ }
   };
   // What a keydown is called on a bar. ⌘K is matched before this table.
@@ -1159,6 +1159,27 @@
     form.requestSubmit();
     return true;
   }
+  // A part of a page that opens in place (a composer, an edit form) says how to
+  // put it away: its close control carries data-esc-close, and the control is
+  // only there to find while the part is open. Escape presses it wherever the
+  // focus is, so it does not matter that the button that opened the part hid.
+  function closeOpenPart() {
+    var els = document.querySelectorAll("#workspace [data-esc-close]");
+    for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) { els[i].click(); return true; }
+    return false;
+  }
+  // The same idea for the keys that act on a part: a form that declares
+  // data-submit-key is sent by ⌘⏎, one that declares data-enter-key by ⏎, and a
+  // control that declares data-open-key is what ⌘⏎ presses while the part is
+  // shut. Each only while it is on screen.
+  function pressShown(sel, how) {
+    var els = document.querySelectorAll("#workspace " + sel);
+    for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) { how(els[i]); return true; }
+    return false;
+  }
+  function submitComposer() { return pressShown("form[data-submit-key]", function (f) { f.requestSubmit(); }); }
+  function enterSubmit() { return pressShown("form[data-enter-key]", function (f) { f.requestSubmit(); }); }
+  function openComposer() { return pressShown("[data-open-key]", function (b) { b.click(); }); }
   // A dialog, drawer or palette on top has its own Escape; the page behind must
   // not also leave.
   function overlayOpen() {
@@ -1270,7 +1291,7 @@
       // And on a create page, from any field or none: the page is for making one
       // thing, and the key bar says ⌘⏎ makes it (board Create). A dialog on top
       // has the key first.
-      if (!overlayOpen() && submitCreate()) { e.preventDefault(); return; }
+      if (!overlayOpen() && KEYBAR["⌘⏎"]()) { e.preventDefault(); return; }
     }
     // Esc in the filter clears it and hands the keys back to the list.
     // At 1100 and below Escape shuts the switcher's menu first, wherever the
@@ -1818,7 +1839,10 @@
   function focusables(el) {
     return Array.prototype.filter.call(
       el.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])'),
-      function (e) { return e.offsetParent !== null; });
+      // Not the native select behind a custom one (select.js keeps it in the
+      // page, out of sight, and out of the Tab order): it is not a place focus
+      // can be seen, so a dialog that opened on it opened on nothing.
+      function (e) { return e.offsetParent !== null && !e.classList.contains("ds-native") && e.getAttribute("tabindex") !== "-1"; });
   }
   function onTrapKey(e) {
     if (e.key !== "Tab" || !trapped) return;

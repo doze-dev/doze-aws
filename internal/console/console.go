@@ -428,8 +428,22 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		// SQS's create page is drawn by its own boards (Sqs-03, Sqs-04): its bar
 		// is theirs, without the ⌘⏎ the generic Create board adds.
 		"sqsCreateKeys": func() string { return sqsCreateKeys },
-		"itemFor":       itemFor,
-		"resolveIn":     resourceURL,
+		// The queue page's sets, per tab and per state (keys.go), and a list
+		// pane's with nothing in it.
+		"sqsKeys":        sqsKeys,
+		"sqsComposeKeys": func() string { return sqsComposeKeys },
+		"sqsEditKeys":    func() string { return sqsEditKeys },
+		"emptyListKeys":  emptyListKeys,
+		"itemFor":        itemFor,
+		// svcLabel is a service's name as the rail prints it ("SQS",
+		// "DynamoDB"), for a sentence that would otherwise print the key.
+		"svcLabel": func(key string) string {
+			if e, ok := catalogOf(key); ok && e.Label != "" {
+				return e.Label
+			}
+			return key
+		},
+		"resolveIn": resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},

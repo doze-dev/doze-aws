@@ -139,11 +139,11 @@ test.describe('what the strip says', () => {
 
 test.describe('at 1101 and above the pane is the column', () => {
   test.use({ viewport: { width: 1101, height: 800 } });
-  test('232 px wide, the rows drawn, no switcher', async ({ page, request, uniqueName }) => {
+  test('262 px wide, the rows drawn, no switcher', async ({ page, request, uniqueName }) => {
     const { names } = await threeQueues(request, uniqueName);
     await page.goto(`sqs/${names[1]}`);
     await expect(page.locator('.listpane .lp-switch')).toBeHidden();
-    expect(await widthOf(page, '.listpane')).toBe(232);
+    expect(await widthOf(page, '.listpane')).toBe(262);
     await expect(page.locator('.listpane .li', { hasText: names[2] })).toBeVisible();
     await expect(page.locator('.listpane .li.on')).toContainText(names[1]);
   });

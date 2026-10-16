@@ -1,7 +1,37 @@
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { createBucket, createQueue, postForm } from '../fixtures/api';
-import { BASE_URL } from '../playwright.config';
+import { BASE_URL, ORIGIN } from '../playwright.config';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** A second doze-aws with nothing in it, for a page that is about having
+ *  nothing. It is the binary the suite already built, on the next-but-six port
+ *  of the run's own, with a data directory of its own. */
+async function freshInstance(): Promise<{ url: string; stop: () => Promise<void> }> {
+  const base = Number(new URL(ORIGIN).port);
+  const port = base + 7;
+  const dir = path.resolve(__dirname, `../.tmp/data-fresh-${port}`);
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  const child = spawn(path.resolve(__dirname, `../.tmp/bin/doze-aws-${base}`), ['--listen', `127.0.0.1:${port}`, '--data-dir', dir, '--console'], { cwd: dir, stdio: 'ignore' });
+  const url = `http://127.0.0.1:${port}/_console/`;
+  for (let i = 0; i < 100; i++) {
+    if (await fetch(url).then((r) => r.ok, () => false)) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return {
+    url,
+    stop: async () => {
+      child.kill();
+      fs.rmSync(dir, { recursive: true, force: true });
+    },
+  };
+}
 
 // Console-chrome behaviors that live outside #workspace and so must survive
 // every htmx swap: theme, rail, palette, confirm dialogs, toasts, keyboard
@@ -920,9 +950,113 @@ const DRIVERS: Record<string, Drive> = {
   },
 };
 
-/** The kinds of page the bar changes between, and the keys each names. */
-const KINDS: Record<string, { url: string; caps: string[]; svc?: string }> = {
+// ---- the SQS queue page, one set per state (boards Queue, Sqs-08, Sqs-10,
+// Sqs-17, Sqs-18, Sqs-19, and Sqs-01 for a service with no queue) ----
+const setEditorValue = (page: Page, value: string) =>
+  page.evaluate((v) => (window as any).dozeEditor.set('textarea[name=body][data-editor]', v), value);
+const clickAway = (page: Page) => page.locator('.det-title').click();
+Object.assign(DRIVERS, {
+  // The messages tab with the composer shut.
+  'detail:j': DRIVERS['list:j'],
+  'detail:k': DRIVERS['list:k'],
+  'detail:/': DRIVERS['list:/'],
+  'detail:⌘K': DRIVERS['list:⌘K'],
+  'detail:⌘⏎': async (page) => {
+    // The composer is shut and the key says "send": it opens the composer to write in.
+    await expect(page.locator('.sqs-compose')).toBeHidden();
+    await clickAway(page);
+    await page.keyboard.press(SUBMIT_KEY);
+    await expect(page.locator('.sqs-compose')).toBeVisible();
+  },
+  // The composer open.
+  'compose:⌘⏎': async (page) => {
+    await setEditorValue(page, '{"sent":"from the key"}');
+    await page.locator('.sqs-compose .CodeMirror').click();
+    await page.keyboard.press(SUBMIT_KEY);
+    await expect(page.locator('.msg')).toHaveCount(1, { timeout: 10_000 });
+  },
+  'compose:esc': async (page) => {
+    // From the editor, and from nowhere in particular: the key bar says esc closes it.
+    await page.locator('.sqs-compose .CodeMirror').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sqs-compose')).toBeHidden();
+    await page.locator('.dock-bar').click();
+    await expect(page.locator('.sqs-compose')).toBeVisible();
+    await clickAway(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sqs-compose')).toBeHidden();
+  },
+  'compose:⌘K': DRIVERS['list:⌘K'],
+  // The Consume tab, with two messages waiting.
+  'consume:⏎': async (page) => {
+    await page.locator('#sqs-consume input[name=max]').fill('1');
+    await page.locator('#sqs-consume input[name=max]').press('Enter');
+    await expect(page.locator('.rcv-row')).toHaveCount(1, { timeout: 10_000 });
+    // And from nowhere in particular, where the bar still says ⏎ receives.
+    await clickAway(page);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.rcv-row')).toHaveCount(2, { timeout: 10_000 });
+  },
+  'consume:⌘K': DRIVERS['list:⌘K'],
+  // The Configuration tab, read.
+  'config:j': DRIVERS['list:j'],
+  'config:k': DRIVERS['list:k'],
+  'config:⌘K': DRIVERS['list:⌘K'],
+  // The Configuration tab, being edited.
+  'cfgedit:tab': async (page) => {
+    const first = page.locator('#sqs-config input[name=visibility]');
+    await first.focus();
+    await page.keyboard.press('Tab');
+    await expect(first).not.toBeFocused();
+    expect(await page.evaluate(() => !!document.activeElement?.closest('#sqs-config form.cfg-form'))).toBe(true);
+  },
+  'cfgedit:esc': async (page) => {
+    // The button that opened the form is hidden now, so focus is nowhere in it.
+    await expect(page.locator('#sqs-config form.cfg-form')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#sqs-config form.cfg-form')).toBeHidden();
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await page.locator('#sqs-config input[name=visibility]').focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#sqs-config form.cfg-form')).toBeHidden();
+  },
+  'cfgedit:⌘K': DRIVERS['list:⌘K'],
+  // The Tags tab.
+  'tags:tab': async (page) => {
+    const start = page.locator('.q-tags button, .q-tags input').first();
+    await start.focus();
+    await page.keyboard.press('Tab');
+    await expect(start).not.toBeFocused();
+  },
+  'tags:⌘K': DRIVERS['list:⌘K'],
+  // A service with no queue yet (a fresh instance): only the keys that do something.
+  'empty:c': async (page) => {
+    await page.keyboard.press('c');
+    await page.waitForURL(/\/sqs\/create$/);
+  },
+  'empty:⌘K': DRIVERS['list:⌘K'],
+});
+
+/** The kinds of page the bar changes between, and the keys each names.
+ *  `{queue}` in a url is a queue made for the test; `fresh` is a second
+ *  instance with nothing in it; `setup` leaves the page in the state the kind
+ *  is about; `seed` messages are sent first. */
+const KINDS: Record<string, { url: string; caps: string[]; svc?: string; fresh?: boolean; seed?: number; setup?: (page: Page) => Promise<void> }> = {
   list: { url: 'sqs', caps: ['j', 'k', '⏎', '/', 'c', '⌘K'] },
+  // Sqs-01-None: no queue, so no row to move over, open or filter.
+  empty: { url: 'sqs', caps: ['c', '⌘K'], fresh: true },
+  // The Queue board, without "⏎ open a message": there is no message cursor.
+  detail: { url: 'sqs/{queue}', caps: ['j', 'k', '⌘⏎', '/', '⌘K'] },
+  // Sqs-08
+  compose: { url: 'sqs/{queue}', caps: ['⌘⏎', 'esc', '⌘K'], setup: async (page) => { await page.locator('.dock-bar').click(); await expect(page.locator('.sqs-compose')).toBeVisible(); } },
+  // Sqs-10
+  consume: { url: 'sqs/{queue}?tab=consume', caps: ['⏎', '⌘K'], seed: 2 },
+  // Sqs-17
+  config: { url: 'sqs/{queue}?tab=config', caps: ['j', 'k', '⌘K'] },
+  // Sqs-18
+  cfgedit: { url: 'sqs/{queue}?tab=config', caps: ['tab', 'esc', '⌘K'], setup: async (page) => { await page.getByRole('button', { name: 'Edit settings' }).click(); await expect(page.locator('#sqs-config form.cfg-form')).toBeVisible(); } },
+  // Sqs-19
+  tags: { url: 'sqs/{queue}?tab=tags', caps: ['tab', '⌘K'] },
   // Sqs-03-Create draws tab, esc, ⌘K; the Create board draws ⌘⏎ create first.
   create: { url: 'sqs/create', caps: ['tab', 'esc', '⌘K'] },
   make: { url: 's3/create', caps: ['⌘⏎', 'tab', 'esc', '⌘K'], svc: 's3' },
@@ -965,6 +1099,32 @@ test.describe('the key bar', () => {
     ]);
   });
 
+  test("each state of a queue's page names the keys its board draws, in the board's words", async ({ page, request, uniqueName }) => {
+    const q = await createQueue(request, uniqueName('e2e-keys-states'));
+    const jump = { caps: ['⌘K'], label: 'jump or act' };
+    const next = { caps: ['tab'], label: 'next field' };
+    await page.goto(`sqs/${q}`);
+    await expect.poll(() => readBar(page)).toEqual([{ caps: ['j', 'k'], label: 'queue' }, { caps: ['⌘⏎'], label: 'send' }, { caps: ['/'], label: 'filter' }, jump]);
+    await page.locator('.dock-bar').click();
+    await expect.poll(() => readBar(page)).toEqual([{ caps: ['⌘⏎'], label: 'send' }, { caps: ['esc'], label: 'close' }, jump]);
+    await page.goto(`sqs/${q}?tab=consume`);
+    await expect.poll(() => readBar(page)).toEqual([{ caps: ['⏎'], label: 'receive' }, jump]);
+    await page.goto(`sqs/${q}?tab=config`);
+    await expect.poll(() => readBar(page)).toEqual([{ caps: ['j', 'k'], label: 'queue' }, jump]);
+    await page.getByRole('button', { name: 'Edit settings' }).click();
+    await expect.poll(() => readBar(page)).toEqual([next, { caps: ['esc'], label: 'cancel' }, jump]);
+    await page.goto(`sqs/${q}?tab=tags`);
+    await expect.poll(() => readBar(page)).toEqual([next, jump]);
+    // Nothing in the list: only what has something to act on.
+    const fresh = await freshInstance();
+    try {
+      await page.goto(fresh.url + 'sqs');
+      await expect.poll(() => readBar(page)).toEqual([{ caps: ['c'], label: 'new queue' }, jump]);
+    } finally {
+      await fresh.stop();
+    }
+  });
+
   test('is the same bar, once, after a boosted navigation, and follows the page', async ({ page, request, uniqueName }) => {
     await createQueue(request, uniqueName('e2e-keys'));
     await page.goto('sqs');
@@ -994,8 +1154,15 @@ test.describe('the key bar', () => {
     test(`every key the ${kind} page names does what it says`, async ({ page, request, context, uniqueName }) => {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
       const env: Record<string, string> = { svc: spec.svc ?? 'sqs', made: uniqueName('e2e-keys-made') };
-      const q = await createQueue(request, uniqueName('e2e-keys'));
-      await createQueue(request, uniqueName('e2e-keys'));
+      // A page about having nothing needs an instance with nothing: the shared
+      // one has queues from every other spec in it.
+      const fresh = spec.fresh ? await freshInstance() : null;
+      let q = '';
+      if (!fresh) {
+        q = await createQueue(request, uniqueName('e2e-keys'));
+        await createQueue(request, uniqueName('e2e-keys'));
+        for (let i = 0; i < (spec.seed ?? 0); i++) await postForm(request, `sqs/${q}/send`, { body: `seed ${i}` });
+      }
       env.queue = q;
       if (kind === 'wire' || kind === 'inspect') {
         for (let i = 0; i < 3; i++) {
@@ -1003,7 +1170,8 @@ test.describe('the key bar', () => {
         }
       }
       const open = async () => {
-        await page.goto(spec.url);
+        await page.goto(fresh ? fresh.url + spec.url : spec.url.replace('{queue}', q));
+        if (spec.setup) await spec.setup(page);
         if (kind === 'wire' || kind === 'inspect') {
           await expect(page.locator('.tr-row').nth(2)).toBeVisible();
         }
@@ -1014,14 +1182,18 @@ test.describe('the key bar', () => {
         }
         await expect(page.locator('#keybar .k').first()).toBeVisible();
       };
-      await open();
-      // The bar says exactly these keys; a key added to a page is added here with its driver.
-      await expect.poll(() => capsOf(page)).toEqual(spec.caps);
-      for (const cap of spec.caps) {
-        const drive = DRIVERS[`${kind}:${cap}`];
-        expect(drive, `the ${kind} page names ${cap} and this spec has no driver for it`).toBeTruthy();
+      try {
         await open();
-        await drive(page, env);
+        // The bar says exactly these keys; a key added to a page is added here with its driver.
+        await expect.poll(() => capsOf(page)).toEqual(spec.caps);
+        for (const cap of spec.caps) {
+          const drive = DRIVERS[`${kind}:${cap}`];
+          expect(drive, `the ${kind} page names ${cap} and this spec has no driver for it`).toBeTruthy();
+          await open();
+          await drive(page, env);
+        }
+      } finally {
+        await fresh?.stop();
       }
     });
   }

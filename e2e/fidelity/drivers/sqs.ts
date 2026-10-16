@@ -104,6 +104,11 @@ export const drivers: DriverTable = {
       await c.settle(900);
       // The megabyte of text is not a picture: put a short body back, as the board draws it.
       await c.setEditor('textarea[name=body][data-editor]', '{ "van": "V-17", "manifest": "…1.3 MB of text…" }');
+      // Editing the body is what clears the refusal's outline, so the swap above
+      // would draw the board's outlined body as an unmarked one. The refusal is
+      // still on the page and the body is still the one that was refused: mark it
+      // again, as the page had it before the picture was tidied.
+      await p.evaluate(() => document.querySelector('.sqs-compose textarea[name=body]')?.setAttribute('aria-invalid', 'true'));
       await p.locator('.sqs-compose').scrollIntoViewIfNeeded();
     },
     note: 'The body is shortened after the send is refused, so the picture is readable; the refusal is the real one for 1.3 MB.',

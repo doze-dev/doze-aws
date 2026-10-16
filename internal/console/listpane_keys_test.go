@@ -52,7 +52,7 @@ func TestTheListPaneHeaderIsTheBoards(t *testing.T) {
 		page := req(t, h, "GET", "/_console/"+svc, nil).Body.String()
 		// The header runs from the pane to its filter. (Not to the first </div>:
 		// the fidelity button inside it carries a dialog.)
-		i, j := strings.Index(page, `<aside class="listpane"`), strings.Index(page, `class="filter"`)
+		i, j := strings.Index(page, `<aside class="listpane`), strings.Index(page, `class="filter"`)
 		if i < 0 || j < i {
 			t.Errorf("%s: no list pane header", svc)
 			continue
@@ -132,10 +132,13 @@ func TestEveryPageHasOneKeyBarOutsideTheWorkspace(t *testing.T) {
 // for the wire. "?" is not among them (D10): no board draws what it shows.
 func TestEachPageDeclaresTheKeysItAnswersTo(t *testing.T) {
 	h := newConsole(t)
+	// A list with nothing in it has no row to move over, open or filter (board
+	// Sqs-01-None: "c new queue", "⌘K jump or act"): the bar names only keys
+	// that do something.
 	cases := []struct{ path, want string }{
-		{"/_console/sqs", "j k=queue|⏎=open|/=filter|c=new queue|⌘K=jump or act"},
-		{"/_console/s3", "j k=bucket|⏎=open|/=filter|c=new bucket|⌘K=jump or act"},
-		{"/_console/eb", "j k=bus|⏎=open|/=filter|c=new bus|⌘K=jump or act"},
+		{"/_console/sqs", "c=new queue|⌘K=jump or act"},
+		{"/_console/s3", "c=new bucket|⌘K=jump or act"},
+		{"/_console/eb", "j k=bus|⏎=open|/=filter|c=new bus|⌘K=jump or act"}, // the default bus is always there,
 		{"/_console/iam", "j k=principal|⏎=open|/=filter|c=new principal|⌘K=jump or act"},
 		{"/_console/sqs/create", sqsCreateKeys},
 		{"/_console/s3/create", otherCreateKeys},
@@ -219,7 +222,9 @@ func TestEveryKeyAPageNamesIsOneTheScriptBinds(t *testing.T) {
 	if bound["?"] {
 		t.Errorf("shell.js binds ?, which no board draws a sheet for (D10)")
 	}
-	pages := []string{"/_console/", "/_console/connect", "/_console/nowhere", "/_console/iam", "/_console/iam/create", "/_console/sqs/create", "/_console/s3/create"}
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"bound"}, "dlq_mode": {"none"}})
+	pages := []string{"/_console/", "/_console/connect", "/_console/nowhere", "/_console/iam", "/_console/iam/create", "/_console/sqs/create", "/_console/s3/create",
+		"/_console/sqs/bound", "/_console/sqs/bound?tab=consume", "/_console/sqs/bound?tab=config", "/_console/sqs/bound?tab=tags"}
 	for svc := range boardHeadings {
 		pages = append(pages, "/_console/"+svc)
 	}

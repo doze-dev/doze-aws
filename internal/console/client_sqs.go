@@ -22,6 +22,8 @@ import (
 
 // ReceiveOpts is the ReceiveMessage request as a form fills it in.
 type ReceiveOpts struct {
+	// Max and Wait go as typed. The service refuses 0 and 11 for Max and a wait
+	// over 20 (SQS-5), and the refusal is shown; clamping here hid it.
 	Max        int // MaxNumberOfMessages, 1..10
 	Visibility int // VisibilityTimeout override; -1 means "use the queue's"
 	Wait       int // WaitTimeSeconds, 0..20 — long polling
@@ -32,8 +34,8 @@ type ReceiveOpts struct {
 func (b *backend) ReceiveMessages(ctx context.Context, name string, o ReceiveOpts) ([]SQSMessage, error) {
 	in := map[string]any{
 		"QueueUrl":              b.queueURL(name),
-		"MaxNumberOfMessages":   clampInt(o.Max, 1, 10),
-		"WaitTimeSeconds":       clampInt(o.Wait, 0, 20),
+		"MaxNumberOfMessages":   o.Max,
+		"WaitTimeSeconds":       o.Wait,
 		"AttributeNames":        []string{"All"},
 		"MessageAttributeNames": []string{"All"},
 	}

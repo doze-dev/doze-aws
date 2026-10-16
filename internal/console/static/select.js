@@ -47,6 +47,11 @@
     sel.parentNode.insertBefore(wrap, sel);
     wrap.appendChild(sel);
     sel.classList.add("ds-native");
+    // One tab stop per control, and it is the one you can see. The native select
+    // stays focusable by script (a required one that blocks a submit, a label
+    // that is clicked) but is not in the Tab order, and anything that focuses it
+    // lands on the visible trigger instead (below).
+    sel.tabIndex = -1;
 
     // The wrapper is the layout box now, so anything the select was sized with
     // has to move onto it or the control loses its width. Inline styles are
@@ -233,6 +238,7 @@
       list.removeAttribute("aria-activedescendant");
     }
 
+    sel.addEventListener("focus", function () { if (!trigger.disabled) trigger.focus(); });
     trigger.addEventListener("click", function () { state.open ? close() : open(); });
 
     trigger.addEventListener("keydown", function (e) {

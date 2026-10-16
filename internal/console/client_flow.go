@@ -27,7 +27,13 @@ type FlowEdge struct {
 	To   string
 	Kind string // notify | sub | target | esm | redrive
 	Hot  bool   // carried traffic recently (best-effort: has depth/invocations)
+	// Off is an event source mapping that is Disabled: the wiring is there and
+	// nothing is read through it, so no page may draw the source as read.
+	Off bool
 }
+
+// mappingOff is whether an event source mapping reads nothing right now.
+func mappingOff(state string) bool { return state == "Disabled" || state == "Disabling" }
 
 // FlowGraph is the wiring map: every resource, every connection between two of
 // them, and the ones nothing is wired to.
@@ -149,7 +155,19 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			// both. Kinesis's strip could therefore never populate, which read
 			// as a dead feature rather than a missing one.
 			if from := ensureNode(nodes, resourceFromARN(m.SourceARN)); from != "" {
-				edges = append(edges, FlowEdge{From: from, To: nodeID("lambda", f.Name), Kind: "esm"})
+				// Two mappings between the same pair: one that reads is enough
+				// for the pair to be read, so an enabled one wins.
+				to, off := nodeID("lambda", f.Name), mappingOff(m.State)
+				dup := false
+				for i := range edges {
+					if edges[i].Kind == "esm" && edges[i].From == from && edges[i].To == to {
+						edges[i].Off = edges[i].Off && off
+						dup = true
+					}
+				}
+				if !dup {
+					edges = append(edges, FlowEdge{From: from, To: to, Kind: "esm", Off: off})
+				}
 			}
 		}
 		// lambda OUTGOING: DLQ + async success/failure destinations make it a
@@ -247,6 +265,7 @@ type Neighbor struct {
 	Name string
 	Kind string // the edge kind (sub / target / esm / redrive / dlq / dest / notify)
 	URL  string
+	Off  bool // an event source mapping that is Disabled: wired, reads nothing
 }
 
 // Neighborhood is a resource's 1-hop wiring: what feeds it and where it drains.
@@ -277,13 +296,13 @@ func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood 
 				// re-resolving from the name minted /eb/orders, a bus page
 				// for a bus that does not exist. Every rule chip in every
 				// wiring strip linked there.
-				nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
+				nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL, Off: e.Off})
 			}
 		}
 		if e.To == self && !seen["u"+e.From] {
 			seen["u"+e.From] = true
 			if n, ok := byID[e.From]; ok {
-				nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
+				nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL, Off: e.Off})
 			}
 		}
 	}

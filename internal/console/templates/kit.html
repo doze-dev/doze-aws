@@ -83,8 +83,10 @@
     {{range .Conn.Upstream}}<a class="nb-link" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}
     <span class="nb-arrow">→</span>{{end}}
   <b class="nb-self" title="{{.Self}}">this {{.This}}</b><span class="nb-arrow">→</span>
-  {{$read := 0}}{{range .Conn.Downstream}}{{if ne .Kind "redrive"}}{{if eq $read 0}}<span class="nb-lbl">read by</span>{{end}}{{$read = 1}}<a class="nb-link" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}{{end}}
-  {{if eq $read 0}}<span class="conn-hint">{{.None}}</span>{{end}}
+  {{$read := 0}}{{range .Conn.Downstream}}{{if and (ne .Kind "redrive") (not .Off)}}{{if eq $read 0}}<span class="nb-lbl">read by</span>{{end}}{{$read = 1}}<a class="nb-link" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}{{end}}
+  {{/* A mapping that is Disabled reads nothing: it is wired, and it is named as disabled, never as a reader. */}}
+  {{$off := 0}}{{range .Conn.Downstream}}{{if and (ne .Kind "redrive") .Off}}{{if eq $off 0}}<span class="nb-lbl">mapping disabled</span>{{end}}{{$off = 1}}<a class="nb-link nb-off" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}, disabled">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}{{end}}
+  {{if and (eq $read 0) (eq $off 0)}}<span class="conn-hint">{{.None}}</span>{{end}}
 </div>
 {{end}}
 

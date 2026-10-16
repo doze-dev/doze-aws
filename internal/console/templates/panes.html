@@ -40,7 +40,7 @@
      The AWS icon is not drawn here: no board draws a mark in the list header,
      and the highlighted rail item beside the pane already shows the service's. */}}
 {{define "lp_head"}}
-<aside class="listpane" data-keys="{{listKeys .Svc}}">
+<aside class="listpane" data-keys="{{if .Count}}{{listKeys .Svc}}{{else}}{{if .NewURL}}{{emptyListKeys .Svc true}}{{else}}{{emptyListKeys .Svc false}}{{end}}{{end}}">
   <div class="lp-h">
     <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}{{template "lp_switch" dict "Svc" .Svc}}</span>
     {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
@@ -329,7 +329,7 @@
      key. */}}
 {{define "info_button"}}
 <span x-data="{info:false}">
-  <button type="button" class="info-btn" title="What of {{.Svc}} is real here — the fidelity ledger" @click="info=true">{{icon "info"}}</button>
+  <button type="button" class="info-btn" title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" @click="info=true">{{icon "info"}}</button>
   <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
     <div class="dialog wide anim">
       <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
