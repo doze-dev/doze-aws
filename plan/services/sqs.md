@@ -300,8 +300,9 @@ wrong.**
 4. The body was rebuilt to the boards the same day and re-rendered (22 board
    renders and 70 page renders: light, dark for create, each tab and the
    dialogs, 900 wide, and under account 111122223333 in eu-west-1). The table
-   below is that comparison. The renders are in the session scratchpad
-   (`audit-1c/after/`); foundation B14 is what makes them a repeatable task.
+   below is that comparison. `go tool task console:fidelity -- sqs` (foundation B14, built 2026-10-16)
+   now makes the comparison a repeatable task; on 2026-10-16 all 19 boards
+   pass its text check (a human still reads each pair).
 
 There are 19 board files, not 21: 17 `Sqs-*`, `Queue` and `Bad-DLQ`. Numbers
 06, 07, 12 and 13 were never drawn.
@@ -352,8 +353,11 @@ They are yours to overrule:
    against a reader, on edit), as the Teaching board says. A create form has none.
 4. A FIFO composer keeps Copies. Board 09 draws none.
 5. A message row's summary is the body's first line (`json {…}`). The boards
-   draw a domain summary ("order HRB-… · 3 lines · £42.15"), which needs a
-   summariser for shapes the console does not know. Not built.
+   drew a domain summary ("order · HRB-… · 3 lines · £42.15"), which no console
+   can build from a message it does not understand. **Decided 2026-10-16: the
+   boards are corrected** (Queue, Bad-DLQ, Sqs-08, 11, 14 now draw the body's
+   first line under a `json` chip), as the rule that boards show only what is
+   buildable asks.
 
 **Where the design was wrong, and was corrected in the working copy** (the
 published canvas carries the old text until it is republished):

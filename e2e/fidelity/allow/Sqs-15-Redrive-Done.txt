@@ -1,4 +1,3 @@
 # See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
-# Not listed: "The specified queue does not exist: harbour-returns". The page prints the service's own reason ("the destination queue no longer exists").
 Earlier, while it ran: Redriving → harbour-checkout-orders · 2 moved so far # annotation: "the board's note about the running state, which the page shows while it runs" (sqs.md 6a, Sqs-15); the run's own capture is page-Sqs-15-Redrive-Done-running.png
-An example of a failed one. Each move task is listed. # annotation: the board's note about its own example
+An example of a failed one: the destination was deleted while the task ran. Each move task is listed. # annotation: the board's note about its own example
