@@ -65,16 +65,16 @@ identity. What they found, and where each stands now:
 
 | Item | The file said | The audit found | Now |
 |---|---|---|---|
-| A2 | landed | The "done when" is not met: no service sets the local-limit stamp, `awshttp.NotBuilt` has no caller, and "not built" was recognised by a code's spelling, so CloudFormation's stubbed `ListStackSets` read "Refused… the input is what to change". | Every legacy stub table stamps `X-Doze-Legacy-Stub` (ten services), and the console and the sweep read the stamp, not the code. The rest (a service setting `Local`; stubs moving to `NotBuilt`) is each service's stage. |
+| A2 | landed | The "done when" is not met: no service sets the local-limit stamp, `awshttp.NotBuilt` has no caller, and "not built" was recognised by a code's spelling, so CloudFormation's stubbed `ListStackSets` read "Refused… the input is what to change". | Every legacy stub table stamps `X-Doze-Legacy-Stub` (thirteen services), and the console and the sweep read the stamp, not the code. The rest (a service setting `Local`; stubs moving to `NotBuilt`) is each service's stage. |
 | A3 | landed | The wire inspector's status chip was red for any status of 400 or more. | The chip and each wire row carry the state (2c6cc3e). |
-| A8 | partly | KMS still locked a new key out at birth under another account with enforce on, the EventBridge console's archives captured nothing, the S3 share link failed, and the check skipped `module/`. | All 17 sites fixed, the frozen list is empty, `module/` is checked (ef18e70). |
+| A8 | partly | KMS still locked a new key out at birth under another account with enforce on, the EventBridge console's archives captured nothing, the S3 share link failed, and the check skipped `module/`. | All 17 sites fixed, the frozen list is empty, `module/` is checked (ef18e70). **A second audit (2026-10-16) found one the list could not see:** Lambda's `CreateFunction` response named the default account and Region (the response was built from a record never stamped); fixed, with a test over every response that shows a function (824788b). |
 | A11 | landed | DynamoDB's preview omitted the index rows, under a tooltip promising equality. | The preview builds them (9a0713c, f4eea12). |
 | A12, A6 | landed | A refusal could land inside a closed disclosure, off-screen, with no toast (SQS create). | `errSlot` skips a closed `<details>` (385c8c1). |
 | A13 | landed | Ten dialogs never trapped focus: the effect that switches the trap ran once. | All fixed, with a guard test and a browser test (f4eea12). |
 | A14 | landed | The test covered two services and only hrefs; the tag editor broke on `+` and `#`, the S3 inspector on `+ # &`, alarms with `/` could not be opened. | About 505 template sites and 137 Go sites escaped, and the guard reads every template with no exemptions (955cbec, f4eea12). One left: a log group with `#` cannot have its tags edited, because the service refuses the ARN as the model says. |
 | A15 | partly | Two of sixteen services are on one view model. | Unchanged: each service's stage. |
 | A16 | landed | Holds, and no missing-resource page draws the list pane the "done when" asks for. | The criterion is relaxed in fact; the shell work decides it. |
-| A17 | landed | Twenty relative times had no zone hover. | All fixed, and a guard fails on a new one (979d495). |
+| A17 | landed | Twenty relative times had no zone hover. | All fixed, and a guard fails on a new one (979d495). **Four more found 2026-10-16** (IAM last-used and minted expiry, S3 retention-until and multipart start), which the guard's field-name list did not know; added to it and fixed (824788b). The guard is name-based: a new time field needs its name added. |
 | A18 | landed | Two sibling sentences ("drains nowhere yet", "Nothing sends to them"). | Reworded, and the test scans every template (3c13f12). |
 | B2 | partly | The second-identity browser pass was not in CI. | It passes (288 of 288 under 111122223333 in eu-west-1) and is in `e2e.yml` (698eb67). |
 | B3 | landed | "All of `internal/` that carries logic" was false: `peercall`, `rpcv2cbor`, `gateway`, `config`, `sigparse` and others have no baseline. | `peercall` and `modelcheck` recorded; the others are still owed, each a background run. |
@@ -566,7 +566,8 @@ STS (`Tags`, `PolicyArns`, `TransitiveTagKeys`) and CloudFormation
 awsJson1_0 and does not use it.
 
 **Done when.** `FromQuery` keeps every element, in index order (a gap in the
-indices is kept, not collapsed), and the constraint walker checks each; a
+indices is compacted, never merged: a hole would let one key allocate billions
+of slots and make `required` refuse members that were never sent), and the constraint walker checks each; a
 test per shape (scalar list, list of structures, map as `entry`, nested list
 in a list) puts the violation in element 2 and 3 and not in element 1; the
 Query services' rejection-parity cases are regenerated to put it there too
@@ -691,7 +692,11 @@ criterion is met as written; the rest say what is left and why.
       account 111122223333 in eu-west-1; conformance 160 passed, 831 responses
       unverified (no AWS account); coverage 81.2% against 80.5%; `lightness`;
       `api`. Idle heap and binary size are explained in the commit that
-      re-recorded the budgets.
+      re-recorded the budgets. **On 2026-10-16, on the merged tree after the shell
+      rebuild:** `check:full`; browser suite 387 passed (and 386 plus one flake
+      under the second identity, since fixed at its cause: the wire inspector
+      lost slow calls); conformance 160 passed; coverage 81.3%; `lightness`; `api`;
+      `console:fidelity -- sqs` 19 of 19.
 - [x] The existing console still works for the sixteen services not yet
       rebuilt: the browser suite passes with the edits to its specs that A6, A12
       and A13 change on purpose (a refusal from a header button is inline; the
