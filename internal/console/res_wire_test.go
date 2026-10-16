@@ -55,6 +55,17 @@ func TestTheWireUnderAResourceIsThatResourcesCalls(t *testing.T) {
 	if !strings.Contains(dock, "this queue") {
 		t.Errorf("the dock does not name what it is the wire of")
 	}
+	// The collapsed form's sentence counts every call, not the rows drawn, and
+	// says how many were refused (the Narrow board).
+	if !strings.Contains(dock, "3 calls touched this queue · 1 refused") {
+		t.Errorf("the dock's summary:\n%s", dock)
+	}
+	if !strings.Contains(dock, `<span class="tr-state">Refused</span>`) {
+		t.Errorf("a refused call's row does not say Refused:\n%s", dock)
+	}
+	if !strings.Contains(dock, `<span class="rw-why" title="ValidationException">1 validation error detected`) {
+		t.Errorf("a refused call's row does not carry the reason:\n%s", dock)
+	}
 
 	// The console's own reading of the queue is not the app's traffic.
 	req(t, c, "GET", "/_console/sqs/orders", nil)
@@ -67,6 +78,9 @@ func TestTheWireUnderAResourceIsThatResourcesCalls(t *testing.T) {
 	none := req(t, c, "GET", "/_console/traffic/for?svc=sqs&res=nobody&noun=queue", nil).Body.String()
 	if !strings.Contains(none, "Nothing yet") {
 		t.Errorf("an uncalled queue's dock:\n%s", none)
+	}
+	if !strings.Contains(none, `<span class="rw-sum">no calls yet</span>`) {
+		t.Errorf("an uncalled queue's collapsed sentence:\n%s", none)
 	}
 	page := req(t, c, "GET", "/_console/sqs/orders", nil).Body.String()
 	if !strings.Contains(page, `id="res-wire"`) || !strings.Contains(page, "res=orders") {

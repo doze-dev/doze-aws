@@ -430,17 +430,17 @@ func TestConnectionsView(t *testing.T) {
 		"name": {"orders"}, "dlq": {"dead-letter"}, "max_receive": {"5"},
 	})
 
-	// The orders page drains to dead-letter.
+	// The orders page dead-letters to dead-letter: in the header's sentence, as
+	// the boards draw it ("dead letters to <queue> after 5"), where the queue is
+	// a link. The strip beside it is "read by", which a DLQ is not.
 	orders := req(t, h, "GET", "/_console/sqs/orders", nil).Body.String()
-	if !strings.Contains(orders, "Drains to") || !strings.Contains(orders, "dead-letter") {
-		t.Fatalf("orders page missing its DLQ connection:\n%s", orders)
+	if !strings.Contains(orders, `<span class="s-clause s-mut">dead letters to</span><a class="s-link" href="/_console/sqs/dead-letter">dead-letter</a><span class="s-clause s-mut">after 5</span>`) {
+		t.Fatalf("orders page missing its DLQ clause:\n%s", orders)
 	}
-	if !strings.Contains(orders, "redrive") {
-		t.Fatalf("orders connection should be labelled by edge kind (redrive):\n%s", orders)
-	}
-	// The dead-letter page is fed by orders (the reverse edge).
+	// The dead-letter page is fed by orders (the reverse edge), the edge kind
+	// being the link's title.
 	dl := req(t, h, "GET", "/_console/sqs/dead-letter", nil).Body.String()
-	if !strings.Contains(dl, "Fed by") || !strings.Contains(dl, "orders") {
+	if !strings.Contains(dl, "fed by") || !strings.Contains(dl, `title="redrive"`) || !strings.Contains(dl, "orders") {
 		t.Fatalf("dead-letter page missing its upstream connection:\n%s", dl)
 	}
 }

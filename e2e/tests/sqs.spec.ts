@@ -21,14 +21,22 @@ function dlqNameFor(mainQueueName: string, fifo: boolean): string {
 }
 
 test.describe('create + identity', () => {
-  test('standard queue shows its ARN/URL chips', async ({ page, request, uniqueName }) => {
+  // The ARN and the URL were chips under the name; no board draws them there,
+  // so they are on the Configuration tab (S6), still copyable.
+  test('standard queue says so beside its name; its ARN and URL are on the Configuration tab', async ({ page, request, uniqueName }) => {
     const name = await createQueue(request, uniqueName('e2e-sqs-std'));
     await page.goto(`sqs/${name}`);
     await expect(page.locator('.det-title')).toContainText(name);
-    await expect(page.locator('.chips .copychip', { hasText: 'arn' })).toContainText(name);
-    await expect(page.locator('.chips .copychip', { hasText: 'url' })).toContainText(name);
     // A standard queue says so beside its name (the design's "standard" pill).
     await expect(page.locator('.det-title .badge.type')).toHaveText('standard');
+    await expect(page.locator('.det-h .chips')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Configuration' }).click();
+    await expect(page.locator('.q-ids .copychip', { hasText: 'arn' })).toContainText(name);
+    await expect(page.locator('.q-ids .copychip', { hasText: 'url' })).toContainText(name);
+    // Copy works from where they are now.
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('.q-ids .copychip', { hasText: 'arn' }).locator('.copy-btn').click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`:${name}`);
   });
 
   test('FIFO queue wears the FIFO badge and gets a .fifo suffix', async ({
@@ -78,8 +86,11 @@ test.describe('DLQ created alongside', () => {
       await page.goto(`sqs/${dlq}`);
       await expect(page.locator('.badge.dlq')).toContainText('DLQ', { timeout: 500 });
     }).toPass({ timeout: 5000 });
-    await expect(page.locator('.conn-lbl', { hasText: 'Fed by' })).toBeVisible();
-    await expect(page.locator('.conn .conn-chip', { hasText: name })).toBeVisible();
+    // The strip is the board's row: "fed by [mark] <queue> → this queue → ...".
+    await expect(page.locator('.conn[data-nb] .nb-lbl', { hasText: 'fed by' })).toBeVisible();
+    const feeder = page.locator('.conn[data-nb] a.nb-link', { hasText: name });
+    await expect(feeder).toBeVisible();
+    await expect(feeder.locator('img.aws-ic')).toHaveAttribute('src', /\/aws\/sqs\.svg$/);
   });
 
   test('FIFO queue: -dlq.fifo queue is created, FIFO, and wired', async ({
@@ -457,9 +468,11 @@ test.describe('consume tab', () => {
 
     // AWS-side, read back through a fresh page: one deleted, two in flight.
     await page.goto(`sqs/${name}`);
-    const fact = (k: string) => page.locator('.factstrip .fact', { hasText: k }).locator('.fx-v');
-    await expect(fact('Visible')).toHaveText('0');
-    await expect(fact('In flight')).toHaveText('2');
+    const slug = name.replace(/[^a-zA-Z0-9_-]/g, '-');
+    await expect(page.locator(`#sum-sqs-${slug}-visible`)).toHaveText('0');
+    await expect(page.locator(`#sum-sqs-${slug}-inflight`)).toHaveText('2');
+    await expect(page.locator('.sentence')).toContainText('0 waiting');
+    await expect(page.locator('.sentence')).toContainText('2 in flight');
   });
 
   // Regression (fixed in 1.0): the out-of-band count tail (sqs.html, <template> wrapping the
@@ -471,12 +484,14 @@ test.describe('consume tab', () => {
     const name = await createQueue(request, uniqueName('e2e-sqs-oob'));
     await sendViaApi(request, name, '{"oob":1}');
     await page.goto(`sqs/${name}?tab=consume`);
-    const fact = (k: string) => page.locator('.factstrip .fact', { hasText: k }).locator('.fx-v');
-    await expect(fact('Visible')).toHaveText('1');
+    const slug = name.replace(/[^a-zA-Z0-9_-]/g, '-');
+    const visible = page.locator(`#sum-sqs-${slug}-visible`);
+    const inflight = page.locator(`#sum-sqs-${slug}-inflight`);
+    await expect(visible).toHaveText('1');
     await page.getByRole('button', { name: 'Receive', exact: true }).click();
     await expect(page.locator('#sqs-consumed .rcv-row')).toHaveCount(1);
-    await expect(fact('In flight')).toHaveText('1');
-    await expect(fact('Visible')).toHaveText('0');
+    await expect(inflight).toHaveText('1');
+    await expect(visible).toHaveText('0');
   });
 });
 
@@ -596,6 +611,147 @@ test('the wire under a queue shows the app’s calls to it as they happen', asyn
 
   // A time says its zone and UTC on hover.
   await expect(dock.locator('.rw-row time').first()).toHaveAttribute('title', /\(UTC[+-]\d\d:\d\d\) · \d\d:\d\d:\d\d UTC/);
+
+  // The board's row: time, action, resource or the reason, status. A call that
+  // was not a plain answer says its state in a word beside the status, so the
+  // colour is never the only signal (D7); a plain 200 says nothing extra.
+  const refused = dock.locator('.rw-row.refused');
+  await expect(refused.locator('.st')).toHaveText('400');
+  await expect(refused.locator('.tr-state')).toHaveText('Refused');
+  await expect(refused.locator('.rw-why')).toContainText('messageBody');
+  const served = dock.locator('.rw-row:not(.refused)').first();
+  await expect(served.locator('.rw-what')).toHaveText(queue);
+  await expect(served.locator('.st')).toHaveText('200');
+  await expect(served.locator('.tr-state')).toHaveCount(0);
+});
+
+// S6/S7: the header and the wire dock, as the boards draw them (Queue,
+// Bad-DLQ, Anatomy). Delete stays beside the name (D2), the facts are one
+// sentence, and the wire is pinned at the foot of the content.
+test.describe('the header and the wire dock', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('Delete queue is beside the name, confirmed, and there is no menu', async ({ page, request, uniqueName, confirmDialog, waitForToast }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-del'));
+    await page.goto(`sqs/${name}`);
+    const title = page.locator('.det-title');
+    const del = title.getByRole('button', { name: 'Delete queue' });
+    await expect(del).toBeVisible();
+    const t = await title.boundingBox();
+    const d = await del.boundingBox();
+    const n = await title.locator('.aws-ic').boundingBox();
+    // Same row as the name, to its right.
+    expect(Math.abs((d!.y + d!.height / 2) - (n!.y + n!.height / 2))).toBeLessThan(12);
+    expect(d!.x).toBeGreaterThan(n!.x + n!.width);
+    expect(d!.x + d!.width).toBeLessThanOrEqual(t!.x + t!.width + 1);
+    await expect(page.getByRole('button', { name: '···' })).toHaveCount(0);
+    await del.click();
+    await confirmDialog('cancel');
+    await expect(page.locator('.det-title')).toContainText(name);
+    await del.click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain(`“${name}” deleted`);
+  });
+
+  test('the facts are one sentence and the dead-letter queue is a link', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-sent'), { dlqMode: 'new', maxReceive: 4, visibility: 60 });
+    await postForm(request, `sqs/${name}/send`, { body: 'one' });
+    await page.goto(`sqs/${name}`);
+    const s = page.locator('.sentence');
+    // innerText, because the clauses are flex items and each is its own line.
+    await expect(s).toHaveText(/^\s*1 waiting\s*·\s*0 in flight\s*·\s*hidden for 60 s on receive\s*·\s*kept 4 days\s*·\s*dead letters to\s+\S+-dlq\s+after 4\s*$/, { useInnerText: true });
+    await expect(s.getByRole('link')).toHaveAttribute('href', new RegExp(`/sqs/${dlqNameFor(name, false)}$`));
+    await expect(page.locator('.factstrip')).toHaveCount(0);
+    // Reads left to right on one line at 1440.
+    const box = await s.boundingBox();
+    expect(box!.height).toBeLessThan(30);
+  });
+
+  test('the wire dock is pinned: it does not move while the messages scroll', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-pin'));
+    for (let i = 0; i < 30; i++) await sendViaApi(request, name, `{"n":${i}}`);
+    await page.goto(`sqs/${name}`);
+    const dock = page.locator('#res-wire');
+    await expect(dock.locator('.rw-h')).toBeVisible();
+    await expect(page.locator('#message-panel-wrap')).toBeVisible();
+    const key = await page.locator('#keybar').boundingBox();
+    const before = await dock.boundingBox();
+    // Pinned at the foot of the content: its bottom edge is the key bar's top.
+    expect(Math.abs((before!.y + before!.height) - key!.y)).toBeLessThanOrEqual(1);
+    // The body is what scrolls, and the pane and the page do not.
+    const sc = await page.evaluate(() => {
+      const b = document.querySelector('.detail.wired > .det-b') as HTMLElement;
+      const p = document.querySelector('.detail.wired') as HTMLElement;
+      b.scrollTop = b.scrollHeight;
+      return { body: b.scrollHeight > b.clientHeight, pane: p.scrollHeight - p.clientHeight, page: document.scrollingElement!.scrollHeight - window.innerHeight };
+    });
+    expect(sc.body).toBe(true);
+    expect(sc.pane).toBeLessThanOrEqual(1);
+    expect(sc.page).toBeLessThanOrEqual(1);
+    const after = await dock.boundingBox();
+    expect(after!.y).toBe(before!.y);
+    await expect(dock.locator('.rw-h')).toBeInViewport();
+    // It is on every tab, not only the one with the composer.
+    for (const tab of ['Consume', 'Configuration', 'Tags']) {
+      await page.getByRole('link', { name: tab, exact: true }).click();
+      await expect(page.locator('.tabbar a.on')).toHaveText(tab);
+      await expect(page.locator('#res-wire .rw-h')).toBeVisible();
+      const b = await page.locator('#res-wire').boundingBox();
+      expect(Math.abs((b!.y + b!.height) - key!.y)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('the dock reads "The wire", what it is the wire of, and a live pill', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-dockh'));
+    await page.goto(`sqs/${name}`);
+    const head = page.locator('#res-wire .rw-h');
+    await expect(head.locator('.rw-t')).toHaveText('The wire');
+    await expect(head.locator('.rw-cap')).toHaveText('calls that touched this queue');
+    await expect(head.locator('.pill.ok')).toHaveText('live');
+    // The wide form has no show button.
+    await expect(head.locator('.rw-toggle')).toBeHidden();
+  });
+
+  test('the dock collapses to a sentence and a show button when narrow', async ({ page, request, uniqueName }) => {
+    await page.setViewportSize({ width: 1024, height: 800 });
+    const queue = uniqueName('e2e-sqs-narrow');
+    await createQueue(request, queue);
+    const gateway = new URL('/', ORIGIN + '/').toString();
+    const send = (body: Record<string, unknown>) =>
+      request.post(gateway, {
+        headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'AmazonSQS.SendMessage' },
+        data: JSON.stringify({ QueueUrl: `${ORIGIN}/${ACCOUNT_ID}/${queue}`, ...body }),
+      });
+    await send({ MessageBody: 'a' });
+    await send({ MessageBody: 'b' });
+    await send({});
+    await page.goto(`sqs/${queue}`);
+    const dock = page.locator('#res-wire');
+    await expect(dock.locator('.rw-sum')).toHaveText('3 calls touched this queue · 1 refused');
+    await expect(dock.locator('.rw-cap')).toBeHidden();
+    await expect(dock.locator('.rw-row').first()).toBeHidden();
+    const toggle = dock.getByRole('button', { name: 'show' });
+    await toggle.click();
+    await expect(dock.locator('.rw-row').first()).toBeVisible();
+    await expect(dock.getByRole('button', { name: 'hide' })).toBeVisible();
+    // A live refresh does not close it again: the pane remembers.
+    await send({ MessageBody: 'c' });
+    await expect(dock.locator('.rw-sum')).toHaveText('4 calls touched this queue · 1 refused', { timeout: 10_000 });
+    await expect(dock.locator('.rw-row').first()).toBeVisible();
+    await dock.getByRole('button', { name: 'hide' }).click();
+    await expect(dock.locator('.rw-row').first()).toBeHidden();
+  });
+
+  test('the neighbours strip and the tabs are the boards\'', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-nb'));
+    await page.goto(`sqs/${name}`);
+    const strip = page.locator('.conn[data-nb]');
+    await expect(strip).toHaveText(/this queue\s*→\s*no Lambda trigger reads this queue — wire one to close the loop/, { useInnerText: true });
+    await expect(strip).not.toContainText('fed by');
+    // Text tabs, the first with its live count.
+    await expect(page.locator('.tabbar a svg')).toHaveCount(0);
+    await expect(page.locator('.tabbar a').first()).toContainText(/^Messages\s*0$/);
+  });
 });
 
 // ---------------------------------------------------------------------------

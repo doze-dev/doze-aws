@@ -117,13 +117,17 @@ test.describe('Connections strip', () => {
     await expect(page.locator('.conn-chip:not(.conn-self ~ .conn-chip)', { hasText: topic })).toHaveCount(0);
   });
 
-  test('SQS queue1 page: "Fed by" shows the SNS topic', async ({ page }) => {
-    const chip = page.locator('.conn-chip:not(.conn-self ~ .conn-chip)', { hasText: topic });
+  // The SQS page's strip is the board's row (kit neighbours, S6): "fed by [mark]
+  // name → this queue → read by [mark] name", each name a link with its
+  // service's AWS mark, the edge kind its title.
+  test('SQS queue1 page: "fed by" shows the SNS topic', async ({ page }) => {
+    const chip = page.locator('.conn[data-nb] a.nb-link', { hasText: topic });
     await gotoWired(page, `sqs/${queue1}`, () => chip.isVisible());
 
-    await expect(chip.locator('.cc-k')).toHaveText('sub');
+    await expect(chip).toHaveAttribute('title', 'sub');
     await expect(chip).toHaveAttribute('href', `/_console/sns/${topic}`);
-    await expect(chip.locator('.cc-bar')).toHaveAttribute('style', /--svc-sns/);
+    await expect(chip.locator('img.aws-ic')).toHaveAttribute('src', /\/aws\/sns\.svg$/);
+    await expect(page.locator('.conn[data-nb] .nb-lbl', { hasText: 'fed by' })).toBeVisible();
   });
 
   test('EventBridge rule page: "Drains to" shows the target SQS queue', async ({ page }) => {
@@ -134,12 +138,13 @@ test.describe('Connections strip', () => {
     await expect(chip).toHaveAttribute('href', `/_console/sqs/${queue2}`);
   });
 
-  test('SQS queue2 page: "Fed by" shows the EventBridge rule', async ({ page }) => {
-    const chip = page.locator('.conn-chip:not(.conn-self ~ .conn-chip)', { hasText: ruleName });
+  test('SQS queue2 page: "fed by" shows the EventBridge rule', async ({ page }) => {
+    const chip = page.locator('.conn[data-nb] a.nb-link', { hasText: ruleName });
     await gotoWired(page, `sqs/${queue2}`, () => chip.isVisible());
 
-    await expect(chip.locator('.cc-k')).toHaveText('target');
+    await expect(chip).toHaveAttribute('title', 'target');
     await expect(chip).toHaveAttribute('href', `/_console/eb/default/rule/${ruleName}`);
+    await expect(chip.locator('img.aws-ic')).toHaveAttribute('src', /\/aws\/eb\.svg$/);
   });
 
   test('Lambda function page: Triggers shows the ESM-mapped SQS queue', async ({ page }) => {
@@ -154,13 +159,14 @@ test.describe('Connections strip', () => {
     await expect(card).toHaveAttribute('href', `/_console/sqs/${queue3}`);
   });
 
-  test('SQS queue3 page: "Drains to" shows the Lambda function', async ({ page }) => {
-    const chip = page.locator('.conn-self ~ .conn-chip', { hasText: fnName });
+  test('SQS queue3 page: "read by" shows the Lambda function', async ({ page }) => {
+    const chip = page.locator('.conn[data-nb] a.nb-link', { hasText: fnName });
     await gotoWired(page, `sqs/${queue3}`, () => chip.isVisible());
 
-    await expect(chip.locator('.cc-k')).toHaveText('esm');
+    await expect(chip).toHaveAttribute('title', 'esm');
     await expect(chip).toHaveAttribute('href', `/_console/lambda/${fnName}`);
-    await expect(chip.locator('.cc-bar')).toHaveAttribute('style', /--svc-lambda/);
+    await expect(chip.locator('img.aws-ic')).toHaveAttribute('src', /\/aws\/lambda\.svg$/);
+    await expect(page.locator('.conn[data-nb] .nb-lbl', { hasText: 'read by' })).toBeVisible();
   });
 
   test('clicking a connections chip navigates to the neighbor\'s real detail page', async ({
@@ -175,7 +181,7 @@ test.describe('Connections strip', () => {
     // navigation: its title names it, and its own Connections strip
     // reciprocally shows it's fed by the topic we came from.
     await expect(page.locator('.det-title')).toContainText(queue1);
-    const backChip = page.locator('.conn-chip:not(.conn-self ~ .conn-chip)', { hasText: topic });
+    const backChip = page.locator('.conn[data-nb] a.nb-link', { hasText: topic });
     await expect(backChip).toBeVisible();
     await expect(backChip).toHaveAttribute('href', `/_console/sns/${topic}`);
   });

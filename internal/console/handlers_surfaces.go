@@ -154,23 +154,60 @@ func (c *Console) trafficFor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var rows []trafficRow
-	more := 0
+	more, total := 0, 0
+	var tally [4]int // refused, denied, not built, failed
+	count := func(state string) {
+		switch state {
+		case "refused", "refusedhere":
+			tally[0]++
+		case "denied":
+			tally[1]++
+		case "notbuilt":
+			tally[2]++
+		case "error":
+			tally[3]++
+		}
+	}
 	if c.rec != nil {
 		for _, e := range c.rec.Entries(0) { // newest first
 			if e.Service != svc || e.Resource != res {
 				continue
 			}
+			total++
 			if len(rows) == resWireRows {
 				more++
+				count(callState(e.Status, e.Failure(), factsOfEntry(e)))
 				continue
 			}
-			rows = append(rows, rowOf(e, 0))
+			row := rowOf(e, 0)
+			rows = append(rows, row)
+			count(row.State)
 		}
 	}
 	c.partial(w, "res_wire_rows", map[string]any{
 		"Svc": svc, "Resource": res, "Noun": q.Get("noun"), "Hash": hash,
 		"Rows": rows, "More": more, "Enabled": c.rec != nil,
+		"Total": total, "Tally": tallyOf(tally),
 	})
+}
+
+// wireTally is one clause of the dock's collapsed sentence: how many of the
+// calls were in a state that is not a plain answer, said in that state's word.
+type wireTally struct {
+	N    int
+	Word string
+}
+
+// tallyOf names the counts in the order the states are taught (D7), leaving
+// out the ones nothing is in.
+func tallyOf(n [4]int) []wireTally {
+	var out []wireTally
+	for i, word := range [4]string{"refused", "denied", "not built", "failed"} {
+		if n[i] > 0 {
+			out = append(out, wireTally{N: n[i], Word: word})
+		}
+	}
+	return out
 }
 
 // trafficEntry renders the inspector drawer for one recorded call.

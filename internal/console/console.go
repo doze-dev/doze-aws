@@ -427,6 +427,10 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},
+		// awsIconSm is the mark at the size a link in a sentence carries it.
+		"awsIconSm": func(svc string) template.HTML {
+			return template.HTML(`<img class="aws-ic sm" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
+		},
 		// sharePct renders a shard's slice of the hash space. The raw bounds are
 		// 39-digit integers; a percentage is the only readable form.
 		"sharePct": pct,

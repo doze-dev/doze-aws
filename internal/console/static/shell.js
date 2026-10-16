@@ -486,6 +486,18 @@
     navigator.clipboard.writeText(el.getAttribute("data-copy")).then(function () { toast("Copied"); });
   });
 
+  // ---------- the wire dock, collapsed (kit res_wire; board Narrow) ----------
+  // Below 1100px the dock is one sentence and a show button. Whether it was
+  // shown is the PANE's (.detail.wire-open), not the dock's: the dock is
+  // replaced whole on every live refresh, and a flag on it would close itself
+  // every few seconds.
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-wire-toggle]");
+    if (!btn) return;
+    var pane = btn.closest(".detail");
+    if (pane) pane.classList.toggle("wire-open");
+  });
+
   // ---------- styled confirm (intercepts hx-confirm) ----------
   // Verbs a confirm's button can be, and which of them lose something. A verb
   // not listed here reads as "Confirm" until the site names one.

@@ -82,9 +82,20 @@ func TestEveryCLIPreviewMatchesItsForm(t *testing.T) {
 	// A form's inputs include those of the templates it includes: the SQS
 	// composer's message attributes are an attr_editor, and reading only the
 	// form's own text left them out of the check altogether.
+	//
+	// Each define's body runs to the next define. (The regexp that read these
+	// used the next `{{define "` as its terminator, which consumed it, so the
+	// define after every define was never seen: adding one template to a file
+	// moved which includes were expanded, and sns's `attrs` stopped being found.)
 	defined := map[string]string{}
-	for _, m := range regexp.MustCompile(`(?s)\{\{define "([\w-]+)"\}\}(.*?)(?:\{\{define "|\z)`).FindAllStringSubmatchIndex(all.String(), -1) {
-		defined[all.String()[m[2]:m[3]]] = all.String()[m[4]:m[5]]
+	src := all.String()
+	starts := regexp.MustCompile(`\{\{define "([\w-]+)"\}\}`).FindAllStringSubmatchIndex(src, -1)
+	for i, m := range starts {
+		end := len(src)
+		if i+1 < len(starts) {
+			end = starts[i+1][0]
+		}
+		defined[src[m[2]:m[3]]] = src[m[1]:end]
 	}
 	include := regexp.MustCompile(`\{\{template "([\w-]+)"`)
 	expand := func(span string) string {

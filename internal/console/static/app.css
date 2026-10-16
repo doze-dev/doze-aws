@@ -426,7 +426,7 @@ a { color: inherit; text-decoration: none; }
    the gap. Destructive intent shows in the label and border, not a filled
    background: these sit next to non-destructive header actions and a solid red
    would outshout the page's primary action. */
-.btn-outline.danger { color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 35%, var(--border)); }
+.btn-outline.danger { color: var(--destructive); border-color: var(--destructive); }
 .btn-outline.danger:hover { background: color-mix(in srgb, var(--destructive) 10%, transparent); border-color: var(--destructive); opacity: 1; }
 .btn-outline.danger .ic { color: var(--destructive); }
 .icon-btn {
@@ -704,18 +704,21 @@ tr:hover .row-actions { opacity: 1; }
 
 /* ---------- tabs ---------- */
 .tabbar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+/* The design's tab (con.css .tab): 30px, muted, the open one in ink and 600 with
+   a 2px rule. The boards draw text tabs; a service that wants an icon on one
+   still can (the rule below), and SQS, whose boards draw none, gives none. */
 .tabbar a {
-  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
-  font-size: 13px; font-weight: 500; color: var(--muted-foreground);
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
+  font-size: 13px; font-weight: 400; color: var(--muted-foreground);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
 .tabbar a:hover { color: var(--foreground); }
-.tabbar a.on { color: var(--foreground); border-bottom-color: var(--foreground); }
+.tabbar a.on { color: var(--foreground); font-weight: 600; border-bottom-color: var(--foreground); }
 .tabbar a .ic { width: 14px; height: 14px; }
 /* A tab that carries a count renders it as a slot, not as label text, so the
    out-of-band patch can address it. Muted and tabular against the tab label:
    the label names the tab, the number annotates it. */
-.tabbar a .tab-ct { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.tabbar a .tab-ct { color: var(--muted-foreground); font-family: var(--mono); font-size: var(--text-sm); font-weight: 400; font-variant-numeric: tabular-nums; }
 .tabbar a.on .tab-ct { color: var(--foreground); }
 
 /* ---------- switch ---------- */
@@ -1168,6 +1171,32 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .det-title { display: flex; align-items: center; gap: 9px; font-size: var(--text-xl); line-height: 24px; font-weight: 600; }
 .det-title .aws-ic { width: 26px; height: 26px; border-radius: var(--radius); }
 .det-title .acts { margin-left: auto; display: flex; gap: 7px; }
+.det-title .acts .btn { height: 28px; }
+/* The header's badge is the design's pill (con.css .pill): sans, square-cornered,
+   a hairline, not the round mono capsule the rest of the page's badges are. */
+.det-title .badge { height: 20px; padding: 0 7px; font-family: var(--sans); font-size: var(--text-sm); font-weight: 400; border-radius: 3px; background: var(--card); color: var(--foreground); border-color: var(--border); }
+.det-title .badge.dlq { background: var(--warnbg); border-color: transparent; }
+/* The facts as a sentence (kit res_header, Sentence; Anatomy rule 4): one line,
+   read left to right, in the design's flex row with a gap, so each clause is
+   its own item and the "·" between them is its own. The clause that leads is
+   bold, the background ones are muted; a link is underlined as the boards draw
+   links in prose. */
+.sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-family: var(--mono); font-size: var(--text-sm); line-height: 20px; }
+.sentence .s-clause { white-space: nowrap; }
+.sentence .sep { color: var(--muted-foreground); font-family: var(--sans); }
+.sentence .s-b { font-weight: 600; }
+.sentence .s-mut { color: var(--muted-foreground); }
+.sentence .s-link, .nb-link { text-decoration: underline; text-decoration-color: var(--input); text-underline-offset: 2px; }
+/* The neighbours strip (kit neighbours; Queue, Bad-DLQ, Anatomy rule 5): the
+   design's quiet well, "fed by [mark] name → this queue → read by [mark] name".
+   Shares .conn's hook class with the older chip strip other services still draw;
+   data-nb is this shape's own. */
+.conn[data-nb] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0; padding: 5px 10px; border: 1px solid var(--line2); border-radius: var(--radius); background: var(--well); font-size: var(--text-sm); line-height: 20px; }
+.conn[data-nb] .nb-lbl, .conn[data-nb] .conn-hint { font-style: normal; color: var(--muted-foreground); font-size: var(--text-sm); }
+.conn[data-nb] .nb-arrow { color: var(--muted-foreground); }
+.conn[data-nb] .nb-self { font-weight: 600; }
+.conn[data-nb] .nb-link { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: var(--text-sm); }
+.conn[data-nb] .nb-link .aws-ic { width: 14px; height: 14px; border-radius: 3px; }
 .det-sub { color: var(--muted-foreground); font-size: 12px; margin-top: 2px; }
 .det-h .chips { margin-top: 8px; }
 .det-h .tabbar { margin: 12px 0 0; }
@@ -1311,6 +1340,11 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
    one where the dock's natural position is below the fold. */
 .det-b.has-dock { display: flex; flex-direction: column; flex: 1; }
 .det-b.has-dock > .composer-dock { margin-top: auto; }
+/* SQS draws the composer's bar at the foot of the body, directly above the
+   wire (boards Queue, Bad-DLQ), however short the list is: the work area fills
+   the body and the bar goes to its foot. */
+.det-b.has-dock > .sqs-work { flex: 1; display: flex; flex-direction: column; }
+.det-b.has-dock > .sqs-work > .composer-dock { margin-top: auto; padding-bottom: 4px; }
 .composer-dock {
   position: sticky; bottom: 0; z-index: 2; margin-top: 12px;
   /* padding-top, not just margin: while the list scrolls, rows pass UNDER the
@@ -1764,25 +1798,59 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-item { width: 100%; }
 
-/* The wire underneath a resource (kit.html res_wire): a quiet dock, the same
-   row vocabulary as the wire itself at a glance's size. */
-.res-wire { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+/* The wire under a resource (kit.html res_wire): the design's dock (con.css
+   .dock; boards Queue, Bad-DLQ, Anatomy part 8). A pane that carries one says
+   so (.detail.wired): the pane stops scrolling, its body (.det-b) scrolls, and
+   the dock is the last thing in the pane, so it is pinned at the foot of the
+   content, under the key bar's top edge and above it, whatever the body does.
+   It is a child of the pane, never of the body: that is the whole difference
+   from the card it replaces, which scrolled away with the page. */
+.detail.wired { overflow: hidden; }
+.detail.wired > .det-b { overflow-y: auto; min-height: 0; padding-bottom: 8px; }
+.res-wire { flex: none; margin: 0; border-top: 1px solid var(--line); background: var(--card); }
 .res-wire:empty { display: none; }
-.res-wire .mini-note { margin: 0; padding: 8px 12px; }
-.rw-h { display: flex; align-items: baseline; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
-.rw-t { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-caps); color: var(--muted-foreground); }
-.rw-all { margin-left: auto; color: inherit; }
-.rw-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px minmax(0, 220px) 70px; column-gap: 12px; align-items: center; min-height: 26px; padding: 0 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.res-wire .mini-note { margin: 0; padding: 6px 14px; }
+.rw-h { display: flex; align-items: center; gap: 12px; height: 30px; padding: 0 14px; border-bottom: 1px solid var(--line2); font-size: var(--text-base); }
+.rw-t { font-weight: 600; }
+.rw-cap { font-size: var(--text-sm); color: var(--muted-foreground); }
+.rw-sum { display: none; font-size: var(--text-sm); color: var(--muted-foreground); }
+.rw-grow { flex: 1; }
+.res-wire .pill.ok { height: 18px; background: var(--okbg); border-color: transparent; }
+.rw-toggle { display: none; }
+.rw-hide { display: none; }
+/* Three calls show; the rest scroll inside the dock, so a busy queue cannot
+   make the dock take the page. */
+.rw-list { max-height: 84px; overflow-y: auto; }
+.rw-row { display: grid; grid-template-columns: 96px 150px minmax(0, 1fr) auto; column-gap: 14px; align-items: center; min-height: 28px; padding: 0 14px; border-bottom: 1px solid var(--line2); font-size: var(--text-sm); color: var(--muted-foreground); }
 .rw-row:last-child { border-bottom: 0; }
-.rw-row .ts, .rw-row .dur { font-family: var(--mono); color: var(--muted-foreground); }
-.rw-row .dur { text-align: right; }
-.rw-act { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rw-row .ts, .rw-what, .rw-st { font-family: var(--mono); }
+.rw-act { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-base); font-weight: 600; color: var(--foreground); }
+.rw-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rw-res { color: var(--foreground); }
+.rw-st { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 96px; }
+.rw-row .st { font-weight: 400; }
+.rw-row .tr-state { font-family: var(--sans); }
 .rw-row.refused, .rw-row.refusedhere { background: color-mix(in srgb, var(--refused) 7%, var(--card)); }
 .rw-row.denied { background: color-mix(in srgb, var(--warning) 7%, var(--card)); }
 .rw-row.error { background: color-mix(in srgb, var(--destructive) 7%, var(--card)); }
-.rw-row.refused .tr-why, .rw-row.refusedhere .tr-why { color: var(--refused); }
-.rw-row.denied .tr-why { color: var(--warning); }
-.rw-row.notbuilt .tr-why { color: var(--muted-foreground); }
+.rw-row.refused .tr-state, .rw-row.refusedhere .tr-state, .rw-row.refused .rw-why, .rw-row.refusedhere .rw-why { color: var(--refused); }
+.rw-row.denied .tr-state { color: var(--warning); }
+.rw-row.error .tr-state { color: var(--destructive); }
+/* The collapsed form (board Narrow, which draws 1024): "3 calls touched this
+   queue · 1 refused" and a show button, until it is shown. The pane remembers
+   that it was, so a live refresh of the dock does not close it. */
+@media (max-width: 1100px) {
+  .rw-cap { display: none; }
+  .rw-sum { display: inline; }
+  .rw-toggle { display: inline-flex; }
+  .res-wire .rw-h .pill { display: none; }
+  .res-wire .rw-h { border-bottom: 0; }
+  .res-wire .rw-list, .res-wire .mini-note { display: none; }
+  .detail.wire-open .res-wire .rw-h { border-bottom: 1px solid var(--line2); }
+  .detail.wire-open .res-wire .rw-list, .detail.wire-open .res-wire .mini-note { display: block; }
+  .detail.wire-open .rw-show { display: none; }
+  .detail.wire-open .rw-hide { display: inline; }
+}
 .info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }
@@ -2364,9 +2432,10 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
    opacity it falls under 4.5:1 in the light theme. */
 .q-errslot .err-code { opacity: 1; }
 .q-well { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
-.q-conn { padding: 14px 20px 0; }
 .q-body { display: flex; flex-direction: column; gap: 10px; }
-.q-body > .res-wire { margin-top: 6px; }
+/* The ARN and the URL, on the Configuration tab (they were chips under the name,
+   which no board draws). */
+.q-ids { margin-top: 2px; }
 
 /* pills, dots, the countdown lane */
 .q-pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border: 1px solid var(--border); border-radius: 3px; background: var(--card); font-size: 12px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }

@@ -9,29 +9,83 @@
 
      Adoption is per service, in that service's stage; SQS is the first. */}}
 
-{{/* res_header is the top of a resource's page: its name, what it is, the one
-     destructive action, the identifiers worth copying, and the facts that
-     answer "what is this" before a tab is opened, as a strip.
+{{/* res_header is the top of a resource's page: its name and what it is, the
+     actions beside the name (a primary, and the destructive one, confirmed),
+     and the facts that answer "what is this" before a tab is opened.
+
+     Delete stays BESIDE the name (decision D2: 119 boards draw it there, and
+     Anatomy's rule 3, "under ···", is the board contradicting itself). A
+     service that has a thing it does most often gives it as Primary, the one
+     solid button, before Delete.
+
+     The facts are ONE of two shapes, and the service says which because its
+     boards do: a Sentence ("3 waiting · 0 in flight · hidden for 60 s on
+     receive", Anatomy rule 4 and every SQS board) or a Facts strip (the 28
+     boards that draw labelled boxes: Lambda, Step Functions, SNS, ...). Neither
+     draws nothing. Both draws the sentence.
 
      dict:
        Svc      the service key, for the icon
        Title    the resource's name
        Badges   [] of dict Show, Text, Title, Class ("type", "dlq"); only
                 the ones whose Show is true are drawn
-       Delete   dict URL, Confirm, Label (optional)
-       Chips    [] of dict Label, Value (copyable)
+       Primary  dict Label, Href (optional): the solid button before Delete
+       Delete   dict URL, Confirm, Label (optional), Cancel (optional)
+       Sentence [] of clauses, each a dict. A clause is drawn as one item and a
+                bare "·" is drawn between clauses. Its parts: N and NID (a
+                number in a slot with that id, which a live patch rewrites),
+                Text (what follows the number, or the whole clause), Class
+                (s-b for the clause that leads, s-mut for what is background),
+                and for a clause that names another resource: Link, LinkText
+                and Tail (what is said after the link). Everything is a fact
+                the page already has. Skip true leaves a clause out (and its
+                separator), for a fact a resource may not have.
        Facts    [] of dict K, V, and optionally ID (a live slot id), Link, Sub,
                 Num (right-aligned digits)
+       Chips    [] of dict Label, Value (copyable). Boards draw none under the
+                name; a service whose board does may ask for them.
        Prefix */}}
 {{define "res_header"}}
 <div class="det-title" role="heading" aria-level="1">{{awsIcon .Svc}} {{.Title}}
   {{range .Badges}}{{if .Show}}<span class="badge {{.Class}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}</span>{{end}}{{end}}
-  {{with .Delete}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}"{{if .Cancel}} data-confirm-cancel="{{.Cancel}}"{{end}}>{{icon "trash"}} {{if .Label}}{{.Label}}{{else}}Delete{{end}}</button></div>{{end}}
+  {{if or .Primary .Delete}}<div class="acts">
+    {{with .Primary}}<a class="btn" href="{{.Href}}">{{.Label}}</a>{{end}}
+    {{with .Delete}}<button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}"{{if .Cancel}} data-confirm-cancel="{{.Cancel}}"{{end}}>{{if .Label}}{{.Label}}{{else}}Delete{{end}}</button>{{end}}
+  </div>{{end}}
 </div>
 {{if .Chips}}<div class="chips">{{range .Chips}}{{template "copychip" dict "Label" .Label "Value" .Value}}{{end}}</div>{{end}}
-{{if .Facts}}<div class="factstrip">
+{{if .Sentence}}<div class="sentence">
+  {{$first := true}}{{range $c := .Sentence}}{{if not $c.Skip}}{{if not $first}}<span class="sep">·</span>{{end}}{{$first = false}}<span class="s-clause {{$c.Class}}">{{if $c.NID}}<span id="{{$c.NID}}">{{$c.N}}</span> {{end}}{{$c.Text}}</span>{{if $c.Link}}<a class="s-link" href="{{$c.Link}}">{{$c.LinkText}}</a>{{with $c.Tail}}<span class="s-clause s-mut">{{.}}</span>{{end}}{{end}}{{end}}{{end}}
+</div>
+{{else if .Facts}}<div class="factstrip">
   {{range .Facts}}<div class="fact"><div class="fx-k">{{.K}}</div><div class="fx-v{{if .Num}} num{{end}}"{{if .ID}} id="{{.ID}}"{{end}}>{{if .Link}}<a href="{{.Link}}">{{.V}}</a>{{else if or .V .Num}}{{.V}}{{else}}—{{end}}{{if .Sub}} <span class="dim">{{.Sub}}</span>{{end}}</div></div>{{end}}
 </div>{{end}}
+{{end}}
+
+{{/* neighbours is the strip under the facts: what is configured to feed this
+     resource and what reads it, "fed by [mark] name → this queue → read by
+     [mark] name" (Queue, Bad-DLQ, Anatomy rule 5). Every name is a link and
+     carries its service's mark; the edge kind (sub, target, esm ...) is the
+     link's title, which is where the boards leave it.
+
+     What the graph holds is CONFIGURATION, so it never says nothing feeds a
+     resource (a producer the graph cannot see always exists), and when nothing
+     is configured to read it, it says what is missing in those words (None).
+     The dead-letter queue is not "read by": it is the sentence's clause.
+
+     dict: Prefix, Conn (a Neighborhood), Self (the resource's name, for the
+     title), This ("queue": "this queue"), None (the sentence for no reader).
+     The class conn is the hook conn_strip_test holds the wording rule through;
+     data-nb is this shape's own. */}}
+{{define "neighbours"}}
+<div class="conn" data-nb>
+  {{if .Conn.Upstream}}<span class="nb-lbl">fed by</span>
+    {{range .Conn.Upstream}}<a class="nb-link" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}
+    <span class="nb-arrow">→</span>{{end}}
+  <b class="nb-self" title="{{.Self}}">this {{.This}}</b><span class="nb-arrow">→</span>
+  {{$read := 0}}{{range .Conn.Downstream}}{{if ne .Kind "redrive"}}{{if eq $read 0}}<span class="nb-lbl">read by</span>{{end}}{{$read = 1}}<a class="nb-link" href="{{$.Prefix}}{{.URL}}" title="{{.Kind}}">{{awsIconSm .Svc}}{{.Name}}</a>{{end}}{{end}}
+  {{if eq $read 0}}<span class="conn-hint">{{.None}}</span>{{end}}
+</div>
 {{end}}
 
 {{/* res_wire is the wire underneath a resource: the calls the app made to THIS
@@ -44,6 +98,16 @@
      it: res_wire is the slot, which loads res_wire_rows as soon as it is on the
      page, and res_wire_rows is the live region that keeps itself current.
 
+     It is a DOCK (boards Queue, Bad-DLQ, Anatomy part 8): pinned at the foot of
+     the content, under the scrolling body and above the key bar, a header row
+     ("The wire", what it is the wire of, a live pill) and a row per call: time,
+     action, the resource (or the reason a refusal gave), and the status, with
+     the state's word beside it whenever the call was not a plain answer (D7:
+     Refused, Denied, Not built, Failed) so the colour is never the only signal.
+     At narrow widths it collapses to one sentence and a show button (the Narrow
+     board). The slot goes where the dock goes: a direct child of the pane
+     (.detail.wired), after the scrolling .det-b, never inside it.
+
      dict: Prefix, Svc (the console's service key), Resource (the name the wire
      records for it), Noun ("queue"). */}}
 {{define "res_wire"}}
@@ -52,17 +116,23 @@
 
 {{define "res_wire_rows"}}
 <div id="res-wire" class="res-wire" data-live="{{.Prefix}}/traffic/for?svc={{urlquery .Svc}}&res={{urlquery .Resource}}&noun={{urlquery .Noun}}" data-hash="{{.Hash}}">
-  <div class="rw-h"><span class="rw-t">On the wire</span><span class="dim">calls your app made to this {{.Noun}}, newest first</span><a class="rw-all" href="{{.Prefix}}/traffic">The wire &rarr;</a></div>
+  <div class="rw-h"><a class="rw-t" href="{{.Prefix}}/traffic">The wire</a><span class="rw-cap">calls that touched this {{.Noun}}</span>
+    {{/* The collapsed form (the Narrow board): one sentence and a button, from
+         app.css's narrow rule down. Every call is counted, not the rows drawn. */}}
+    <span class="rw-sum">{{if .Total}}{{.Total}} call{{if ne .Total 1}}s{{end}} touched this {{.Noun}}{{range .Tally}} · {{.N}} {{.Word}}{{end}}{{else if .Enabled}}no calls yet{{else}}capture is off{{end}}</span>
+    <span class="rw-grow"></span><span class="pill ok"><span class="live"></span>live</span>
+    <button type="button" class="btn btn-ghost btn-sm rw-toggle" data-wire-toggle aria-controls="res-wire"><span class="rw-show">show</span><span class="rw-hide">hide</span></button></div>
   {{if not .Enabled}}<p class="mini-note">Traffic capture is off for this instance.</p>
   {{else if .Rows}}
+  <div class="rw-list">
   {{range .Rows}}<div class="rw-row {{if .IsErr}}{{.State}}{{end}}">
     <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
-    <span class="rw-act">{{.Action}}{{with .Via}} <span class="tr-via">via {{.}}</span>{{end}}</span>
-    <span class="st {{.State}}">{{.Status}}</span>
-    <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
-    <span class="dur">{{.Millis}}ms</span>
+    <span class="rw-act">{{.Action}}</span>
+    <span class="rw-what">{{with .Refused}}<span class="rw-why" title="{{.Code}}">{{.Message}}</span>{{else}}<span class="rw-res">{{.Resource}}</span>{{end}}{{with .Via}} <span class="tr-via">via {{.}}</span>{{end}}</span>
+    <span class="rw-st" title="{{.Millis}} ms"><span class="st {{.State}}">{{.Status}}</span>{{with .StateWord}}<span class="tr-state">{{.}}</span>{{end}}</span>
   </div>{{end}}
   {{if .More}}<p class="mini-note">{{.More}} earlier call{{if ne .More 1}}s{{end}} on the wire.</p>{{end}}
+  </div>
   {{else}}<p class="mini-note">Nothing yet. A call your app makes to this {{.Noun}} shows here as it happens; the console's own requests are not counted.</p>
   {{end}}
 </div>

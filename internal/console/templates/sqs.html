@@ -48,13 +48,20 @@
 
 {{define "sqs_queue"}}{{template "shell_top" .}}
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Queue)}}
-  <section class="detail">
+  <section class="detail wired">
     {{/* data-confirm-verb: the confirm's button is the verb and its object,
          "Delete queue" (board Sqs-16); the header's Delete is the one confirm
          asked from inside this block. */}}
     <div class="det-h" data-confirm-verb="Delete queue" data-confirm-destructive="true">
-      {{/* The kit's header. The slot ids on Visible and In flight are what the
-           out-of-band tails patch. */}}
+      {{/* The kit's header. The facts are the boards' sentence (Queue, Bad-DLQ,
+           Sqs-10, Sqs-11): "3 waiting · 2 in flight · hidden for 60 s on
+           receive · kept 4 days · dead letters to <queue> after 3", every
+           clause from what the page already reads. The slot ids on the two
+           counts are what the out-of-band tails patch. The ARN and the URL are
+           not under the name (no board draws them there): they are on the
+           Configuration tab. Bad-DLQ draws a dead-letter queue's sentence
+           without the "hidden for" clause (nothing receives from it in the
+           ordinary way), so a DLQ's leaves it out. */}}
       {{template "res_header" (dict "Svc" "sqs" "Title" .Queue "Prefix" .Prefix
         "Badges" (list
           (dict "Show" (not .Config.FIFO) "Text" "standard" "Class" "type" "Title" "A standard queue: at least once, in roughly the order sent")
@@ -62,21 +69,22 @@
           (dict "Show" .Config.FIFO "Text" (printf "content-based dedup %s" (or (and .Config.ContentDedup "on") "off")) "Class" "type" "Title" "ContentBasedDeduplication")
           (dict "Show" .IsDLQ "Text" "DLQ" "Class" "dlq" "Title" "This queue is a dead-letter target — failed messages from other queues land here (see Fed by)"))
         "Delete" (dict "Label" "Delete queue" "URL" (printf "%s/sqs/%s/delete-queue" .Prefix (pathesc .Queue)) "Cancel" "Keep it" "Confirm" (printf "Delete queue “%s”? The queue and the %d message%s waiting in it%s are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." .Queue .Available (or (and (ne .Available 1) "s") "") (printf "%s" (or (and .InFlight (printf ", and the %d in flight," .InFlight)) ""))))
-        "Chips" (list (dict "Label" "arn" "Value" .ARN) (dict "Label" "url" "Value" .URL))
-        "Facts" (list
-          (dict "K" "Type" "V" (or (and .Config.FIFO "FIFO") "Standard"))
-          (dict "K" "Visible" "V" .Available "Num" true "ID" (printf "sum-sqs-%s-visible" (slug .Queue)))
-          (dict "K" "In flight" "V" .InFlight "Num" true "ID" (printf "sum-sqs-%s-inflight" (slug .Queue)))
-          (dict "K" "Visibility timeout" "V" (secs .Config.Visibility))
-          (dict "K" "Retention" "V" (secs .Config.Retention))
-          (dict "K" "Dead-letter" "V" .Config.DLQ "Link" (and .Config.DLQ (printf "%s/sqs/%s" .Prefix (pathesc .Config.DLQ))) "Sub" (and .Config.DLQ .Config.MaxReceive (printf "after %v" .Config.MaxReceive)))))}}
+        "Sentence" (list
+          (dict "N" .Available "NID" (printf "sum-sqs-%s-visible" (slug .Queue)) "Text" "waiting" "Class" "s-b")
+          (dict "N" .InFlight "NID" (printf "sum-sqs-%s-inflight" (slug .Queue)) "Text" "in flight")
+          (dict "Skip" .IsDLQ "Text" (printf "hidden for %s on receive" .Config.VisShort) "Class" "s-mut")
+          (dict "Text" (printf "kept %s" .Config.RetShort) "Class" "s-mut")
+          (dict "Skip" (not .Config.DLQ) "Text" "dead letters to" "Class" "s-mut" "Link" (printf "%s/sqs/%s" .Prefix (pathesc .Config.DLQ)) "LinkText" .Config.DLQ "Tail" (and .Config.MaxReceive (printf "after %s" .Config.MaxReceive)))))}}
+      {{/* The strip sits between the sentence and the tabs, as Queue draws it. */}}
+      {{template "neighbours" dict "Prefix" .Prefix "Conn" .Conn "Self" .Queue "This" "queue" "None" "no Lambda trigger reads this queue — wire one to close the loop"}}
+      {{/* Text tabs, as every board draws them: no icons. The first carries the
+           live count. */}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix (pathesc .Queue)))
-        (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix (pathesc .Queue)))
-        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix (pathesc .Queue)))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sqs/%s?tab=tags" .Prefix (pathesc .Queue))))}}
+        (dict "Key" "messages" "Label" "Messages" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix (pathesc .Queue)))
+        (dict "Key" "consume" "Label" "Consume" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix (pathesc .Queue)))
+        (dict "Key" "config" "Label" "Configuration" "URL" (printf "%s/sqs/%s?tab=config" .Prefix (pathesc .Queue)))
+        (dict "Key" "tags" "Label" "Tags" "URL" (printf "%s/sqs/%s?tab=tags" .Prefix (pathesc .Queue))))}}
     </div>
-    <div class="q-conn">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
     {{/* has-dock only on Messages: it makes .det-b a full-height flex column so
          the composer's natural position is the foot of the pane. */}}
     <div class="det-b q-body{{if not (or (eq .Tab "config") (eq .Tab "consume") (eq .Tab "tags"))}} has-dock{{end}}">
@@ -154,8 +162,11 @@
           </div>
         </div>
       {{end}}
-      {{template "res_wire" dict "Prefix" .Prefix "Svc" "sqs" "Resource" .Queue "Noun" "queue"}}
     </div>
+    {{/* The wire is the pane's own foot, outside the scrolling body: pinned
+         (board Queue, Anatomy part 8). .wired on the pane is what lets the
+         body scroll and the wire stay. */}}
+    {{template "res_wire" dict "Prefix" .Prefix "Svc" "sqs" "Resource" .Queue "Noun" "queue"}}
   </section>
   {{if .Sources}}
   {{/* The redrive dialog (board Sqs-14). On the page, not in the message panel,
@@ -279,6 +290,10 @@
       {{if or (index .Attrs "KmsMasterKeyId") (eq (index .Attrs "SqsManagedSseEnabled") "true")}}<div class="q-r"><span class="q-note">Encryption</span><span class="mono q-el">{{if index .Attrs "KmsMasterKeyId"}}{{index .Attrs "KmsMasterKeyId"}}{{else}}SQS-managed{{end}}</span><span class="q-note">Accepted and stored. Messages are not encrypted here.</span></div>{{end}}
       {{if .Config.Created}}<div class="q-r"><span class="q-note">Created</span><span class="mono" title="{{zoned .Config.Created}}">{{ago .Config.Created}}</span><span></span></div>{{end}}
     </div>
+    {{/* The queue's identifiers, to copy: they were chips under the name, where
+         no board draws them. They are what a client is configured with, so they
+         belong with the configuration. */}}
+    <div class="chips q-ids">{{template "copychip" dict "Label" "arn" "Value" .ARN}}{{template "copychip" dict "Label" "url" "Value" .URL}}</div>
     <div>
       <button type="button" class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw?'Hide raw attributes':'Show raw attributes'">Show raw attributes</button>
       <div class="table-wrap q-raw" x-show="raw" x-cloak><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
