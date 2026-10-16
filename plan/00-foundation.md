@@ -20,18 +20,18 @@ is met and its test is named; "partly" says what is left.
 | Item | State | Commit | Note |
 |---|---|---|---|
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
-| B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
+| B6 the model sweep | partly (audited 2026-10-12) | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
-| B2 suites under a second identity | partly | 84239b9 | The e2e suite boots under `E2E_ACCOUNT_ID`/`E2E_REGION`. Of 238 tests, 234 passed on the first run; the 4 failures were two test literals (fixed) and two **product bugs**: EventBridge archives made from the console (hard-coded bus ARN) and the S3 share link (signs for `us-east-1`). Each is fixed in its stage, and then the second pass joins CI. The Go side already has `TestEveryServiceMintsTheConfiguredIdentity`. |
+| B2 suites under a second identity | landed 2026-10-12 | 84239b9 | The e2e suite boots under `E2E_ACCOUNT_ID`/`E2E_REGION`. Of 238 tests, 234 passed on the first run; the 4 failures were two test literals (fixed) and two **product bugs**: EventBridge archives made from the console (hard-coded bus ARN) and the S3 share link (signs for `us-east-1`). Each is fixed in its stage, and then the second pass joins CI. The Go side already has `TestEveryServiceMintsTheConfiguredIdentity`. |
 | A1 a refusal's code, from every wire shape | landed | ef6fb04 | S3's bare `<Error>` root and the code-in-a-header shape of Lambda and API Gateway. `TestParseRefusalReadsEveryShape`, and `TestTheConsoleCanReadEveryServicesRefusal` drives a real refusal from each of 18 services. Red for the header shape; the S3 shape is pinned by the table. |
 | B3 mutation per package | landed | ae30f74, c5d7e33 | `task mutate:record` / `mutate:check`; baselines in `testdata/mutation.json`. |
-| A8 identity written into code | partly | ae30f74, 84239b9, 60e8865 | The check and a frozen list of 12 sites are in; each site is fixed in its service's stage. |
+| A8 identity written into code | landed 2026-10-12 | ae30f74, 84239b9, 60e8865 | The check and a frozen list of 12 sites are in; each site is fixed in its service's stage. |
 | B11 paging, once | landed | 65753f1 | `internal/awspage` and `dozetest.AssertPaginates`. Services adopt in their stages. |
 | B10 the guard passes every condition key | landed | a27f866, c5d7e33 | `iamguard.RequestContext`, one function for both paths; D7 decides `aws:SecureTransport`. Enforce tests for the services that evaluate a resource policy re-run green. |
-| B9 one stored-policy validator | partly | 909f9ed | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
+| B9 one stored-policy validator | partly (SQS only) | 909f9ed | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
 | B12 `provision` has two callers | landed | 260e30f | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
-| A2 the "why" line follows the state | landed | 4ced5c3, ff29ca2, 788f865 | A refusal is classified from facts the server stamped (`X-Doze-Not-Built`, `X-Doze-Denied`, `X-Doze-Local-Limit`), never from a status or a code's spelling. Five states, each with its own label and sentence: Refused, Refused here, Denied, Not built, Failed. `TestCallStateClassifiesFromFacts`. **Found on the way:** SQS, SNS and S3 rebuilt the guard's error and dropped the stamp, so a policy denial would have read as a refusal; `TestEveryServicesDenialIsStampedAsOne` was red for those three and is green. |
-| A3 Refused purple, Denied amber | landed | 4ced5c3 | `--refused` replaces `--denied`; Not built is dashed and neutral, Failed stays red. Wire rows, inspector and `fail_inline` read one copy table (`stateCopyFor`). |
+| A2 the "why" line follows the state | partly (audited 2026-10-12) | 4ced5c3, ff29ca2, 788f865 | A refusal is classified from facts the server stamped (`X-Doze-Not-Built`, `X-Doze-Denied`, `X-Doze-Local-Limit`), never from a status or a code's spelling. Five states, each with its own label and sentence: Refused, Refused here, Denied, Not built, Failed. `TestCallStateClassifiesFromFacts`. **Found on the way:** SQS, SNS and S3 rebuilt the guard's error and dropped the stamp, so a policy denial would have read as a refusal; `TestEveryServicesDenialIsStampedAsOne` was red for those three and is green. |
+| A3 Refused purple, Denied amber | landed (the chip, 2026-10-12) | 4ced5c3 | `--refused` replaces `--denied`; Not built is dashed and neutral, Failed stays red. Wire rows, inspector and `fail_inline` read one copy table (`stateCopyFor`). |
 | A4 the key/value editor keeps types | landed | 2cd1ead, 788f865 | A row holds its JSON type and the token it was written as, so `5` stays `5`, `1.0` stays `1.0` and a 20-digit integer is not rounded; key order is kept; a repeated key makes the tab unavailable rather than dropping a value. A per-row type menu is how a type changes on purpose, and a number row holding words is saved as text and says so. Two e2e tests in `secretsmanager.spec.ts`, red without the change. |
 | A5 saving tags is one write per direction | landed | c1a3313, 33c5b69, 175ad34 | `SetResourceTags` / `RemoveResourceTags` replace the per-key calls: one Untag, then one Tag (Kinesis chunked at its ten per call). A refused save redraws the editor from the resource and says what was applied. Three tests in `tags_batch_test.go` over six services. Found on the way: SQS accepts a 129-character tag key (SQS-9, added to its stage). |
 | A6 a header button's refusal lands under the header | landed | 5d5c1d0, 788f865 | A new rung in `errSlot` places a refusal from `.det-h` directly under it, in full. `s3.spec.ts` deletes a non-empty bucket; red without the rung. The full suite runs at the end of stage 0 for any test that leaned on the old toast. |
@@ -41,19 +41,50 @@ is met and its test is named; "partly" says what is left.
 | A11 a form's preview is the call the form makes | landed | 1ba6113, 788f865 | A preview can carry further commands (shown when their field is set), name a menu option's attribute (`$metric@data-ns`) and read a control the form includes with `hx-include`. `TestEveryCLIPreviewMatchesItsForm` holds every input of every previewed form to the preview or to a named omission. Fixed: DynamoDB TTL, Logs retention, HTTP API CORS, S3 versioning, CloudFormation change set, CloudWatch alarm (was a bare name), STS (five modes had no preview), Step Functions alias second version, test-state (its `--definition` was always empty), SQS dedup id. Still omitted, named: DynamoDB index rows. |
 | A12 toasts | landed | 07c8517, 33c5b69, 788f865 | Lifetime and hover already followed the design (7 s, 10 s for an error, held on hover and focus; the 3.2 s in the finding was stale). Two real defects found and fixed: a 5xx that is not ours was swapped into the action's target and blanked the pane (htmx 4 swaps every status), and a failure that is not a refusal was only a toast, cut at 140 characters. It is drawn where the action was, whole. Toasts that claim a no-op are per-service and are in their stages. |
 | A13 the confirm component | landed | 07c8517, 09ce198, 788f865 | The dialog's title names the thing, the sentence after the question is what follows, and the button is the verb (destructive verbs in red; `data-confirm-verb` where the sentence does not begin with the action). No call site was reshaped. Each service's stage still reads its own confirms against the code. |
-| A14 links built from names are escaped | landed | 0d87bb0 | 16 `printf` builders in Logs, Secrets Manager and Parameter Store now go through `urlquery`. `TestALinkFromANameSurvivesItsCharacters` creates a secret `app/db+prod=1` and a log group `/app/a#b` and parses every link to them; red before. |
+| A14 links built from names are escaped | landed (for all templates, 2026-10-12) | 0d87bb0 | 16 `printf` builders in Logs, Secrets Manager and Parameter Store now go through `urlquery`. `TestALinkFromANameSurvivesItsCharacters` creates a secret `app/db+prod=1` and a log group `/app/a#b` and parses every link to them; red before. |
 | A15 a fragment shows what the page shows | partly | f797c16, 788f865 | Secrets Manager and Parameter Store (where it was found) now build their detail from one view function used by the page and every fragment (`secretDetailView`, `paramDetailView`); `fragments_test.go` compares each fragment with the same region of a full reload and was red for both (the active tab was lost, the stage count and policy, the SecureString badge). The pattern and the test shape are the foundation; every other service adopts it in its stage. |
 | A16 a failed page load is a page | landed | c14b3fc, 788f865 | A navigation (a GET asking for HTML, with no `HX-Request`) that fails is drawn in the shell with the failure and the way back; an htmx request keeps its placed fragment. The list pane is not drawn, because it is built from the service's own listing, which may be the call that failed. `TestAMissingResourceIsAPageInTheShell` loads a missing resource in all 15 services; it found that `/eb/no-such-bus` drew a bus page (EB-31: ListRules answers an empty list for a bus that does not exist). |
-| A17 times have one rule | landed | bc716bb | Every displayed time is local and goes through `timefmt.go`; `TestDisplayedTimesGoThroughOneFormatter` fails on a display layout written anywhere else or a UTC display. Fixed: Kinesis stream, consumer and record times and API Gateway "created" were UTC beside local ones (and `ago` read them as local, so they were wrong by the offset). A time says its zone, its offset and the same instant in UTC on hover (`zoned`, read back from the string the formatter produced, so no view model carries the instant twice): the 13 relative-time cells and the 21 stamps that are the whole of their element. UTC is there on hover and is not a toggle; a stamp inside a sentence has no hover. |
-| A18 the strip says only what the graph knows | landed | 0493610, 788f865 | The graph holds configuration and cannot see an SDK client, so for every node kind the strip is drawn for a producer exists that it does not model: the upstream side now never says "nothing feeds this" and collapses when empty. The queue's downstream hint says "no Lambda trigger reads this queue". State machines and alarms are not nodes and have no strip. `TestTheStripNeverClaimsNothingFeedsAResource`, red for all five. |
-| B8 what the generator drops | landed | 921d0e0, 33c5b69, e651c44, c5d7e33 | `dzaudit` reads a list's length, a map's size and every map KEY's rule (the model's `key` member was never parsed). A case is built only around an element that is valid on its own; the rest are in `list` and counted on stderr. A case is built around a value that satisfies its own shape (a tag value at its minimum length that matches its pattern), which is what makes a tag-key rule reachable at all; regenerated and run through the Logs harness, the new cases apply and find accepted over-long and off-pattern tag keys and over-long lists. An empty list is emitted only for a JSON protocol, where it can be sent. Against the models this finds about 650 constraints that were in no audit (SSM 229, Logs 101, DynamoDB 71, Lambda 63, CloudWatch 45, IAM 32, EventBridge 31, CloudFormation 29, Kinesis 18, KMS 15, Secrets Manager 9, STS 6, SQS 4, Step Functions 2). Each service regenerates its `cases_*.json` in its stage. The drift job now prints committed against regenerated case counts, which it never failed on and now says. |
+| A17 times have one rule | landed (with a guard, 2026-10-12) | bc716bb | Every displayed time is local and goes through `timefmt.go`; `TestDisplayedTimesGoThroughOneFormatter` fails on a display layout written anywhere else or a UTC display. Fixed: Kinesis stream, consumer and record times and API Gateway "created" were UTC beside local ones (and `ago` read them as local, so they were wrong by the offset). A time says its zone, its offset and the same instant in UTC on hover (`zoned`, read back from the string the formatter produced, so no view model carries the instant twice): the 13 relative-time cells and the 21 stamps that are the whole of their element. UTC is there on hover and is not a toggle; a stamp inside a sentence has no hover. |
+| A18 the strip says only what the graph knows | landed (siblings too, 2026-10-12) | 0493610, 788f865 | The graph holds configuration and cannot see an SDK client, so for every node kind the strip is drawn for a producer exists that it does not model: the upstream side now never says "nothing feeds this" and collapses when empty. The queue's downstream hint says "no Lambda trigger reads this queue". State machines and alarms are not nodes and have no strip. `TestTheStripNeverClaimsNothingFeedsAResource`, red for all five. |
+| B8 what the generator drops | partly (audited 2026-10-12) | 921d0e0, 33c5b69, e651c44, c5d7e33 | `dzaudit` reads a list's length, a map's size and every map KEY's rule (the model's `key` member was never parsed). A case is built only around an element that is valid on its own; the rest are in `list` and counted on stderr. A case is built around a value that satisfies its own shape (a tag value at its minimum length that matches its pattern), which is what makes a tag-key rule reachable at all; regenerated and run through the Logs harness, the new cases apply and find accepted over-long and off-pattern tag keys and over-long lists. An empty list is emitted only for a JSON protocol, where it can be sent. Against the models this finds about 650 constraints that were in no audit (SSM 229, Logs 101, DynamoDB 71, Lambda 63, CloudWatch 45, IAM 32, EventBridge 31, CloudFormation 29, Kinesis 18, KMS 15, Secrets Manager 9, STS 6, SQS 4, Step Functions 2). Each service regenerates its `cases_*.json` in its stage. The drift job now prints committed against regenerated case counts, which it never failed on and now says. |
 | B5 a restart test helper | landed | 8cbed7c | `persistsAcrossRestart` writes through the API, closes the stack, opens a new one over the same data directory and reads back; the two existing durability tests are the first callers and the upgrade fixture is untouched and green. |
 | B4 settings the console can read | partly | 64966f6 | `internal/settings`: a record per setting (name, unit, range or enum, default, tier per operation, what enforces it, source), registered per service and built on first lookup (`TestNothingIsBuiltUntilAsked`). SQS is the worked example and reads the numbers from `attrRange` and the `def*` constants rather than restating them; `TestFormConstraintsAreTheServicesOwnRange` holds every SQS number input's min and max to its record. Each service adds its records and its form rows in its stage; the check that every shown setting has one is that table. |
 | B1 a claims table per service | landed | 17af7bb | `conformance/claims/README.md` is the format; `sqs.md` is the worked example (21 claims: 12 on existing scenarios, 9 to write). `TestEveryClaimNamesARealScenarioOrSaysItIsToBeWritten` holds every row; `task claims`, and the end of `task test:conformance`, print recorded / model / doc / memory / to-write per service. Today nothing is recorded: `conformance/snapshots` is empty until an account exists. |
 | C the shell kit | landed | 5c2bc52, 788f865 | `kit.html`: `res_header` (name, badges, the destructive action, copyable ids, fact strip) and `setting_field` (bounds, unit and default from `internal/settings`, plus one taught sentence). The narrow-window notice already existed at 768 px; it is the one notice, moved to 1024 px. SQS's header and its five number fields render through them; `TestFormConstraintsAreTheServicesOwnRange` now reads the rendered pages. The rest of the anatomy (rail, list pane, tabs, dock, neighbours strip, the five states, dark theme, palette create entries from the catalogue) already existed. `res_wire` is the wire underneath a resource: the app's calls to that one resource, newest first and live, loaded by the slot so a page's handler does not have to know about it (`TestTheWireUnderAResourceIsThatResourcesCalls`, and a browser test). SQS has it on every tab. The rule that SQS's pages are built entirely from the kit is stage 1's done-when. |
 | B3 the first baselines | landed | 1e93133 | `testdata/mutation.json` holds baselines for 31 packages: all of `internal/` that carries logic, and SQS, SNS, KMS, Kinesis, Secrets Manager, SSM, Logs, CloudWatch, EventBridge, STS, Step Functions (3.3 hours), IAM, DynamoDB and S3. Lambda, API Gateway and CloudFormation are recorded by `task mutate:record -- <pkg>` in their own stages, which is where the protocol's proof gates run it. A package of that size is a background job of an hour or more: Step Functions was 3.3 hours on this machine. |
-| B13 a Query request is validated whole | to build | – | Found in SQS (SQS-26). `FromQuery` keeps one element of each list; SNS, IAM, STS and CloudFormation call it directly. Before SNS's stage. |
+| B13 a Query request is validated whole | landed 2026-10-12 | c1ada87 | Found in SQS (SQS-26). `FromQuery` keeps one element of each list; SNS, IAM, STS and CloudFormation call it directly. Before SNS's stage. |
 | B14 the fidelity pairs as a task | to build | – | SQS's board-beside-page comparison was done by hand; the pairs become one task per service. Before the next console stage. |
+
+## Audit of stage 0 (2026-10-12)
+
+Stage 0 was called done item by item, and stage 1 was signed off on top of it.
+On 2026-10-12 two independent audits tested every claim in this file: each
+named test run and read for what it proves, and each behaviour reproduced
+against a built binary, in the browser where it is visual, and under a second
+identity. What they found, and where each stands now:
+
+| Item | The file said | The audit found | Now |
+|---|---|---|---|
+| A2 | landed | The "done when" is not met: no service sets the local-limit stamp, `awshttp.NotBuilt` has no caller, and "not built" was recognised by a code's spelling, so CloudFormation's stubbed `ListStackSets` read "Refused… the input is what to change". | Every legacy stub table stamps `X-Doze-Legacy-Stub` (ten services), and the console and the sweep read the stamp, not the code. The rest (a service setting `Local`; stubs moving to `NotBuilt`) is each service's stage. |
+| A3 | landed | The wire inspector's status chip was red for any status of 400 or more. | The chip and each wire row carry the state (2c6cc3e). |
+| A8 | partly | KMS still locked a new key out at birth under another account with enforce on, the EventBridge console's archives captured nothing, the S3 share link failed, and the check skipped `module/`. | All 17 sites fixed, the frozen list is empty, `module/` is checked (ef18e70). |
+| A11 | landed | DynamoDB's preview omitted the index rows, under a tooltip promising equality. | The preview builds them (9a0713c, f4eea12). |
+| A12, A6 | landed | A refusal could land inside a closed disclosure, off-screen, with no toast (SQS create). | `errSlot` skips a closed `<details>` (385c8c1). |
+| A13 | landed | Ten dialogs never trapped focus: the effect that switches the trap ran once. | All fixed, with a guard test and a browser test (f4eea12). |
+| A14 | landed | The test covered two services and only hrefs; the tag editor broke on `+` and `#`, the S3 inspector on `+ # &`, alarms with `/` could not be opened. | About 505 template sites and 137 Go sites escaped, and the guard reads every template with no exemptions (955cbec, f4eea12). One left: a log group with `#` cannot have its tags edited, because the service refuses the ARN as the model says. |
+| A15 | partly | Two of sixteen services are on one view model. | Unchanged: each service's stage. |
+| A16 | landed | Holds, and no missing-resource page draws the list pane the "done when" asks for. | The criterion is relaxed in fact; the shell work decides it. |
+| A17 | landed | Twenty relative times had no zone hover. | All fixed, and a guard fails on a new one (979d495). |
+| A18 | landed | Two sibling sentences ("drains nowhere yet", "Nothing sends to them"). | Reworded, and the test scans every template (3c13f12). |
+| B2 | partly | The second-identity browser pass was not in CI. | It passes (288 of 288 under 111122223333 in eu-west-1) and is in `e2e.yml` (698eb67). |
+| B3 | landed | "All of `internal/` that carries logic" was false: `peercall`, `rpcv2cbor`, `gateway`, `config`, `sigparse` and others have no baseline. | `peercall` and `modelcheck` recorded; the others are still owed, each a background run. |
+| B6 | partly, but "Met" in the box below | No service calls `NotBuilt`; the sweep counted CloudFormation's 67 and Secrets Manager's 3 stubs as handled. | Counted from the stamp: 612 legacy stubs, 111 unknown, 0 not built (fc76f02). The box below now says partly. |
+| B7 | landed | Only KMS had a boundary test. | Secrets Manager and Kinesis too; Kinesis had two real bugs (the partition key not counted in a record's size, the 10 MiB request limit not enforced) (560006e). |
+| B8 | landed | No service's committed cases are regenerated (SQS was 49 of 51). | SQS regenerated (51); the rest are each service's stage, and so is a list's own maximum (50 tags) on the Query services, which needs it. |
+| B13 | to build | Reproduced: a valid first list member and a bad second were accepted 2 to 7 times in 8 by SNS, IAM and CloudFormation, by the map's random order. | `FromQuery` keeps every element in index order; 20-run tests per Query service (c1ada87). |
+| C | landed | Holds for the kit. The shell is not the boards' shell. | [03-shell-fidelity.md](03-shell-fidelity.md): 19 cross-cutting boards, 1 matches; about 36 days and twelve decisions. |
+
+Also built on the way: `dzaudit docs` (part E's first "to build", 09cca7e).
 
 ## A. Shared console behaviour
 
@@ -624,27 +655,29 @@ no service-specific chrome, and the accessibility sweep is clean on them.
 Status at the end of the first pass (2026-10-10). A box is ticked only when the
 criterion is met as written; the rest say what is left and why.
 
-- [ ] B13 (a Query request is validated whole) and B14 (the fidelity pairs as a
-      task), added 2026-10-11 from the SQS stage. B13 lands before SNS's
-      stage; B14 before the first console stage after SQS's.
+- [~] B13 (a Query request is validated whole) and B14 (the fidelity pairs as a
+      task), added 2026-10-11 from the SQS stage. **B13 landed 2026-10-12.**
+      B14 is not built: the scripts that rendered SQS's 19 boards exist, and
+      what is open is where the boards live (see the decision in the README).
 
 - [~] A1 to A18 each meet their "done when", with the test named. **Met:** A1,
-      A2, A3, A4, A5, A6, A7, A9, A10, A11, A12, A13, A14, A16, A18. **Partly:**
-      A8 (the check and the frozen list are in; each site is fixed in its
-      service's stage), A15 (Secrets Manager and Parameter Store are on one view
-      model; the others adopt in their stages), A17 (one local zone and one
-      formatter, zone and UTC on hover; landed after the first pass).
-- [~] B1 to B12 each meet their "done when". **Met:** B1, B3, B5, B6 (the sweep
-      and its frozen baseline; each service moves its entries in its stage), B7,
-      B8, B10, B11, B12. **Partly:** B2 (the e2e suite boots under a second
-      identity; its CI pass waits on the EventBridge archive ARN and the S3 share
-      link region, both product bugs for their stages), B4 (the record, the lazy
-      registry and SQS as the worked example; each service adds its own), B9 (the
-      validator; each of five services wires it in).
-- [~] The shell pieces in C exist and SQS's list and one detail tab render in
-      them. The header, the taught field and the narrow notice are in the kit
-      and SQS's header and number fields use them; the rest of the anatomy
-      already existed. The per-resource wire dock landed after the first pass.
+      A3, A4, A5, A6, A7, A8 (2026-10-12), A9, A10, A11, A12, A13, A14, A17, A18
+      (several only after the audit of 2026-10-12, above). **Partly:** A2, A15,
+      A16 (no list pane on a missing-resource page). A15: Secrets Manager and
+      Parameter Store are on one view model; the others adopt in their stages.
+- [~] B1 to B12 each meet their "done when". **Met:** B1, B2 (2026-10-12), B5,
+      B7, B10, B11, B12. **Partly, after the audit of 2026-10-12:** B3 (baselines
+      missing for several `internal/` packages), B6 (the sweep is honest; no
+      service has moved a stub to `NotBuilt` yet), B8 (only SQS regenerated), B4 (the record, the lazy registry and SQS as the
+      worked example; each service adds its own), B9 (the validator; SQS wires
+      it in, and each of five services does in its stage).
+- [ ] The shell pieces in C exist and SQS's list and one detail tab render in
+      them. **The pieces exist and SQS's pages render in them, but they are not
+      the boards' pieces**: rendered beside the design on 2026-10-12, 1 of 19
+      cross-cutting boards matches (the rail, the top bar, the header strip, the
+      key bar, the wire page). Reopened as
+      [03-shell-fidelity.md](03-shell-fidelity.md), which needs twelve
+      decisions before it is built.
 - [x] `docs/SUPPORT.md` no longer says the IAM default is `off`. The other stale
       statements in [findings-overview.md](findings-overview.md) section B are
       either fixed (the refusal copy, the colours, the unreachable `copy.go`
@@ -652,7 +685,12 @@ criterion is met as written; the rest say what is left and why.
       belong to a service's stage and are in its doc.
 - [~] `check:full`, `lightness`, `api`, `coverage`, `test:e2e` (route gate
       on), `test:conformance`: see the results recorded in the last commit of
-      the stage. Idle heap and binary size are explained in the commit that
+      the stage. **On 2026-10-12, after the audit's fixes, all green:**
+      `check:full`; the browser suite 288 of 288 with the route gate at 370 of
+      371 (the one listed in `route-gaps.txt`), and 288 of 288 again under
+      account 111122223333 in eu-west-1; conformance 160 passed, 831 responses
+      unverified (no AWS account); coverage 81.2% against 80.5%; `lightness`;
+      `api`. Idle heap and binary size are explained in the commit that
       re-recorded the budgets.
 - [x] The existing console still works for the sixteen services not yet
       rebuilt: the browser suite passes with the edits to its specs that A6, A12

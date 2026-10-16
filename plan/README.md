@@ -206,7 +206,13 @@ scope):
 5. **The shell**: the twelve decisions in [03-shell-fidelity.md](03-shell-fidelity.md);
    the first is the rail's default state, which the design and the page have
    never agreed on and nobody decided in writing.
-6. **The estimate itself.** About 306 days single-threaded (270 for the services, 36 for the shell)
+6. **Where the design lives.** The corrected boards (about 125 files, every
+   service's stale facts fixed by the reviews and audits) are in a working copy
+   in a session scratch directory, which is not durable, and publishing them to
+   the canvas was refused by the permission check on 2026-10-16. Either allow
+   the publish, or put the boards in the repository (`plan/design/`, about
+   7 MB of HTML), which is also what B14 needs to run as a task.
+7. **The estimate itself.** About 306 days single-threaded (270 for the services, 36 for the shell)
    against the 113 the plan carried. Some of that is the plan being low; some is that the
    standard is now checked. If the scope is to be cut, the cut belongs here,
    by service tier, not in the acceptance boxes.
@@ -217,8 +223,8 @@ Updated when a stage meets its criteria, in the same commit as the work.
 
 | Stage | Contract | Findings fixed | Proved | Console | Ledger | Done | Actual days |
 |---|---|---|---|---|---|---|---|
-| Foundation | – | | | | – | | |
-| SQS | 2026-10-11 | 24 of 24, plus LAM-6 and CFN-4's queue part | 35 scenarios; **0 recorded** (no AWS account) | built, route gate and sweep clean | SUPPORT.md, CHANGELOG, claims | 2026-10-11: check:full, coverage 81.0% (floor 80.5%), lightness, api, conformance 150 passed, e2e 259 of 260 (the one a flake that passes alone) with the route gate at 370 of 371, mutation 631 / 80 | not timed; see the SQS document, section 1 |
+| Foundation | – | A and B audited 2026-10-12; what the audit found is fixed or written down (00-foundation, "Audit of stage 0") | – | **shell open**: 1 of 19 cross-cutting boards matches ([03-shell-fidelity](03-shell-fidelity.md)) | – | **not done**: the shell, and the partly items (A2, A15, B3, B4, B6, B8, B9) that each service's stage carries | |
+| SQS | 2026-10-11 | 41 of 41 (SQS-30 to SQS-41 found after sign-off, by an audit), plus LAM-6 and CFN-4's queue part | 45 scenarios; **0 recorded** (no AWS account) | body 19 of 19 boards after a rebuild (the audit found 3); **the shell is not the boards'** | SUPPORT.md, CHANGELOG, claims | **not done**: the boards box waits on the shell. Gates on 2026-10-12: check:full, e2e 288/288 under both identities, route gate 370/371, conformance 160 passed, coverage 81.2%, lightness, api, mutation 729 / 55 | not timed; several times the estimate |
 | Parameter Store | | | | | | | |
 | KMS | | | | | | | |
 | Secrets Manager | | | | | | | |
