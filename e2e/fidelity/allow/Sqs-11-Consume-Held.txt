@@ -1,0 +1,5 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# Not listed: the three order summaries. The page shows each body's first line; the summariser is not built (6a decision 5).
+0 waiting # shell: the queue header's fact strip where the board draws one sentence (6a, "the queue header")
+3 in flight # shell: the queue header's fact strip, as above
+hidden for 60 s on receive # shell: the queue header's fact strip (VISIBILITY TIMEOUT 60s), as above

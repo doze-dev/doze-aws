@@ -1,0 +1,10 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# The board's right-hand list of other refusals "is documentation, not a screen; the page keeps the life panel there" (sqs.md 6a, Sqs-05).
+OTHER REFUSALS THIS FORM CAN COME BACK WITH # doc: the board's documentation column (6a, Sqs-05)
+Queue name is longer than 80 characters (the .fifo suffix counts toward the limit) # doc: a second refusal the form can return, drawn as documentation
+FIFO queue names must end in .fifo and only FIFO queues may # doc: as above
+QueueNameExists # doc: as above
+A queue already exists with the same name and a different value for attribute VisibilityTimeout # doc: as above
+InvalidAttributeValue # doc: as above
+Value for parameter RedrivePolicy is invalid. Reason: maxReceiveCount must be between 1 and 1000. # doc: as above
+Each shows in this same place, with the same grey-purple that means "AWS would say no too". # doc: the note closing the documentation column

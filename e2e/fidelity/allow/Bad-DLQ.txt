@@ -1,0 +1,13 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell (the shell's, not the service's: plan/03-shell-fidelity.md and the
+# "shell" list in plan/services/sqs.md 6a), icon (a glyph the page draws as an
+# SVG), doc (the board's own scaffolding, not a screen), decision (a written
+# decision in sqs.md 6a), data (a sample value no fixture can reproduce).
+# A missing sentence is never listed here to make a board pass.
+3 waiting # shell: the queue header. The page draws a fact strip (VISIBLE, IN FLIGHT, ...) where the board draws one sentence (6a, "the queue header (kit res_header)")
+0 in flight # shell: the queue header's fact strip, as above
+kept 4 days # shell: the queue header's fact strip, as above
+🗑 # icon: the page draws the delete control as an SVG
+calls that touched this queue # shell: the wire is a card in the body on the page and a dock on the board (6a, "On the wire as a card")
+ReceiveMessage # data: the board's sample wire row; the page lists the calls this instance saw, and none received from this queue

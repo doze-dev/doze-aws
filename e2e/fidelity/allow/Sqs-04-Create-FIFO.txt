@@ -1,0 +1,6 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# Not listed: "1 024 – 262 144". The page says 1 048 576 (the model's limit); that is a stale fact in the board copy.
+▾ # icon: the page draws the disclosure chevron in CSS
+1 minute. Hidden after a receive. # decision: 6a decision 2. The board abbreviates what sits under each field; the page keeps its teaching lines ("1 minute" and "Hidden after a receive. Not deleted in time, it comes back.")
+4 days by default. # decision: 6a decision 2. The page states the default in the range line ("default 4 days · enforced")
+Consumers wait up to 20 s for a message instead of returning empty. # decision: 6a decision 2. The page's line is "Up to 20 makes a consumer wait for a message instead of asking again."

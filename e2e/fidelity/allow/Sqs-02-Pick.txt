@@ -1,0 +1,2 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+jkto move, ⏎to open # shell: the key hint. The page keeps it in the list pane's footer ("j k move · c new · / filter"), the board in the body (03-shell-fidelity, the key bar)

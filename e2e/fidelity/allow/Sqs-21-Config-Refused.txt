@@ -1,0 +1,6 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# The board's right-hand column documents the other refusals this form can come back with; it is not a screen (as sqs.md 6a says of Sqs-05).
+OTHER REFUSALS THIS FORM CAN COME BACK WITH # doc: the board's documentation column
+Value for parameter RedrivePolicy is invalid. Reason: dead-letter target does not exist: harbour-gone. # doc: a second refusal, drawn as documentation
+Value for parameter RedrivePolicy is invalid. Reason: a queue cannot be its own dead-letter queue. # doc: a third refusal, drawn as documentation
+The form stays open with what you typed. # doc: the note closing the documentation column

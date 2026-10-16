@@ -1,0 +1,12 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# Not listed: the delete-queue body. The board says "The queue and the 3 messages waiting in it are removed"; the page adds "and the 2 in flight", which is true.
+# The rest of this board is scaffolding around three dialogs: a title, a caption per dialog, an "After it" line each, and a closing paragraph.
+Two things on a queue cannot be undone # doc: the board's title, not a dialog
+FROM THE QUEUE'S HEADER · DELETE QUEUE # doc: caption of the first dialog card
+After it: back to the list, with a toast naming the queue. # doc: describes what happens next; the page does it
+FROM THE MESSAGE PANEL · PURGE # doc: caption of the second dialog card
+After it: the list is empty and the counts go to 0. # doc: describes what happens next; the page does it
+FROM ONE MESSAGE · DELETE # doc: caption of the third dialog card
+In Consume the held message is acknowledged. In Messages the same button removes it by its handle. # doc: a note about the button, not dialog text
+What does not ask # doc: heading of the board's closing paragraph
+Release, Receive, Send, saving settings, granting a statement and saving tags. Each is what you came to do, or can be put back by doing the opposite. Revoking a statement and Delete selected ask too. # doc: the closing paragraph

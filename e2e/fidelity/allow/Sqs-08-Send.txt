@@ -1,0 +1,3 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# Not listed: the two order summaries ("HRB-2026-04811 · 3 lines · £42.15" ...). The page shows the body's first line; the summariser is not built (6a decision 5).
+🗑 # icon: the page draws the delete control as an SVG

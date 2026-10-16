@@ -1,0 +1,10 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+# The board's right-hand column documents the other refusals a send can come back with; it is not a screen (as sqs.md 6a says of Sqs-05).
+OTHER REFUSALS A SEND CAN COME BACK WITH # doc: the board's documentation column
+QueueDoesNotExist # doc: a second refusal, drawn as documentation
+The specified queue does not exist: harbour-depot-dispatch.fifo # doc: as above
+When your app deleted the queue while this page was open. # doc: as above
+Denied # doc: the Denied card of the documentation column; Sqs-20 is its own screen
+AccessDenied → # doc: as above
+Only under --iam-mode enforce. It has its own screen. # doc: as above
+The form keeps what you typed. Nothing is added to the list. # doc: the note closing the documentation column

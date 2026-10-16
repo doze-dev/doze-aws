@@ -61,6 +61,70 @@ server) are constantly adding to that state.
 - **Never assert on global/exact counts.** The shared server accumulates resources across the whole run (and across repeated local runs, since the data dir persists). Scope every assertion to your own `uniqueName()`d resources.
 - **No `data-testid` convention** exists in the console's templates. Prefer semantic locators (`getByRole`, `getByLabel`, resource names) — they're almost always sufficient since the app's forms/buttons have real labels and text.
 
+## Fidelity: the board beside the page
+
+`e2e/fidelity/` is the console's design-fidelity gate (plan/00-foundation B14,
+plan/01-protocol step 5). It is not part of the Playwright suite and not part
+of `task check`; it is a tool a service's console stage runs, and reads.
+
+```sh
+go tool task console:fidelity -- sqs               # every board of SQS, light, 1440 by 900
+go tool task console:fidelity -- sqs --dark        # both sides dark
+go tool task console:fidelity -- sqs --w900        # the page at 900 wide (the board stays 1440)
+go tool task console:fidelity -- sqs --id2         # the instance boots as 111122223333 in eu-west-1
+go tool task console:fidelity -- Sqs-17-Config     # one board
+go tool task console:fidelity -- shell             # the cross-cutting boards (Anatomy, Main, ...)
+go tool task console:fidelity:test                 # unit tests: `bun test e2e/fidelity`
+# or, from e2e/: bun fidelity/run.ts sqs
+```
+
+It builds the real binary, boots it on a free port in 14960-14969 with a fresh
+data dir (`--name harbour`), seeds the **harbour** fixture (`fidelity/harbour.ts`:
+the shop the boards are drawn from), and for each board in
+`plan/design/boards/` renders the board (`file://` at 1440 by 900, `.app.dark`
+for `--dark`, Google Fonts blocked so the fallbacks make every machine's picture
+the same), drives the real page into the board's state, and writes
+`e2e/.tmp/fidelity/<service>[-dark][-w900][-id2]/`:
+
+- `board-<name>.png`, `page-<name>.png` (more states of one board:
+  `page-<name>-<label>.png`), and the same texts as `.txt`;
+- `report.html`: the contact sheet, board left and page right, one row per
+  board, then the board's text and the page's text extracted from the DOM,
+  with the board lines the page lacks marked;
+- `results.json`.
+
+**The list of boards is the directory listing**, never a table. Each service has
+`fidelity/drivers/<service>.ts`: one entry per board, `{ drive(ctx) }` to put
+the page into the board's state or `{ skip: reason }` where there is nothing to
+drive (a skip is shown in the report). A board with no entry is a failing row
+(`no driver for <board>`); so is an entry for a board that no longer exists.
+The other services' tables are empty on purpose: each is that service's stage
+to-do list. The cross-cutting boards (`Main`, `Anatomy`, `Wire-*`, ...) are in
+`drivers/shell.ts`.
+
+**The structural check** is not a pixel diff. For every pair it asks whether
+each line of the board's visible text is somewhere in the page's visible text,
+and prints the lines the page lacks. For a service's boards the shell
+(top bar, rail, list pane, key bar) is not compared: those are the shell's, and
+`shell`'s boards are compared whole. Times, ports, ids and (under `--id2`) the
+account and Region are masked, case is ignored, and `fidelity/allow/<board>.txt`
+lists the board text the page legitimately omits or words differently:
+`board text # kind: why`, where the kind is `shell`, `icon`, `doc`, `decision`,
+`annotation` or `data`. An entry with no reason is an error, an entry for a
+sentence the page now has is reported, and **a missing sentence is never listed
+to make a board pass**: where the page truly lacks board text the row fails and
+the line is the finding.
+
+Exit status is non-zero for a board with no driver, one that fails to render or
+to drive, an orphaned driver, or a page that lacks board text. The pictures are
+still read by a person: the tool makes sure they exist and that a missing
+sentence cannot hide.
+
+To add a service: write `drivers/<service>.ts` from `drivers/sqs.ts` (selectors
+and flows from the service's own spec in `tests/`), seed what its boards show in
+`harbour.ts`, run it, read `report.html`, and write `allow/` entries only for
+what the plan's 6a table decided.
+
 ## Updating browsers
 
 `bunx playwright install --with-deps chromium` re-downloads if the pinned
