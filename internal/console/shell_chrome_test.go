@@ -246,7 +246,8 @@ func TestCountsCarryTheRailsStatusDots(t *testing.T) {
 		t.Errorf("an alarm in ALARM: warn = %v, want cw=bad", warn)
 	}
 
-	// A call the wire shows refused, in the last minute: that service warns.
+	// A call the wire shows refused, in the last minute, is the service saying no
+	// to the input, which is its job: no dot.
 	call := func(target, body string) {
 		r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 		r.Header.Set("X-Amz-Target", target)
@@ -254,8 +255,8 @@ func TestCountsCarryTheRailsStatusDots(t *testing.T) {
 		rec.ServeHTTP(httptest.NewRecorder(), r)
 	}
 	call("DynamoDB_20120810.DescribeTable", `{"TableName":"nope"}`)
-	if _, warn := counts(t, c); warn["ddb"] != "warn" {
-		t.Errorf("a refused call in the last minute: warn = %v, want ddb=warn", warn)
+	if _, warn := counts(t, c); warn["ddb"] != "" {
+		t.Errorf("a refused call in the last minute put a dot on DynamoDB: %v", warn)
 	}
 }
 

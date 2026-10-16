@@ -238,15 +238,16 @@ test.describe('rail by context', () => {
     expect(await railWidth(page)).toBe(196);
   });
 
-  test('a service with a refused call in the last minute has a dot', async ({ page, request }) => {
+  test('a refused call does not put a dot on its service', async ({ page, request }) => {
     await request.post(GATEWAY_ROOT, {
       headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'DynamoDB_20120810.DescribeTable' },
       data: JSON.stringify({ TableName: 'e2e-rail-no-such-table' }),
     });
     await page.goto('');
-    const dot = page.locator('.rail .ri', { hasText: 'DynamoDB' }).locator('.ri-dot');
-    await expect(dot).toHaveClass(/warn|bad/);
-    await expect(dot).toBeVisible();
+    // A service answering no to a bad input is doing its job; a dot is for a
+    // failure (5xx) or a call a policy denied, and for the things that are
+    // wrong on their own (an alarm firing, a message in a dead-letter queue).
+    await expect(page.locator('.rail .ri', { hasText: 'DynamoDB' }).locator('.ri-dot')).toHaveCount(0);
     // The wire has none of its own: only services have dots.
     await expect(page.locator('.rail .ri', { hasText: 'Connect' }).locator('.ri-dot')).toHaveCount(0);
   });

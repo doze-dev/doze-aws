@@ -136,8 +136,12 @@ func (b *backend) dlqHolds(ctx context.Context) bool {
 }
 
 // trouble is what the ring says about each service since now-window: "bad" for
-// a call that failed (5xx), "warn" for one that was refused or denied (another
-// 4xx other than 404). A service with only good calls, or only 404s, is absent.
+// a call that failed (5xx: doze-aws or the service broke), "warn" for one a
+// policy denied. A service with only good calls is absent, and so is one with
+// only refusals: an app that sends a bad name now and then is being told no,
+// as it should be, and a dot that stood for that would stand on every busy
+// app and mean nothing. (It reads the stamp the service set, never a status
+// or a code's spelling.)
 func (rec *Recorder) trouble(now time.Time, window time.Duration) map[string]string {
 	out := map[string]string{}
 	rec.mu.Lock()
@@ -148,12 +152,13 @@ func (rec *Recorder) trouble(now time.Time, window time.Duration) map[string]str
 	}
 	for i := 0; i < n; i++ {
 		e := &rec.buf[i]
-		if now.Sub(e.At) > window || e.Status < 400 || e.Status == 404 {
+		if now.Sub(e.At) > window {
 			continue
 		}
-		if e.Status >= 500 {
+		switch {
+		case e.Status >= 500:
 			out[e.Service] = "bad"
-		} else if out[e.Service] == "" {
+		case e.Denied != "" && e.Status >= 400 && out[e.Service] == "":
 			out[e.Service] = "warn"
 		}
 	}
