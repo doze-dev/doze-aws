@@ -227,7 +227,7 @@ written from memory; the corrections are SQS-11 to SQS-29 in section 4.
 
 ## 6. Console
 
-The design's "SQS" page. 21 boards, 19 screens. Templates: `templates/sqs.html`,
+The design's "SQS" page. 19 board files (the plan said 21: numbers 06, 07, 12 and 13 were never drawn). Templates: `templates/sqs.html`,
 the `sqs_create` block in `create.html`, shared pieces in `panes.html` and
 `layout.html`. Handlers: the `sqs*` functions in `handlers.go`, routes in
 `routes_messaging.go`.
@@ -235,7 +235,7 @@ the `sqs_create` block in `create.html`, shared pieces in `panes.html` and
 | Board | Screen | Lands in | Today |
 |---|---|---|---|
 | Sqs-01-None | No queues yet | `sqs_home`, `empty_detail` | exists |
-| Sqs-02-Pick | Queues, none open | `sqs_home` | exists (see foundation A7) |
+| Sqs-02-Pick | Queues, none open | `sqs_home` | **Built 2026-10-12**: `/sqs` lists the queues and opens none. It had redirected to the first queue, so this board's state did not exist; foundation A7 had assigned SQS the "first" case, and the design's rail links SQS to this board. |
 | Sqs-03-Create | Create, with the life of a message | `sqs_create` | **Built**: the strip (`.life`, a pure function of the form's numbers) and teaching lines from the settings record |
 | Sqs-04-Create-FIFO | FIFO, Advanced open | `sqs_create` | **Built**: "How a FIFO queue behaves", five sentences, each held in section 5 |
 | Sqs-05-Create-Refused | Refused inline | `fail_inline` | exists |
@@ -281,47 +281,122 @@ trigger when it is created.
 
 ### 6a. Design fidelity, board by board
 
-Written 2026-10-11 by rendering each board from the dream design
-(`console-design/project/*.dc.html`, the canvas at claude.ai/artifact/1WSqsF1GUQJdrhscUzzcTw)
-and the real page side by side. The first pass built the *content* of the
-boards (the teaching lines, the life of a message, the reader check, what
-changes) and not their *shape*, and no board was compared before the stage was
-called done. This table is the comparison, and the gate: a board is "matches"
-only when it was looked at.
+**What happened, in order, because the first two versions of this section were
+wrong.**
 
-| Board | Verdict | What differs |
+1. The first pass built the boards' sentences and none of their shape, and the
+   stage was called done without a board ever being put beside a page.
+2. On 2026-10-11 six boards were rebuilt and this section said "matches" for
+   all of them. That table was written by the same hand that built the
+   pages, judging its own renders, and it was too generous.
+3. On 2026-10-12 an independent audit rendered all 19 boards beside the pages
+   and found **3 matching and 16 differing** in the body alone: the composer in
+   a different order, the held state as cards where the board has a table, no
+   Pick state at all (`/sqs` opened the first queue), FIFO create with
+   Advanced in the wrong column, sentences missing on eleven boards, and
+   fourteen defects (a refused create that showed nothing, an orphaned
+   dead-letter queue, browser validation hiding every server refusal that
+   boards 05 and 21 draw).
+4. The body was rebuilt to the boards the same day and re-rendered (22 board
+   renders and 70 page renders: light, dark for create, each tab and the
+   dialogs, 900 wide, and under account 111122223333 in eu-west-1). The table
+   below is that comparison. The renders are in the session scratchpad
+   (`audit-1c/after/`); foundation B14 is what makes them a repeatable task.
+
+There are 19 board files, not 21: 17 `Sqs-*`, `Queue` and `Bad-DLQ`. Numbers
+06, 07, 12 and 13 were never drawn.
+
+**The verdicts are about the page body.** The shell is not SQS's and differs on
+every board; it is in [03-shell-fidelity.md](../03-shell-fidelity.md) and is why
+the "boards" box in section 10 is not ticked:
+
+- the rail, top bar, list-pane header, filter and footer key bar; fonts, colour
+  tokens and the 2 px radius;
+- the queue header (kit `res_header`): ARN and URL chips and a fact strip where
+  the boards draw one sentence;
+- the wiring strip ("FED BY … DRAINS TO …" against "fed by … → this queue → read by …");
+- "On the wire" as a card in the body where the boards dock it at the foot;
+- the confirm dialog's chrome;
+- the per-service AWS icon where a board draws a two-letter mark (kept, by rule).
+
+| Board | Verdict | What still differs in the body, and why |
 |---|---|---|
-| Sqs-01 None, Sqs-02 Pick | matches | copy is `copy.go`'s; the list note is there |
-| Sqs-03 Create | **matches** (built 2026-10-11, after the comparison; rendered at 1440 in light and dark and at 900) | *Was:*  The life of one message is a right-hand panel in the design (dot per step, a bar for the hidden time, the dead-letter queue named, "receive count goes to 2", and the closing sentence "a received message that is deleted never reaches step 3"); here it is a plain list under Delivery without those. Line 4 of the teaching pattern ("0 – 43 200 · default 30 · **enforced**") has no enforced/stored marker. The dead-letter paragraph ("a message that keeps coming back is probably the one your consumer cannot handle…") is missing. |
-| Sqs-04 Create FIFO | **matches** | *Was:*  Five sentences here against the design's three (the extra two are grounded). The design's third ("one stuck message holds back only its own group; a dead-letter queue lets it out of the way") is missing. **The design is wrong on size**: it shows 1 024 – 262 144; the model says 1 048 576 (SQS-11). |
-| Sqs-05 Create refused | matches | inline refusal, what you typed kept |
-| Sqs-08 Send, Sqs-09 Send refused | matches | **design text is stale**: "exceeds MaximumMessageSize 262144" (now 1 048 576, and the real wording is "Message must be shorter than N bytes (the body and its attributes were M)") |
-| Sqs-10, Sqs-11 Consume | matches | untouched |
-| Sqs-14 Redrive confirm | **matches** | *Was:*  A dialog with the destination picked inside it ("Move all 3 messages back?", "Move them to", Cancel / Redrive). Here the picker is a select in the header and the confirm is one sentence. |
-| Sqs-15 Redrive done | **matches** (move tasks are asynchronous since 2026-10-11; the board's running row renders and is tested) | *Was:* the design shows "Redriving → X · 2 moved so far" and a task that was seen running. A move here finishes inside the call, so that state never exists. It needs the asynchronous move task (the open item). |
-| Sqs-16 Confirms | **matches** | *Was:*  The design's confirms have bodies and "Keep it" buttons ("The queue and the 3 messages waiting in it are removed from this machine. Anything sending to it afterwards gets NonExistentQueue." / "Every waiting and in-flight message is dropped. The queue and its settings stay." / "It is gone for good."). Here delete queue and purge are a question with no body. |
-| Sqs-17 Config | **matches** | *Was:*  Two columns in the design (settings left, "In this stack" and the queue policy right); one stacked column here. The Type row's sentence is missing. "In this stack" does not compute the six-times figure ("which here would be 180 s"). |
-| Sqs-18 Config edit | **matches** | *Was:*  "What changes" is a right-hand panel with the intro line "Only the settings you touched. Everything is shown in the units you would say aloud." and the board's name; here it is "What saving does" below the form. The live neighbour callout inside the form ("Shorter than the reader's timeout") is missing from the edit form: it is only on the read view. The "After receives" sentence ("With 3, a message that keeps coming back is set aside on its third receive") is missing on the edit form. The unit echo is not shown below 60 s ("20 seconds") or for zero ("none"). |
-| Sqs-19 Tags | matches | foundation A5 |
-| Sqs-20 Denied, Sqs-21 Refused | matches | untouched |
-| Bad-DLQ, Queue | differs, deliberately | The design's sentence strip ("3 waiting · 0 in flight · kept 4 days") against the shell's fact strip (Type / Visible / In flight / Visibility timeout / Retention / Dead-letter) from the foundation's `res_header`. A shell decision, not an SQS one; not re-opened here. |
+| Sqs-01 None | matches | Heading, sentence and button, centred both ways. |
+| Sqs-02 Pick | matches | `/sqs` lists the queues and opens none; both sentences are there; a dead-letter queue's waiting count is amber as drawn. |
+| Sqs-03 Create | matches | Decision: "After this many receives" keeps one sentence above its range line (the teaching pattern's line 3; the board draws only the range). |
+| Sqs-04 Create FIFO | matches in shape | Advanced is in the right column, open, above "How a group behaves" (three bullets); the life panel is not shown. Decision: the board abbreviates what sits under each field ("1 minute. Hidden after a receive."); the page keeps all the teaching lines under every field, FIFO or not, and adds the board's FIFO sentences to them. Advanced also holds the access policy and tags, which the board's own summary line names and its drawing crops. |
+| Sqs-05 Create refused | matches | Refusal above the form in the service's words, the name outlined, "What you typed is kept…". The board's right-hand list of other refusals is documentation, not a screen; the page keeps the life panel there. |
+| Queue | matches | Rows on the board's grid, chips inside the opened row, "Copy body", both sentences. Differs: a row's summary is the body's first line ("json {…}") where the board draws a domain summary ("order HRB-… · 3 lines · £42.15"); the console summarises only shapes it recognises (S3, SNS, EventBridge envelopes). |
+| Sqs-08 Send | matches | Body; delay, copies and Send on one row; attributes; the cli line with its sentence. Added, for truth: "More than one goes as a single SendMessageBatch, at most 10." appears when Copies is above 1. The body editor carries the shared editor's "valid JSON / Format" strip. |
+| Sqs-09 Send refused | matches | Refusal at the composer's top, body outlined. Decision: a FIFO composer keeps Copies (the board draws none). |
+| Sqs-10 Consume empty | matches | Labelled form, amber "This consumes." callout, the empty card, the closing line. |
+| Sqs-11 Consume held | matches | One-line receive bar, the selection bar, the headed table with countdown bars and m:ss, the paragraph naming the dead-letter queue (sentence corrected, see below). |
+| Sqs-14 Redrive confirm | matches | Centred dialog with the picker. The number is everything that will move (waiting, held and delayed), read when the dialog opens. |
+| Sqs-15 Redrive done | matches | Complete, running and failed rows (failed: title, then the service's reason on its own line), the empty card, "Open <dest> to see them again". The board's "Earlier, while it ran" line is its note about the running state, which the page shows while it runs (`page-Sqs-15-Redrive-Running.png`). |
+| Sqs-16 Confirms | matches in words | Titles, bodies, "Keep it" / "Keep them", and the buttons "Delete queue", "Purge", "Delete". The dialog's chrome is the shell's (above). |
+| Sqs-17 Config | matches | Two columns, a sentence per row, "Edit settings", reader callout with the note under it, queue policy with its paragraph, table, grant card and footnote. Extra rows, already decided in the plan: Largest message and Encryption. |
+| Sqs-18 Config edit | matches in shape | Settings card, live reader callout with the six-times figure, "What changes" alone on the right, in the board's units. Decisions: every field keeps its teaching lines (the board draws only the value in words under the first three); the access policy editor stays in the form as a closed disclosure after encryption, because a service principal's statement can be written nowhere else in the console (the board's form has none) — say if it should go. |
+| Sqs-19 Tags | matches | 640 px, "Unsaved changes" beside Add tag, the draft sentence. |
+| Sqs-20 Denied | matches | Amber denial at the composer's top with the access-log link, and the soft-mode note under the form when a send is denied. The "IAM enforce" pill is the top bar's. |
+| Sqs-21 Config refused | matches | Refusal above the settings, the field outlined, the form open with what was typed. The page also carries the foundation's one-line "why" under the message, which this board omits and Sqs-05 has. |
+| Bad-DLQ | matches | Redrive and Purge, the rows, the callout. The board's "received 3 of 3" pills were removed (false: see below). |
 
-**Where the design was wrong** (corrected in the working copy on 2026-10-11 in Sqs-04, Sqs-09, Sqs-18 and Sqs-21; the published canvas still carries the old text until it is republished)
-- 262 144 in three boards: 1 048 576 (SQS-11).
-- "AWS does not let that trigger be attached to a queue like this" on Sqs-18: the
-  Lambda model does not say it and the developer-guide wording is memory (LAM-5).
-  The console says what is established (the comparison, AWS's six-times guidance,
-  that doze-aws does not check). The design should say the same.
-- "Takes effect on the next receive": true of this emulator (held by
-  `TestAQueueVisibilityChangeLeavesHeldMessagesAlone`) and not established for AWS.
+**Decisions made in the rebuild, each a place the page has more than the board.**
+They are yours to overrule:
 
-**Build list, in order** (items 1 to 5 done 2026-10-11 and checked against rendered boards; 6 waits for the asynchronous move task)
-1. Teaching line 4 on every setting: enforced or stored, from the settings record's tier (kit `setting_field`).
-2. The edit form's live neighbour callout and the "After receives" sentence.
-3. Confirm bodies and the verbs (delete queue, purge, delete message), and the redrive dialog with its picker.
-4. Two-column Configuration (settings / "In this stack" and the queue policy) and the right-hand "What changes" and "life of one message" panels.
-5. The life-of-a-message steps with their numbers, the dead-letter paragraph, the third FIFO sentence, the six-times figure, the Type sentence, the unit echo under a minute.
-6. Redriving → "N moved so far": built with the asynchronous move task (SQS-29).
+1. The edit form keeps the access-policy editor, as a closed disclosure. Board
+   18 has none, and a service principal's statement can be written nowhere else.
+2. Every field keeps all its teaching lines in FIFO mode. Board 04 abbreviates
+   them to one line each.
+3. The neighbour line shows only where the wiring has a neighbour (visibility
+   against a reader, on edit), as the Teaching board says. A create form has none.
+4. A FIFO composer keeps Copies. Board 09 draws none.
+5. A message row's summary is the body's first line (`json {…}`). The boards
+   draw a domain summary ("order HRB-… · 3 lines · £42.15"), which needs a
+   summariser for shapes the console does not know. Not built.
+
+**Where the design was wrong, and was corrected in the working copy** (the
+published canvas carries the old text until it is republished):
+
+| Board | Was | Now | Why |
+|---|---|---|---|
+| Sqs-03 | "It moves to harbour-returns-dlq instead of coming back." | "Its next receive moves it to … instead of delivering it again." | A message is delivered maxReceiveCount times; the receive after that moves it (sqs/receive.go). |
+| Sqs-05 | "doze-aws refuses this because AWS does — the rule comes from AWS's own service model…"; `QueueAlreadyExists` | the foundation's sentence ("doze-aws refused the request: it breaks a rule of the service. The input is what to change."); `QueueNameExists` | Not every rule is from the model; the JSON protocol's code is QueueNameExists. |
+| Sqs-09 | same sentence; `AWS.SimpleQueueService.NonExistentQueue` | the foundation's sentence; `QueueDoesNotExist` | As above; the console shows the JSON code. |
+| Sqs-11 | "…with its receive count one higher. At 3 it moves to …" | "…and its next receive counts one higher. One already received 3 times is moved to … by its next receive instead." | The count rises on a receive, not on the return; the move happens on the receive after the last delivery. |
+| Sqs-14 | rows "received 3 of 3"; "They leave this queue and land in the queue you pick." | pills removed; "…along with any that are held or delayed; none stays here." | The count resets to 0 on the move; held and delayed messages move too. |
+| Sqs-17 | "Gets a message on its 3rd receive." | "Gets a message that was received 3 times, on its next receive." | As Sqs-03. |
+| Sqs-18 | "…is set aside on its third receive." | "…is delivered 3 times; the next receive sets it aside." | As Sqs-03. |
+| Bad-DLQ | "received 3 of 3" on each row; "These failed to be deleted after 3 receives on …" | pills removed; "A message lands here when it is not deleted after 3 receives on …. … The receive count starts again at 0 here." | The count is not kept across the move, and a message can also be sent here directly, so the page says how a message comes to be here rather than what each one did. |
+| Sqs-04, 09, 18, 21 (2026-10-11) | 262 144 as the message size; "AWS does not let that trigger be attached" | 1 048 576; the comparison and AWS's guidance, without a refusal the Lambda model does not state | SQS-11; LAM-5 (now `doc`, from Lambda's review) |
+| Sqs-10 (2026-10-12) | "at 3 it goes to the dead-letter queue" | "after 3 deliveries the next receive moves it to the dead-letter queue" | As Sqs-03. |
+
+**Defects the audit found and the rebuild closed** (each with a browser or Go
+test that failed first; `e2e/tests/sqs.spec.ts` has 20 new tests,
+`internal/console/sqs_boards_test.go` four):
+
+1. A refused create showed nothing: the error landed inside the closed Advanced
+   disclosure, off-screen, with no toast.
+2. A refused create with "Create one alongside" left the dead-letter queue behind.
+3. Browser validation (`min`, `max`, `pattern`, `required`) pre-empted every
+   server refusal, so the states of boards 05 and 21 could not occur. The SQS
+   forms are `novalidate`; the refusal is where the boards put it and the
+   field it names is outlined.
+4. A live refresh expanded every message row.
+5. The redrive dialog did not trap focus, and neither dialog returned it. The
+   cause (an Alpine effect that never re-ran) was in nine other dialogs too and
+   is fixed there (`TestADialogsFocusTrapReadsItsFlagFirst`).
+6. The redrive dialog's count was stale.
+7. The send preview was not the form's call: attributes omitted, Copies
+   ignored, and the FIFO preview was refused by the server while the form
+   succeeded.
+8. "Set aside on its Nth receive" was false on three screens: a message is
+   delivered N times and the next receive moves it.
+9. Esc did nothing in the filter, the create form, the composer and the edit form.
+10. Other queues' list counts and the Consume header went stale; "hidden for
+    visible again" could show.
+11. Teaching lines were missing on five fields.
+12. A JavaScript exception on every htmx swap.
 
 ## 7. Tests to add
 
@@ -406,10 +481,14 @@ On top of every box in the protocol.
       recording queue with its test written and skipped.
 - [x] The attribute tier table in section 2 has no "?" left, and every C
       attribute reads as cosmetic in the create form and the Configuration tab.
-- [ ] All 21 boards implemented from the foundation's shell with no SQS-only
-      chrome, and each `new` item reads only the data named for it. **21 of 21
-      (2026-10-11):** the board-by-board comparison in 6a found six differing in
-      shape and they were rebuilt and re-rendered, and Sqs-15's "Redriving, N moved so far" waited on the asynchronous move task, which is now built.
+- [ ] All 19 boards implemented from the foundation's shell with no SQS-only
+      chrome, and each `new` item reads only the data named for it.
+      **The body: 19 of 19 on 2026-10-12** (section 6a, after an audit found 3
+      of 19 behind a claim of "21 of 21"). **The shell: no.** The rail, top
+      bar, header strip, key bar, wire dock and type are not the boards', on
+      SQS's pages as on every other; that is
+      [03-shell-fidelity.md](../03-shell-fidelity.md), and this box stays open
+      until it is built and SQS's 19 are rendered again inside it.
 - [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
 - [x] The three confirms say only what the code does (delete queue, purge, delete message; and the redrive confirm, corrected).
 - [x] The reader check appears in both states and names the real function.
@@ -417,7 +496,7 @@ On top of every box in the protocol.
       gate on, and the accessibility sweep is clean on all four tabs and create.
 - [x] Conformance: scenarios for every row in section 8 exist (45 in `test_sqs.py` on 2026-10-12). Zero "answered
       differently". The unverified count is written here: **139 responses**, all of them: nothing is recorded until there is an AWS account.
-- [x] Mutation baseline recorded here: **708 killed, 58 survived, 5 timed out, 73 not covered (92.4%)**, `testdata/mutation.json`, recorded 2026-10-11 against the code with receipt handles, strict mode and asynchronous move tasks. It was 631 / 80 for the first stage-1 code; the edges and behaviours found standing were tested (`sqs/boundaries_test.go`, `sqs/edges_test.go`) and it was recorded again. Why the 58 stand:
+- [x] Mutation baseline recorded here: **729 killed, 55 survived, 4 timed out, 77 not covered (93%)**, `testdata/mutation.json`, recorded 2026-10-12 against the code after the audit's fixes (SQS-31 to SQS-41) and the both-wire tests. Before that, 708 / 58 (2026-10-11), and 631 / 80 for the first stage-1 code. `internal/peercall`, which SQS-30 changed and which had no baseline, is recorded too (56 / 14). It was 631 / 80 for the first stage-1 code; the edges and behaviours found standing were tested (`sqs/boundaries_test.go`, `sqs/edges_test.go`) and it was recorded again. Why the 58 stand:
       - Mostly `CONDITIONALS_BOUNDARY` and `CONDITIONALS_NEGATION` on guards whose other side a request cannot reach (a value the handler has already range-checked, a bolt error branch, the wait before a move starts, the edge of the five-minute attempt-id window, which is memory).
       - `codec.go` and `responses.go`: the Query wire's decoder loops and XML writers, whose effect is an empty element nobody reads.
       - `move_task.go`: the pacing guards (`moveStartDelay > 0`, a credit under one). They change when a message moves, not whether.

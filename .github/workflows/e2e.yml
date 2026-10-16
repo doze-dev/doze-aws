@@ -30,6 +30,17 @@ jobs:
         env:
           E2E_ROUTE_GATE: "1"
         run: bunx --bun playwright test
+      - name: Run it again under another account and Region
+        working-directory: e2e
+        # An account and a Region are configuration. Every page, link and
+        # delivery has to work under ones that are not the defaults: a literal
+        # 000000000000 or us-east-1 in the code passes the run above and fails
+        # this one. (It found two such bugs the first time it was run, and
+        # was not in CI until they were fixed.)
+        env:
+          E2E_ACCOUNT_ID: "111122223333"
+          E2E_REGION: eu-west-1
+        run: bunx --bun playwright test
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v4
