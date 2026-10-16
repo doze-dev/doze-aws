@@ -1,3 +1,3 @@
 # See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
 # Not listed: the three order summaries. The page shows each body's first line; the summariser is not built (6a decision 5).
-3 in flight # shell: the queue header's fact strip, as above
+3 in flight # data: the board's fixture holds three; the harness fixture's page holds two (the sentence itself is built and matches)

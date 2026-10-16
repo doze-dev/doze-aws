@@ -10,3 +10,4 @@ FROM ONE MESSAGE · DELETE # doc: caption of the third dialog card
 In Consume the held message is acknowledged. In Messages the same button removes it by its handle. # doc: a note about the button, not dialog text
 What does not ask # doc: heading of the board's closing paragraph
 Release, Receive, Send, saving settings, granting a statement and saving tags. Each is what you came to do, or can be put back by doing the opposite. Revoking a statement and Delete selected ask too. # doc: the closing paragraph
+SQS # doc: the eyebrow above the board's own documentation title, not dialog text
