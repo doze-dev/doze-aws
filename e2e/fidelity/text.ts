@@ -65,6 +65,8 @@ export function normaliseLine(s: string, opts: NormaliseOpts = {}): string {
     if (region) t = t.split(region).join(BOARD_IDENTITY.region);
   }
   t = t.replace(/(?:127\.0\.0\.1|localhost):\d+/g, '127.0.0.1:<port>');
+  // The narrow top bar draws the endpoint as a bare ":4566".
+  t = t.replace(/(^|\s):\d{4,5}\b/g, '$1:<port>');
   // Message ids and request ids are random on every run.
   t = t.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '<id>');
   // A key cap sits against the word it names with no space on a board and with

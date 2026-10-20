@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { counts, esc, failing, renderReport, type Row } from './report';
+import { counts, esc, failing, kindTally, renderReport, type Row } from './report';
 import { checkText, parseAllow } from './text';
 
 const row = (over: Partial<Row>): Row => ({ board: 'B', status: 'pass', detail: '', pagePngs: [], boardText: '', pageText: '', notes: [], ...over });
@@ -63,5 +63,14 @@ describe('allow/*.txt', () => {
     if (!existsSync(boards)) return;
     const have = new Set(readdirSync(boards).map((f) => f.replace(/\.dc\.html$/, '')));
     for (const f of files) expect(have.has(f.replace(/\.txt$/, ''))).toBe(true);
+  });
+});
+
+describe('kindTally', () => {
+  test('counts allowed lines by the kind before the first colon, most first', () => {
+    expect(kindTally(['annotation: a', 'annotation: b', 'superseded: c', 'data: d', 'annotation: e', 'data: f'])).toBe('annotation 3, data 2, superseded 1');
+  });
+  test('a reason with no kind is counted as unkinded, so it shows', () => {
+    expect(kindTally(['because'])).toBe('unkinded 1');
   });
 });

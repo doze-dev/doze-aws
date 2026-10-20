@@ -155,3 +155,13 @@ ${body}
 </body></html>
 `;
 }
+
+/** `annotation 12, data 2`: how many allowed lines of each reason kind (the word before the first colon). */
+export function kindTally(reasons: string[]): string {
+  const n = new Map<string, number>();
+  for (const r of reasons) {
+    const k = r.includes(':') ? r.slice(0, r.indexOf(':')).trim() : 'unkinded';
+    n.set(k, (n.get(k) ?? 0) + 1);
+  }
+  return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, c]) => `${k} ${c}`).join(', ');
+}

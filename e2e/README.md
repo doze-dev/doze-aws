@@ -105,7 +105,13 @@ drive (a skip is shown in the report). A board with no entry is a failing row
 (`no driver for <board>`); so is an entry for a board that no longer exists.
 The other services' tables are empty on purpose: each is that service's stage
 to-do list. The cross-cutting boards (`Main`, `Anatomy`, `Wire-*`, ...) are in
-`drivers/shell.ts`.
+`drivers/shell.ts`, and the seven that are the page's chrome and rules rather than
+a screen (Anatomy, Create, Dark, Narrow, Palette, States, Teaching) are in
+`drivers/shell-chrome.ts`. A driver that spends the queues, enables the Lambda
+trigger or holds messages asks for `ctx.instance('own')`, a harbour of its own
+that no other board sees; `fidelity/harbour-shell.ts` seeds what those boards
+draw that is not a queue (a bucket and a table for the palette's wire rows, a
+function that throws, a read a policy denies, a secret, a stack), tolerantly.
 
 **A board whose state the main instance cannot be in** boots another
 (`c.instance(kind)` in `drivers/types.ts`): `enforce`, `empty`, `fresh`, and
@@ -124,7 +130,11 @@ and prints the lines the page lacks. For a service's boards the shell
 account and Region are masked, case is ignored, and `fidelity/allow/<board>.txt`
 lists the board text the page legitimately omits or words differently:
 `board text # kind: why`, where the kind is `shell`, `icon`, `doc`, `decision`,
-`annotation` or `data`. An entry with no reason is an error, an entry for a
+`annotation` or `data`, or one of the two for boards that disagree with each
+other: `superseded` (the board words it differently from the service's own board,
+which the page follows) and `conflict` (the board draws a thing the page draws
+another way, and the owner has not chosen). The run prints how many allowed lines
+there are of each kind, per board. An entry with no reason is an error, an entry for a
 sentence the page now has is reported, and **a missing sentence is never listed
 to make a board pass**: where the page truly lacks board text the row fails and
 the line is the finding.

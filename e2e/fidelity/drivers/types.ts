@@ -56,8 +56,12 @@ export interface Ctx extends Inst {
    * real function that is busy with one message, so the queue has a reader and
    * still has its messages waiting (harbour.ts). It is booted new on every
    * call, and the reader is busy for HOLD_MS from then: drive inside that time.
+   *
+   * `own` is the harbour fixture again, booted anew on every call and shared
+   * with nobody: for a board that spends the queues, enables a trigger, or holds
+   * messages, and must not hand that state to the next board.
    */
-  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire' | 'reader'): Promise<Inst>;
+  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire' | 'reader' | 'own'): Promise<Inst>;
   /** Log a thing the report should carry beside the row (a note, not a failure). */
   note(text: string): void;
 }

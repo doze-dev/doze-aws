@@ -15,6 +15,15 @@ describe('normaliseLine', () => {
     expect(normaliseLine('url http://127.0.0.1:14960/x')).toBe('url http://127.0.0.1:<port>/x');
   });
 
+  test('masks a bare port too: the narrow top bar draws ":4566" with no host', () => {
+    expect(normaliseLine(':4566')).toBe(normaliseLine(':15180'));
+    expect(normaliseLine(':15180')).toBe(':<port>');
+    // ...but not a time, a ratio or a label with a colon in it.
+    expect(normaliseLine('Hidden for another 0:52')).toBe('hidden for another <clock>');
+    expect(normaliseLine('ratio 1:2')).toBe('ratio 1:2');
+    expect(normaliseLine('Sent to: harbour')).toBe('sent to: harbour');
+  });
+
   test('masks uuids, which are random on every run', () => {
     expect(normaliseLine('4f2c1e77-9a0b-4c1d-8d12-3b6a0c5ebd8f')).toBe('<id>');
   });

@@ -26,7 +26,7 @@ import { DRIVERS } from './drivers';
 import { seedHarbour } from './harbour';
 import { seedMap, seedMapLarge } from './mapfixture';
 import { seedWire } from './wire';
-import { counts, failing, renderReport, type Row } from './report';
+import { counts, failing, kindTally, renderReport, type Row } from './report';
 import { boot, build, E2E_DIR, freePort, ID2, inst, REPO_DIR, TMP_DIR, type Booted } from './server';
 import { checkText } from './text';
 
@@ -176,9 +176,13 @@ async function main(): Promise<number> {
       }
 
       const pctx = await browser!.newContext({ viewport: { width: pageWidth, height: 900 }, reducedMotion: 'reduce' });
+      // The theme the run asked for, set before the page's own script reads it.
+      // Only when nothing is stored: a driver that chooses a theme itself (the
+      // Dark board) writes one, and an init script that wrote over it on the next
+      // load was why the Dark board's page was always drawn light.
       await pctx.addInitScript((theme) => {
         try {
-          localStorage.setItem('theme', theme);
+          if (!localStorage.getItem('theme')) localStorage.setItem('theme', theme);
         } catch {
           /* private window */
         }
@@ -247,6 +251,7 @@ async function main(): Promise<number> {
           // Never cached: the hold on the reader lasts HOLD_MS from the seed, so
           // each board that needs it boots its own, and drives inside the window.
           if (kind === 'reader') return bootSeeded(`reader${++readers}`, false, true, undefined, true);
+          if (kind === 'own') return bootSeeded('own', false, true);
           throw new Error(`unknown instance ${kind}`);
         },
       };
@@ -292,6 +297,7 @@ function print(rows: Row[], out: string): number {
     if (r.check) {
       for (const m of r.check.missing) console.log(`        lacks: ${m}`);
       for (const a of r.check.allowed) console.log(`        allowed: ${a.line}  # ${a.reason}`);
+      if (r.check.allowed.length > 0) console.log(`        allowed by kind: ${kindTally(r.check.allowed.map((a) => a.reason))}`);
       for (const e of r.check.allowErrors) console.log(`        allowlist: ${e}`);
       for (const e of r.check.unusedAllow) console.log(`        allowlist line ${e.at} matches nothing on the board: ${e.line}`);
       for (const e of r.check.needlessAllow) console.log(`        allowlist line ${e.at} no longer needed, the page has it: ${e.line}`);
