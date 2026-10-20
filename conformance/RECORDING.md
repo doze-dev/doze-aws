@@ -7,7 +7,7 @@ command and a review, not a day of finding out what to set.
 ## SQS
 
 Everything in `plan/services/sqs.md` section 8 (the recording queue) is
-`conformance/tests/test_sqs.py` (50 scenarios, about 180 recorded labels) and
+`conformance/tests/test_sqs.py` (50 scenarios, 182 recorded labels) and
 four scenarios in the neighbours' files that section 9 (owed to integration)
 needs: `test_lambda.py::test_a_trigger_whose_queue_hides_for_less_than_the_function_runs`
 and `::test_a_deleted_functions_mapping` (each makes a Python function and a

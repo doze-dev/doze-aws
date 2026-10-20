@@ -19,7 +19,7 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Breaking
 
-- **The Go API is 374 exported symbols, down from 1,867.** If you imported
+- **The Go API is 379 exported symbols, down from 1,867.** If you imported
   doze-aws as a library at 0.x, the packages you called are still there and
   still work — `New(Options) → *Server`, `dozeaws.NewStack`, `peers`,
   `awsident` — but everything that was never part of that contract is gone.
@@ -43,7 +43,7 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   shipped Windows because that dependency did not exist yet. Supporting it
   means porting the resolver setup, which is a project, not a build flag.
 
-- **About sixty requests that used to succeed are now refused, because AWS
+- **About sixty-five requests that used to succeed are now refused, because AWS
   refuses them.** If something that worked at 0.x fails after upgrading, it
   would have failed on deploy. Found by driving doze-aws with boto3
   (`conformance/`); almost none of these rules are in AWS's service models,
@@ -59,10 +59,16 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     a consistent read, or `ALL_ATTRIBUTES`, on a GSI that cannot give it; two
     writes to one key in a `BatchWriteItem`; `UpdateTimeToLive` to the state
     the table is already in.
-  - **S3**: a bucket policy that is not JSON, or names another bucket.
+  - **S3**: a bucket policy that is not JSON, or names another bucket; a FIFO
+    queue as a bucket notification destination (`PutBucketNotificationConfiguration`
+    answers 400 `InvalidArgument`; S3 does not deliver to one, and the
+    configuration used to be stored).
   - **SSM**: a parameter name with characters SSM does not allow or in the
     `aws`/`ssm` namespace; `PutParameter` creating without a `Type`;
     `GetParametersByPath` without a leading slash.
+  - **DynamoDB, table names**: a name outside 3 to 255 characters of
+    `a-z A-Z 0-9 _ - .` on any call that names a table (`ValidationException`;
+    the model's `TableName` shape). A one-letter table used to be created.
   - **EventBridge**: `DeleteRule` on a rule that still has targets; a
     schedule on a custom bus; `rate(5 minute)`.
   - **IAM**: a permissions document as a trust policy, or a trust document as
@@ -73,7 +79,15 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     a secret given both a string and a binary, and writes under `alias/aws/`.
   - **Lambda**: an update addressed to a published version or an alias (it
     used to change `$LATEST` instead); an invoke whose payload is not JSON;
-    an event source mapping to a queue that does not exist.
+    an event source mapping to a queue that does not exist; an event source
+    mapping to an SQS queue that hides messages for less time than the
+    function's timeout (`InvalidParameterValueException`, at create and at
+    update, where the queue is compared with the function's timeout as it is
+    then; equal is accepted, and a queue changed afterwards is not re-checked,
+    as on AWS; AWS's "six times the timeout" is guidance and is not checked);
+    a function timeout above 900 seconds (the limit the Lambda model states
+    for a function; it gives 5,400 for Managed Instances, which doze-aws does
+    not serve, and 901 to 5,400 used to be accepted).
   - **CloudFormation**: a stack name outside `[a-zA-Z][-a-zA-Z0-9]*`; a
     template whose `Ref`, `Fn::GetAtt` or `DependsOn` names nothing it
     declares; an `UpdateStack` that changes nothing ("No updates are to be
@@ -115,9 +129,45 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Added since 0.3.0
 
+- **The map**, `/_console/map`: every resource that is wired to another, drawn
+  as the flows it belongs to (a queue and the function that reads it, a topic
+  and what it fans out to, a rule and its targets), each node a link to its page
+  and each wire named for what it is (a disabled event source mapping is drawn
+  dashed and says so). The wires are drawn while the flows fit on one screen
+  (twelve); past that each flow is a card, and one flow opens as a page of its
+  own. "Hot only" keeps the flows a call touched in the last minute, from what
+  the wire recorded, and there is a find box. Resources wired to nothing are
+  listed apart. It is in the rail between the wire and Connect.
+- **The wire, redrawn**, to the design boards: calls a minute, filters for All,
+  Errors and Refused, a menu of the services in the window, and for each call
+  its service, what it was on (the refusal's own sentence, what a function
+  raised, or what emitted the work), the answer as a word and not a colour alone,
+  and a time bar on one scale. Opening a call pauses the feed ("paused · 3 new",
+  Resume). A call that was not served opens with its reason first: the code and
+  the sentence the service gave, what was sent, the queue it was sent to, the
+  same operation in the ledger, Copy as curl and Copy the error. A panel says
+  what needs a look: a dead-letter queue holding messages, an alarm firing, what
+  was refused or failed. A stack nobody has called shows its endpoint and region
+  and gives way to the wire on the first call. If doze-aws stops answering, the
+  page says so and dims. The row of services above the wire is gone: the board
+  does not draw it.
+- **An SQS event source mapping's invoke is on the wire.** A message nothing of
+  doze-aws's own sent (an SDK's `SendMessage` carries no trace header) made its
+  Lambda invocation without a row. An S3 notification's delivery says what
+  emitted it. Neither changes what is delivered.
+- **The fidelity dialog** (the ⓘ beside a service's name): the tiers counted, the
+  ledger's table with doze-aws's own calls last, and under it the ledger's
+  "Differences from AWS", read from `docs/SUPPORT.md` when it opens. Every
+  operation in it is an anchor, and a refusal's explanation can open it at that
+  operation's row (see Changed).
+- **Connect**, `/_console/connect`, to its design: the endpoint, and the same
+  fact in each dialect a tool reads it in (the AWS CLI profile, the environment,
+  Terraform, what deploys from it), each block with a Copy that copies what the
+  block shows, the region and endpoint of this instance, and who the caller is.
 - **SNS FIFO topics deliver.** They were accepted and delivered nothing: the
   group id never reached the FIFO queue. `Publish` returns a `SequenceNumber`.
-- **`conformance/`**: 92 boto3 scenarios across all 17 services, written to be
+- **`conformance/`**: 139 boto3 scenarios (137 across all 17 services, 50 of them
+  SQS's, and two on the wire itself), written to be
   recorded against a real AWS account and compared with doze-aws. No
   recordings yet; the suite reports every response as unverified until there
   are.
@@ -150,6 +200,69 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Changed
 
+- **A refusal links what it is about.** Under a "Refused here" (a limit of
+  doze-aws's own) and a "Not built" explanation, on the wire and under a failed
+  console action, a link opens the fidelity dialog at the operation's row (the
+  row is marked and scrolled to; the service's ledger when the ledger does not
+  name the operation, and for a path-routed call whose operation the request does
+  not say). A not-built operation also links `docs/not-built.md` (its Declined
+  or Not yet section, by what the server stamped). No other state links
+  anything, and nor does the console's own "this stack runs without that
+  service" answer, which is a choice about the stack and not about an
+  operation. That answer, and a function that raised, no longer read as "AWS
+  would accept this" and "your function": the first says the stack was started
+  without the service, the second names the function.
+- **The reader warning on a queue's Configuration says what is true.** It said
+  doze-aws "does not check this when the trigger is created". It does now: a
+  trigger whose queue hides messages for less time than the function's timeout
+  is refused when it is created or updated (see Breaking). AWS's six-times
+  guidance, which the warning quotes, is still not checked, and the warning says
+  both.
+- **The console shows your own change at once.** The wiring graph, the rail's
+  dead-letter dot and the wire's "needs a look" are cached for a few seconds and
+  dropped when the console changes something. A read that had begun before the
+  change finished after the drop and was kept, so the page you landed on after,
+  say, wiring a trigger could show the world as it was for up to five seconds.
+  It is read again now.
+- **SQS and what its neighbours owe it, from three audits (SQS-47 to SQS-62).**
+  - **More forgiving than before**: an identical `CreateQueue` after the queue's
+    dead-letter queue was deleted answered `InvalidAttributeValue`; it is the same
+    ask now and succeeds, as AWS says ("the exact same names and values").
+  - **Neither stricter nor more forgiving, what the SDK sees changes**: a Query
+    batch whose entries are numbered with a gap (1 and 3) answered 200 for
+    entry 1 and said nothing of entry 3; every numbered entry is read now, in
+    order. AWS's answer for a gap is not established and is queued for
+    recording.
+  - **Corrected**: under `--account-id`, a repeat `PublishVersion`,
+    `ListVersionsByFunction` and a `Qualifier` read of a Lambda version named the
+    default account and region; they carry the configured identity.
+    `DescribeStackEvents` listed a stack's resources in template order, so a queue
+    was in progress before its dead-letter queue was done; it lists them in the
+    order they were made.
+  - **Console**: a message body, a policy, a Lambda payload, an S3 object and the Step
+    Functions views are shown as sent (pretty-printing only moves
+    whitespace: `12345678901234567890` stays, `1.10` stays, `<` is not escaped and
+    a repeated key is not dropped); the wire shows a lone slow call; under a
+    dialog the key bar names only `esc` and `⌘K` and `j`, `/` and `⌘⏎` do not
+    act on the page behind; editing a queue with no dead-letter queue offers no
+    "After receives"; a FIFO create keeps its group panel and buttons on the first
+    screen; the 404 page reads as sentences.
+  - **Open, and unchanged because the evidence is memory only**: a deleted
+    function's poller still reads its queue (SQS-61), and a FIFO queue can be
+    subscribed to a standard topic and every delivery is dropped (SQS-62). Both
+    have a conformance scenario waiting for a recording.
+  - A soak (3,000 messages, redrive under load, a restart mid-move) and a link
+    crawl of the SQS pages are kept as tests. The crawl did not reproduce a 404
+    seen once on `/sqs%2F<dead-letter queue>` (SQS-54).
+- **Console, other fixes of the same day.** A page for a resource that is not
+  there keeps the service's list pane (fifteen services drew none); a
+  fragment an action swaps in is compared with the same region of a full load,
+  which found an SQS Configuration with empty ARN and URL chips after Save and a
+  KMS key page with an empty re-encrypt menu after any action, both fixed; the
+  Kinesis form sends the shard count as typed (it raised 0 to 1 and said "Stream
+  created"; the service already refused 0, and the form now says so: stricter
+  than before); the S3 create form refuses an empty bucket name itself instead
+  of sending `PUT /` (the service's 405 for that is unchanged).
 - **An operation doze-aws does not build answers HTTP 501 `NotImplemented`**,
   with `X-Doze-Not-Built: declined|deferred` saying whether it is a decision or
   a todo. It was a 400 spelled differently by each service. No SDK retries a

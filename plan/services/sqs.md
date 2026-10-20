@@ -76,7 +76,7 @@ which settings do anything:
 
 | Layer | What exists |
 |---|---|
-| Package tests | `sqs/`: 158 tests (counted 2026-10-12; it was 45 when the stage began) across store, server, SDK v1 and v2, both wires as raw requests, batch, attribute round trip, hardening, notify leak |
+| Package tests | `sqs/`: 166 test functions (counted 2026-10-20 from `go test -json`: 165 pass and one skips when no model is vendored; 324 passes with their subtests; it was 158 on 2026-10-12 and 45 when the stage began) across store, server, SDK v1 and v2, both wires as raw requests, batch, attribute round trip, hardening, notify leak |
 | Parity | `model_parity_test.go`, `rejection_parity_test.go` (7), `coverage_model_test.go`; 51 of 51 model constraints enforced across all 22 operations, `knownGaps` and `needState` empty (the cases were regenerated on 2026-10-12: 49 became 51) |
 | Conformance | `conformance/tests/test_sqs.py`: 50 scenarios on 2026-10-20 (45 on 2026-10-12, 8 when the stage began) and four neighbour scenarios for section 9, all **unverified** (no recordings exist); `conformance/RECORDING.md` |
 | Browser | `e2e/tests/sqs.spec.ts`: 64 tests on 2026-10-20 (62 on 2026-10-16, 17 when the stage began), `sqs-audit.spec.ts` 21, `sqs-links.spec.ts` 1 (the link crawl) |
@@ -427,6 +427,7 @@ published canvas carries the old text until it is republished):
 | Sqs-18 | "…is set aside on its third receive." | "…is delivered 3 times; the next receive sets it aside." | As Sqs-03. |
 | Bad-DLQ | "received 3 of 3" on each row; "These failed to be deleted after 3 receives on …" | pills removed; "A message lands here when it is not deleted after 3 receives on …. … The receive count starts again at 0 here." | The count is not kept across the move, and a message can also be sent here directly, so the page says how a message comes to be here rather than what each one did. |
 | Sqs-04, 09, 18, 21 (2026-10-11) | 262 144 as the message size; "AWS does not let that trigger be attached" | 1 048 576; the comparison and AWS's guidance, without a refusal the Lambda model does not state | SQS-11; LAM-5 (now `doc`, from Lambda's review) |
+| Sqs-18 (2026-10-20, page and board) | "…which here would be 180 s. doze-aws does not check this when the trigger is created." | "…which here would be 180 s. doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated." | LAM-5 (SQS-60) made the old sentence false: a trigger whose queue hides messages for less than the function's timeout is refused at CreateEventSourceMapping and UpdateEventSourceMapping (`doc`); AWS's six-times guidance is still not checked. Said in the live callout, the saved reader callout and the board; the e2e specs assert the whole sentence. The same claim was in Lambda-10 ("does not check either way") and Lambda-12 ("does not check, so it will be added"), corrected to the same facts; the Lambda page is not built to those boards yet. |
 | Sqs-10 (2026-10-12) | "at 3 it goes to the dead-letter queue" | "after 3 deliveries the next receive moves it to the dead-letter queue" | As Sqs-03. |
 
 **Defects the audit found and the rebuild closed** (each with a browser or Go
