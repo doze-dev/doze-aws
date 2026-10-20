@@ -219,7 +219,7 @@ tasks:
     cmds:
       - cd e2e && bun install --frozen-lockfile
       - cd e2e && bunx --bun playwright install chromium
-      # Builds the binary, boots it on a port in 14960-14969 (FIDELITY_PORT_MIN and
+      # Builds the binary, boots it on a port in 14960-14979 (FIDELITY_PORT_MIN and
       # FIDELITY_PORT_MAX move the range), seeds the harbour
       # fixture, and writes e2e/.tmp/fidelity/<service>/ (board and page
       # pictures, report.html). Exits non-zero for a board with no driver, one

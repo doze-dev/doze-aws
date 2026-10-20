@@ -1,5 +1,5 @@
 // Build the real binary and boot it, the way e2e/playwright.config.ts's
-// webServer does, but on a port the runner picks (14960-14969 only) and with a
+// webServer does, but on a port the runner picks (14960-14979 only) and with a
 // data dir that is wiped on every boot.
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
@@ -14,9 +14,9 @@ export const TMP_DIR = join(E2E_DIR, '.tmp');
 const BIN = join(TMP_DIR, 'bin', 'doze-aws-fidelity');
 
 // FIDELITY_PORT_MIN / FIDELITY_PORT_MAX move the window when several runs (or
-// several worktrees) share a machine; the default is 14960-14969.
+// several worktrees) share a machine; the default is 14960-14979 (the shell run boots a dozen instances).
 export const PORT_MIN = Number(process.env.FIDELITY_PORT_MIN ?? 14960);
-export const PORT_MAX = Number(process.env.FIDELITY_PORT_MAX ?? PORT_MIN + 9);
+export const PORT_MAX = Number(process.env.FIDELITY_PORT_MAX ?? PORT_MIN + 19);
 
 export function build(): void {
   mkdirSync(join(TMP_DIR, 'bin'), { recursive: true });

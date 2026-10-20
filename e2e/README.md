@@ -80,7 +80,7 @@ go tool task console:fidelity:test                 # unit tests: `bun test e2e/f
 # or, from e2e/: bun fidelity/run.ts sqs
 ```
 
-It builds the real binary, boots it on a free port in 14960-14969 (move the range
+It builds the real binary, boots it on a free port in 14960-14979 (move the range
 with `FIDELITY_PORT_MIN` and `FIDELITY_PORT_MAX`, so two runs can share a machine)
 with a fresh data dir (`--name harbour`), seeds the **harbour** fixture
 (`fidelity/harbour.ts`: the shop the boards are drawn from; `fidelity/wire.ts`
