@@ -131,10 +131,25 @@ for (const theme of ['light', 'dark']) {
           await expect(page.locator('.map-hot')).toHaveCount(1);
         }).toPass({ timeout: 15000, intervals: [300, 600, 1200] });
         expect(await violations(page)).toEqual([]);
-        // The same wiring as a card, found by name (whatever else is wired).
-        await page.goto(`map?q=${encodeURIComponent(topic)}`);
-        // Past twelve wired resources the page is cards; before it, it is the drawing.
-        await expect(page.locator('a.map-card, a.map-box').first()).toBeVisible();
+      });
+
+      test('the page past twelve resources (cards, the fold, hot only, find) has nothing for axe', async ({ page, request, uniqueName }) => {
+        // Five flows of three are fifteen wired resources: cards, whatever else is wired.
+        const prefix = uniqueName('e2e-map-axe-cards');
+        const flows = [] as Awaited<ReturnType<typeof arrange>>[];
+        for (let i = 0; i < 5; i++) flows.push(await arrange(request, `${prefix}-${i}`));
+        await expect(async () => {
+          await touch(request, flows[0]!.queue);
+          await page.goto(`map?q=${prefix}`);
+          await expect(page.locator('a.map-card')).toHaveCount(5);
+          await expect(page.locator('a.map-card.hot')).toHaveCount(1);
+        }).toPass({ timeout: 20000, intervals: [400, 800, 1600] });
+        expect(await violations(page)).toEqual([]);
+        await page.goto('map?hot=1');
+        await expect(page.locator('.map-seg a.on')).toHaveText('Hot only');
+        expect(await violations(page)).toEqual([]);
+        await page.goto('map');
+        await expect(page.locator('.map-scale')).toBeVisible();
         expect(await violations(page)).toEqual([]);
       });
 

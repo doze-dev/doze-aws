@@ -18,9 +18,9 @@ package console
 //
 // "Hot" is new (plan/03-shell-fidelity.md D6). The graph used to call an edge
 // hot when it led into a queue holding messages, which is a backlog and not
-// traffic. A wire is hot here when the wire (client_flow.go's recorder ring,
-// the calls the resource's own wire dock lists) holds a call to either end in
-// the last minute. Management calls count: it is the same set the dock shows.
+// traffic. A wire is hot here when the recorder's ring (the calls the wire page
+// lists) holds a call to either end of it in the last minute. Management calls
+// count: it is the same set a resource's own wire dock shows.
 
 import (
 	"net/http"
