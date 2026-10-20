@@ -46,7 +46,7 @@ func (c *Console) census(ctx context.Context) (map[string]int, map[string]string
 	if n, err := c.be.CountTopics(ctx); err == nil {
 		counts["sns"] = n
 	}
-	if n, err := c.be.CountBuses(ctx); err == nil {
+	if n, err := c.be.CountMade(ctx); err == nil {
 		counts["eb"] = n
 	}
 	if v, err := c.be.ListFunctions(ctx); err == nil { // single call already

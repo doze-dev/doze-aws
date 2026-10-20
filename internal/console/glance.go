@@ -274,11 +274,7 @@ func (c *Console) glanceEventBridge(ctx context.Context, add glanceAdd) {
 	for _, b := range buses {
 		rules += b.Rules
 	}
-	n := rules
-	if len(buses) > 1 {
-		n += len(buses) - 1
-	}
-	add("eb", n, plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
+	add("eb", madeBuses(buses), plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
 }
 
 // glanceLambda puts the scale-to-zero story on the board: one warm function

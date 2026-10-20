@@ -67,18 +67,31 @@ func (b *backend) ListBuses(ctx context.Context) ([]Bus, error) {
 	return buses, nil
 }
 
-// CountBuses is the cheap cardinality probe: one ListEventBuses call, no
-// per-bus rule fetches.
-func (b *backend) CountBuses(ctx context.Context) (int, error) {
-	body, err := b.json11(ctx, "AWSEvents", "ListEventBuses", map[string]any{})
+// madeBuses is the figure the rail and the map's glance give for EventBridge:
+// what somebody made. The default bus is on every stack and nobody made it, so
+// it is not counted, and a stack with nothing in it says nothing (the first-run
+// board, Wire-Empty, draws no count); a rule counts, on any bus, and so does a
+// bus other than the default one.
+func madeBuses(buses []Bus) int {
+	n := 0
+	for _, b := range buses {
+		n += b.Rules
+		if b.Name != "default" {
+			n++
+		}
+	}
+	return n
+}
+
+// CountMade is the rail's count for EventBridge (madeBuses). It lists every
+// bus's rules, which the other services' count probes do not need to do, so it
+// is the dearer of them, by one in-process call per bus: there are few buses.
+func (b *backend) CountMade(ctx context.Context) (int, error) {
+	buses, err := b.ListBuses(ctx)
 	if err != nil {
 		return 0, err
 	}
-	var out struct {
-		EventBuses []struct{} `json:"EventBuses"`
-	}
-	json.Unmarshal(body, &out)
-	return len(out.EventBuses), nil
+	return madeBuses(buses), nil
 }
 
 func (b *backend) CreateBus(ctx context.Context, name string) error {
