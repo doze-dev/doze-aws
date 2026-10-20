@@ -56,6 +56,21 @@ for (const theme of ['light', 'dark']) {
         expect(await violations(page)).toEqual([]);
       });
 
+      // The dialog from the list pane's header (a service with no resource
+      // open), with two ledgers' headings in it, and Connect after its check.
+      test('the fidelity dialog of API Gateway (two ledgers), and Connect after its check, have nothing for axe', async ({ page }) => {
+        await page.goto('apigw');
+        await page.locator('.info-btn').first().click();
+        await expect(page.locator('.fid-table').nth(1)).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+        await page.keyboard.press('Escape');
+
+        await page.goto('connect');
+        await page.getByRole('button', { name: 'Run get-caller-identity' }).click();
+        await expect(page.locator('#cn-result .pill.ok')).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+      });
+
       test('the confirm dialog and the palette have nothing for axe', async ({ page, request, uniqueName }) => {
         const q = await createQueue(request, uniqueName('e2e-a11y'));
         await page.goto(`sqs/${q}`);

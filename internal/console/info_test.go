@@ -99,7 +99,7 @@ func TestAServicePageCarriesNoLedgerUntilTheDialogIsOpened(t *testing.T) {
 // prints (board Fidelity: "SQS · what is real here"), on every service's page.
 func TestEveryServicesDialogIsTitledForIt(t *testing.T) {
 	h := newConsole(t)
-	title := regexp.MustCompile(`<h3 class="fid-title">([^<]*)</h3>`)
+	title := regexp.MustCompile(`<h2 class="fid-title">([^<]*)</h2>`)
 	for _, e := range console.RegisteredServices() {
 		t.Run(e.Key, func(t *testing.T) {
 			rec := req(t, h, "GET", "/_console"+e.Path, nil)

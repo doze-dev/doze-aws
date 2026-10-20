@@ -357,7 +357,7 @@
   <div class="overlay q-center" role="dialog" aria-modal="true" aria-label="{{svcLabel .Svc}} fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
     <div class="dialog fid anim">
       <div class="fid-h">
-        <div class="fid-hr"><h3 class="fid-title">{{svcLabel .Svc}} · what is real here</h3><button type="button" class="btn btn-ghost btn-sm fid-esc" aria-label="Close" @click="info=false">esc</button></div>
+        <div class="fid-hr"><h2 class="fid-title">{{svcLabel .Svc}} · what is real here</h2><button type="button" class="btn btn-ghost btn-sm fid-esc" aria-label="Close" @click="info=false">esc</button></div>
         <p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p>
       </div>
       <div class="fid-b info-body" tabindex="0" role="region" aria-label="What is real here" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
@@ -381,7 +381,7 @@
 {{if .Empty}}<p class="mini-note">No ledger for this service.</p>{{end}}
 {{$many := gt (len .Sections) 1}}
 {{range .Sections}}
-{{if $many}}<h4 class="info-sec">{{.Title}}</h4>{{end}}
+{{if $many}}<h3 class="info-sec">{{.Title}}</h3>{{end}}
 <div class="fid-card"><table class="fid-table">
   <thead><tr><th class="fid-c-t">Tier</th><th class="fid-c-o">Operations</th><th>Notes</th></tr></thead>
   <tbody>
@@ -396,7 +396,9 @@
 </table></div>
 {{if .Diffs}}
 <section class="fid-diff" aria-label="Differences from AWS{{if $many}}, {{.Title}}{{end}}">
-  <h4 class="fid-h2">Differences from AWS</h4>
+  {{/* The title is an h2, a service's name an h3 under it, so this is an h3 on its
+       own and an h4 under a service's name: the order never skips. */}}
+  {{if $many}}<h4 class="fid-h2">Differences from AWS</h4>{{else}}<h3 class="fid-h2">Differences from AWS</h3>{{end}}
   {{range .Diffs}}<div class="fid-callout"><span class="fid-note">{{if .Lead}}<b>{{.Lead}}</b>{{end}}{{.Text}}</span></div>
   {{end}}
 </section>
