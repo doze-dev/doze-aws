@@ -260,13 +260,7 @@
     <div class="td-ledh"><span class="m b">{{.Op}}</span><span class="pill {{if eq .Tier "F"}}ok{{end}}">{{.Tier}} · {{.TierLabel}}</span></div>
     <span class="note">{{.Note}} <button type="button" class="linkish" @click="info=true">The {{.Label}} ledger</button></span>
   </div>
-  <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
-    <div class="dialog wide anim">
-      <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
-      <div class="dialog-b info-body" tabindex="0" role="region" aria-label="What is real here" x-show="info" hx-get="{{$.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
-      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
-    </div>
-  </div>
+  {{template "info_overlay" dict "Svc" .Svc "Prefix" $.Prefix}}
 </div>
 {{end}}
 {{end}}

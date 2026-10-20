@@ -65,7 +65,7 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			kind:    "refused",
 			a:       answer{err: &awshttp.APIError{Code: "InvalidParameterValue", Status: 400, Message: "queue name is not valid"}},
 			inline:  "Refused InvalidParameterValue queue name is not valid " + whyRefused,
-			drawer:  "Refused · InvalidParameterValue queue name is not valid " + whyRefused,
+			drawer:  "InvalidParameterValue queue name is not valid",
 			drawerH: "Refused",
 		},
 		{
@@ -73,21 +73,21 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			kind:    "refused, a 403 no policy decided",
 			a:       answer{err: &awshttp.APIError{Code: "AccessDenied", Status: 403, Message: "public policies are blocked"}},
 			inline:  "Refused AccessDenied public policies are blocked " + whyRefused,
-			drawer:  "Refused · AccessDenied public policies are blocked " + whyRefused,
+			drawer:  "AccessDenied public policies are blocked",
 			drawerH: "Refused",
 		},
 		{
 			kind:    "denied",
 			a:       answer{err: &awshttp.APIError{Code: "AccessDeniedException", Status: 403, Message: "no identity-based policy allows sqs:CreateQueue", Denied: "iam"}},
 			inline:  "Denied AccessDeniedException no identity-based policy allows sqs:CreateQueue " + whyDenied,
-			drawer:  "Denied · AccessDeniedException no identity-based policy allows sqs:CreateQueue " + whyDenied,
+			drawer:  "AccessDeniedException no identity-based policy allows sqs:CreateQueue " + whyDenied,
 			drawerH: "Denied",
 		},
 		{
 			kind:    "a limit of doze-aws's own",
 			a:       answer{err: &awshttp.APIError{Code: "LimitExceededException", Status: 400, Message: "too many queues for a local stack", Local: true}},
 			inline:  "Refused here LimitExceededException too many queues for a local stack " + whyRefusedHere,
-			drawer:  "Refused here · LimitExceededException too many queues for a local stack " + whyRefusedHere,
+			drawer:  "LimitExceededException too many queues for a local stack " + whyRefusedHere,
 			drawerH: "Refused here",
 		},
 		{
@@ -95,7 +95,7 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			a:    answer{err: awshttp.NotBuilt(awshttp.Declined, "ListQueueTags", "tags are not kept")},
 			inline: "Not built NotImplemented ListQueueTags is not built in doze-aws: tags are not kept " +
 				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request.",
-			drawer: "Not built · NotImplemented ListQueueTags is not built in doze-aws: tags are not kept " +
+			drawer: "NotImplemented ListQueueTags is not built in doze-aws: tags are not kept " +
 				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request.",
 			drawerH: "Not built",
 		},
@@ -104,7 +104,7 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			a:    answer{err: awshttp.NotBuilt(awshttp.Deferred, "ListQueueTags", "not yet")},
 			inline: "Not built NotImplemented ListQueueTags is not built in doze-aws: not yet " +
 				"doze-aws has not built this operation yet. Nothing is wrong with the request.",
-			drawer: "Not built · NotImplemented ListQueueTags is not built in doze-aws: not yet " +
+			drawer: "NotImplemented ListQueueTags is not built in doze-aws: not yet " +
 				"doze-aws has not built this operation yet. Nothing is wrong with the request.",
 			drawerH: "Not built",
 		},
@@ -112,14 +112,14 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			kind:    "an older stub table's answer",
 			a:       answer{err: (&awshttp.APIError{Code: "ValidationError", Status: 400, Message: "ListStackSets is not implemented"}).Stub()},
 			inline:  "Not built ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request.",
-			drawer:  "Not built · ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request.",
+			drawer:  "ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request.",
 			drawerH: "Not built",
 		},
 		{
 			kind:    "doze-aws failing",
 			a:       answer{err: &awshttp.APIError{Code: "InternalFailure", Status: 500, Message: "the store broke"}},
 			inline:  "Failed InternalFailure the store broke " + whyFailed,
-			drawer:  "Failed · InternalFailure the store broke " + whyFailed,
+			drawer:  "InternalFailure the store broke " + whyFailed,
 			drawerH: "Failed",
 		},
 	}
@@ -137,7 +137,7 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			r.Header.Set("Content-Type", "application/x-amz-json-1.0")
 			rec.ServeHTTP(httptest.NewRecorder(), r)
 			entry := req(t, c, "GET", "/_console/traffic/entry?seq=1", nil).Body.String()
-			panel := section(t, entry, `<div class="td-sec td-`)
+			panel := section(t, entry, `<div class="td-callout td-`)
 			if got := flatText(panel); got != tc.drawer {
 				t.Errorf("the inspector says\n  %q\nwant\n  %q", got, tc.drawer)
 			}
@@ -174,8 +174,8 @@ func TestAFunctionErrorNamesTheFunction(t *testing.T) {
 	r := httptest.NewRequest("POST", "/2015-03-31/functions/orders-worker/invocations", strings.NewReader(`{}`))
 	rec.ServeHTTP(httptest.NewRecorder(), r)
 	entry := req(t, c, "GET", "/_console/traffic/entry?seq=1", nil).Body.String()
-	got := flatText(section(t, entry, `<div class="td-sec td-`))
-	want := "It threw · Error boom The call was served and the function orders-worker raised. Lambda answers 200 and flags the error in X-Amz-Function-Error; the body says what it threw. Nothing here is a bug in doze-aws."
+	got := flatText(section(t, entry, `<div class="td-callout td-`))
+	want := "Error boom The call was served and the function orders-worker raised. Lambda answers 200 and flags the error in X-Amz-Function-Error; the body says what it threw. Nothing here is a bug in doze-aws."
 	if got != want {
 		t.Errorf("the inspector says\n  %q\nwant\n  %q", got, want)
 	}
