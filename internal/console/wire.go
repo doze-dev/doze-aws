@@ -312,6 +312,7 @@ func (c *Console) productNeeds(ctx context.Context) (dlq, alarms []needItem) {
 		c.be.graphMu.Unlock()
 		return d, a
 	}
+	gen := c.be.graphGen
 	c.be.graphMu.Unlock()
 
 	if queues, err := c.be.ListQueues(ctx); err == nil {
@@ -360,7 +361,9 @@ func (c *Console) productNeeds(ctx context.Context) (dlq, alarms []needItem) {
 		}
 	}
 	c.be.graphMu.Lock()
-	c.be.wireAt, c.be.wireDLQ, c.be.wireAlarms = time.Now(), dlq, alarms
+	if c.be.graphGen == gen { // not over a drop that landed while this was being read
+		c.be.wireAt, c.be.wireDLQ, c.be.wireAlarms = time.Now(), dlq, alarms
+	}
 	c.be.graphMu.Unlock()
 	return dlq, alarms
 }

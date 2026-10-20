@@ -119,6 +119,7 @@ func (b *backend) dlqHolds(ctx context.Context) bool {
 		b.graphMu.Unlock()
 		return held
 	}
+	gen := b.graphGen
 	b.graphMu.Unlock()
 	held := false
 	if queues, err := b.ListQueues(ctx); err == nil {
@@ -130,7 +131,9 @@ func (b *backend) dlqHolds(ctx context.Context) bool {
 		}
 	}
 	b.graphMu.Lock()
-	b.dlqAt, b.dlqHeld = time.Now(), held
+	if b.graphGen == gen { // not over a drop that landed while this was being read
+		b.dlqAt, b.dlqHeld = time.Now(), held
+	}
 	b.graphMu.Unlock()
 	return held
 }

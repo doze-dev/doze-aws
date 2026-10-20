@@ -46,6 +46,12 @@ type backend struct {
 	graphAt    time.Time
 	graphSnap  *FlowGraph
 	graphBuild chan struct{} // non-nil while one goroutine crawls (singleflight)
+	// graphGen counts the drops (bustGraph). A read that fills one of the three
+	// caches here notes it before it starts and stores its result only if no
+	// drop has happened since: a read that began before a console mutation saw
+	// the world as it was, and storing it over the drop would show the user
+	// their own action undone for a whole TTL.
+	graphGen uint64
 
 	// dlqAt and dlqHeld cache the rail's "a dead-letter queue holds a message"
 	// (dlqHolds in chrome.go), under graphMu because bustGraph drops them with
@@ -91,13 +97,19 @@ func (b *backend) graphCached(ctx context.Context) FlowGraph {
 		}
 		ch := make(chan struct{})
 		b.graphBuild = ch
+		gen := b.graphGen
 		b.graphMu.Unlock()
 
 		g := b.BuildGraph(ctx)
 
 		b.graphMu.Lock()
-		b.graphSnap = &g
-		b.graphAt = time.Now()
+		// Kept only if nothing dropped the cache while it was being read. Its own
+		// caller gets it either way (it asked before the mutation); whoever asks
+		// next crawls again.
+		if b.graphGen == gen {
+			b.graphSnap = &g
+			b.graphAt = time.Now()
+		}
 		b.graphBuild = nil
 		b.graphMu.Unlock()
 		close(ch)
@@ -113,6 +125,7 @@ func (b *backend) bustGraph() {
 	b.graphSnap = nil
 	b.dlqAt = time.Time{}
 	b.wireAt = time.Time{}
+	b.graphGen++
 	b.graphMu.Unlock()
 }
 
