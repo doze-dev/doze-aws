@@ -778,7 +778,21 @@ func layoutFlow(f mapFlow) mapDrawing {
 		}
 	}
 	for l, ps := range byGap {
-		sort.SliceStable(ps, func(i, j int) bool { return port(ps[i], true) < port(ps[j], true) })
+		// Wires that rise turn left to right as their targets descend, and
+		// wires that fall as their targets ascend: each one's vertical then
+		// stays clear of the last stretch of the one beside it, whose label
+		// it would otherwise cross.
+		rises := func(p *mapPair) bool { return port(p, true) < port(p, false) }
+		sort.SliceStable(ps, func(i, j int) bool {
+			a, b := ps[i], ps[j]
+			if ra, rb := rises(a), rises(b); ra != rb {
+				return ra
+			}
+			if rises(a) {
+				return port(a, true) < port(b, true)
+			}
+			return port(a, true) > port(b, true)
+		})
 		step := 12
 		if n := len(ps); n > 1 {
 			step = max(5, min(12, (colGap-16-54)/(n-1)))
