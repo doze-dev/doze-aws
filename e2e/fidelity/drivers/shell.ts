@@ -8,7 +8,7 @@
 // Boards with nothing to drive say so, with a reason, as `skip`.
 
 import type { Ctx, DriverTable } from './types';
-import { FIFO } from '../harbour';
+import { FIFO, LOYALTY, MAIN } from '../harbour';
 import { drivers as chrome } from './shell-chrome';
 
 const wire = (c: Ctx) => c.page.goto(c.url(''));
