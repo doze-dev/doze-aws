@@ -82,8 +82,8 @@ func TestDynamoDBStreamsAPI(t *testing.T) {
 			"pk": &ddbtypes.AttributeValueMemberS{Value: "k"}, "v": &ddbtypes.AttributeValueMemberS{Value: v},
 		}})
 	}
-	put("one")                                                                                                                                                         // INSERT
-	put("two")                                                                                                                                                         // MODIFY
+	put("one")                                                                                                                                                                // INSERT
+	put("two")                                                                                                                                                                // MODIFY
 	c.DeleteItem(ctx, &awsddb.DeleteItemInput{TableName: aws.String("streamed"), Key: map[string]ddbtypes.AttributeValue{"pk": &ddbtypes.AttributeValueMemberS{Value: "k"}}}) // REMOVE
 
 	// ListStreams + DescribeStream.

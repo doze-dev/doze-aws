@@ -74,6 +74,13 @@ func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
+	// An empty name would be PUT / to the service, which answers (rightly) that
+	// the service root takes no PUT: an answer to a request nobody meant. Real
+	// clients refuse an empty Bucket before the call; so does the form.
+	if name == "" {
+		c.fail(w, fmt.Errorf("a bucket needs a name"))
+		return
+	}
 	versioning := r.FormValue("versioning") == "on"
 	objectLock := r.FormValue("object_lock") == "on"
 	if err := c.be.CreateBucketFull(r.Context(), name, versioning, objectLock); err != nil {
