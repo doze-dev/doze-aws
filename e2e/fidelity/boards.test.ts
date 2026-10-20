@@ -113,10 +113,13 @@ describe('the real tables against the real boards', () => {
   test.skipIf(!have)('every other service has an empty table, so every one of its boards fails with no driver', () => {
     for (const s of SERVICES) {
       if (s.key === 'sqs') continue;
-      expect(Object.keys(DRIVERS[s.key]!)).toEqual([]);
+      // KMS's stage has not started, but its Fidelity board is the shell's
+      // dialog (foundation D-c), and is driven with it.
+      const driven = s.key === 'kms' ? ['Kms-19-Fidelity'] : [];
+      expect(Object.keys(DRIVERS[s.key]!)).toEqual(driven);
       const boards = boardsFor(s.key, real);
       expect(boards.length).toBeGreaterThan(0);
-      expect(coverage(boards, DRIVERS[s.key]!).undriven).toEqual(boards);
+      expect(coverage(boards, DRIVERS[s.key]!).undriven).toEqual(boards.filter((b) => !driven.includes(b)));
     }
   });
 

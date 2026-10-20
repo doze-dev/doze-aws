@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { createBucket, createQueue, postForm } from '../fixtures/api';
-import { BASE_URL, ORIGIN } from '../playwright.config';
+import { ACCOUNT_ID, BASE_URL, ORIGIN } from '../playwright.config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -670,7 +670,8 @@ test.describe('fidelity info panel', () => {
     // The ledger's own rows, tiers spelled as chips.
     await expect(body).toContainText('functional');
     await expect(body).toContainText('SendMessage');
-    await expect(page.locator('.dialog-h', { hasText: 'Fidelity' })).toBeVisible();
+    // Titled for the service, in the name the rail prints (board Fidelity).
+    await expect(page.locator('.fid-title')).toHaveText('SQS · what is real here');
     await page.keyboard.press('Escape');
     await expect(body).toBeHidden();
     // The console key maps onto the ledger filename where they differ.
@@ -703,13 +704,16 @@ test.describe('connect page', () => {
     await page.goto('');
     await page.locator('.rail .ri', { hasText: 'Connect' }).click();
     await page.waitForURL(/\/connect$/);
+    // The sentence under the button is there before and after the check.
+    const note = page.locator('.cn-verify .cn-note');
+    await expect(note).toContainText('Runs STS GetCallerIdentity');
     const result = page.locator('#cn-result');
-    await expect(result).toContainText('Runs STS GetCallerIdentity');
+    await expect(result).toBeHidden();
 
     await page.getByRole('button', { name: 'Run get-caller-identity' }).click();
-    await expect(result.locator('.cn-ok')).toContainText('Connected');
-    await expect(result.locator('.cn-arn')).toContainText(/^arn:aws:(iam|sts)::\d{12}:/);
-    await expect(result).toContainText(/account \d{12}/);
+    await expect(result.locator('.pill.ok')).toContainText('Connected');
+    await expect(result.locator('.cn-arn')).toContainText(new RegExp(`^arn:aws:iam::${ACCOUNT_ID}:user/test$`));
+    await expect(note).toContainText('Runs STS GetCallerIdentity');
   });
 });
 

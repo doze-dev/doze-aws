@@ -118,17 +118,27 @@ export const drivers: DriverTable = {
     },
   },
 
+  // Connect, after the check has run: the board draws "Connected" and the ARN.
   Connect: {
     async drive(c) {
       await c.page.goto(c.url('connect'));
+      await c.page.getByRole('button', { name: 'Run get-caller-identity' }).click();
+      await c.page.locator('#cn-result .pill.ok').waitFor();
     },
   },
 
-  // The "what is real here" dialog, opened from the list pane's info button.
+  // The "what is real here" dialog, opened from the info button beside the open
+  // queue's name (D12). The board's list holds the loyalty queue and its
+  // dead-letter queue; the harbour fixture has the first only, so the second is
+  // made (on the spare copy, which no other shell board reads).
   Fidelity: {
     async drive(c) {
-      await c.page.goto(c.url('sqs'));
-      await c.page.locator('.info-btn').first().click();
+      const f = await c.instance('fresh');
+      const r = await f.sqs('CreateQueue', { QueueName: 'harbour-loyalty-points-dlq' });
+      if (r.status !== 200) throw new Error(`CreateQueue harbour-loyalty-points-dlq -> ${r.status}`);
+      await c.page.goto(f.url(`sqs/${LOYALTY}`));
+      await c.page.locator('.det-title .info-btn').click();
+      await c.page.locator('.fid-card').first().waitFor();
       await c.settle(400);
     },
   },
