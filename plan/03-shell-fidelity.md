@@ -548,7 +548,9 @@ about 3x; these are not. A line says which decision it waits on.
 | D-a | The wire to Main and Wire-*: header row, lanes, segmented filter, right panel, inspector tabs, paused count, wire keys | `templates/traffic.html`, `panes.html` (`deck`), `traffic.go`, `handlers_surfaces.go`, `glance.go` (alarm, refused, function error), `static/shell.js`, `static/app.css` | 5 | D7 |
 | D-b | Wire first run | `panes.html` (`deck` first-run branch), `templates/traffic.html` | 1 | |
 | D-c | Fidelity dialog: 940, title, ⓘ placement, "Differences from AWS" | `panes.html` (`info_button`, `info_panel`), `info.go`, `docs/` (a `Differences` reader beside `Rows`), `app.css` | 2 | D12 |
+| D-c, built | (as above) | `docs.Differences`, `docs.Extensions`, `info.go`, `panes.html` (`info_button`, `info_open`, `info_dialog`, `info_panel`), `kit.html` (`res_header` holds the ⓘ), `sqs.html` (one key, `Selected`), `app.css` (`.fid-*`), `e2e/fidelity/allow/{Fidelity,Kms-19-Fidelity}.txt` | done 2026-10-20 | |
 | D-d | Connect: three columns, Check beside Deploy, the `then` and Terraform blocks as the board has them | `templates/connect.html`, `handlers_connect.go`, `app.css` | 0.5 | |
+| D-d, built | the `then` block is dropped (the board omits it), the Terraform block is whole (the board's ellipsis is allow-listed as a decision), the account line under the result is dropped | `connect.html`, `handlers_connect.go`, `app.css` (`.cn-*`), `e2e/fidelity/allow/Connect.txt` | done 2026-10-20 | |
 | D-e | "Cannot reach" banner, last-heard, Try now | `static/shell.js` (`setupLive`), `layout.html`, `app.css` | 1 | |
 | D-f | The map and the map at scale (**built 2026-10-20**: `map.go`, `templates/map.html`, `static/app.css`, `e2e/tests/map.spec.ts`, `e2e/fidelity/mapfixture.ts`; a CSS-and-SVG layout, no `graph.js`) | `routes.go`, `routes_stackwide.go`, `testdata/routes.txt`, `handlers_surfaces.go`, a new `templates/map.html`, `client_flow.go` (hot from the ring, `Unwired` with names), `static/graph.js` or a CSS layout, the rail entry, `e2e/tests` | 6 | D6 |
 | | **Pages total** | | **15.5** | |
@@ -632,6 +634,9 @@ confirm by default, "Cancel" otherwise, set in `shell.js` from
 **D12. Where ⓘ lives.** *Recommendation:* in the resource header beside the
 name, as Fidelity draws it, and in the list header when nothing is selected.
 Rewrite L12's list-pane wording to match the boards.
+*Built for SQS through the kit's `res_header` (2026-10-20); a service whose header
+has not adopted the kit keeps the button in the list header, where the sixteen
+Kms boards draw it, until its stage adopts `res_header`.*
 
 ## Appendix: bugs found on the way (not fixed; this file is the only edit)
 
