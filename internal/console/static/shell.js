@@ -412,6 +412,14 @@
       c.setAttribute("aria-invalid", "true");
       names.push(c.getAttribute("name") || "");
     });
+    // A disclosure that holds what the refusal is about (data-opens="a|b") is
+    // opened, so the field is not left behind a closed summary.
+    form.querySelectorAll("details[data-opens]").forEach(function (d) {
+      if (d.getAttribute("data-opens").split("|").some(function (k) { return k && text.indexOf(k) >= 0; })) {
+        d.open = true;
+        if (window.dozeEditor) dozeEditor.refresh(d);
+      }
+    });
     var state = (/\berr-(\w+)/.exec(node.className || "") || [])[1] || "error";
     form.dispatchEvent(new CustomEvent("doze:refused", { bubbles: true, detail: { state: state, fields: names } }));
   }
@@ -2145,7 +2153,9 @@
     if (!left || !right || !adv || !acts) return;
     if (fifo) {
       if (adv.parentNode !== right) { right.insertBefore(adv, group || null); adv.open = true; }
-      if (acts.parentNode !== right) right.appendChild(acts);
+      // Under the group panel, as the board has them; the call this makes follows.
+      var after = group ? group.nextElementSibling : null;
+      if (acts.parentNode !== right || acts.previousElementSibling !== group) right.insertBefore(acts, after);
     } else {
       if (adv.parentNode !== left) { left.appendChild(adv); adv.open = false; }
       left.appendChild(acts);

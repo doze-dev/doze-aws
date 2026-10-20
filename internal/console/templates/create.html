@@ -100,11 +100,19 @@
             <div class="field"><label>KMS key ID <span class="dim">· optional</span></label>
               <input class="input mono" name="kms_key" data-param="KmsMasterKeyId" placeholder="alias/aws/sqs" autocomplete="off">
               <span class="hint">Accepted and stored. Messages are not encrypted here.</span></div>
-            <div class="field"><label>Access policy <span class="dim">· JSON, optional</span></label>
-              {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
-              <span class="hint">Checked when it is saved, and evaluated on every request to this queue when IAM mode is soft or enforce. Under off it is stored and not evaluated.</span></div>
-            <div class="field"><label>Tags</label>
-              {{template "tag_rows" .}}</div>
+            {{/* The policy and the tags are closed until wanted (as the edit form's policy is):
+                 open, they are two thirds of Advanced's height, and a FIFO queue's Advanced
+                 is open on arrival (board Sqs-04 draws it with the group panel and the
+                 buttons beside it, on one screen). A refusal that names the policy opens it
+                 (data-opens, shell.js markRefused). */}}
+            <details class="q-more" data-opens="Policy|access policy"><summary><span class="q-h3">Access policy</span> <span class="q-note">JSON, optional</span></summary>
+              <div class="field">
+                {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
+                <span class="hint">Checked when it is saved, and evaluated on every request to this queue when IAM mode is soft or enforce. Under off it is stored and not evaluated.</span></div>
+            </details>
+            <details class="q-more"><summary><span class="q-h3">Tags</span> <span class="q-note">optional</span></summary>
+              <div class="field">{{template "tag_rows" .}}</div>
+            </details>
           </div>
         </details>
         <span class="q-note" x-show="refused" x-cloak>What you typed is kept. <span x-text="refused && refused.fields && refused.fields.includes('name') ? 'Fix the name and press Create queue again.' : 'Fix it and press Create queue again.'"></span></span>
@@ -147,7 +155,7 @@
              .q-group) and then the call, with the buttons last. The settings are
              the CreateQueue attributes; the dead-letter queue made alongside is
              a call of its own, made first, which this form adds around it. */}}
-        {{template "cli_panel" "sqs create-queue --queue-name %sqs-name($name,$fifo) [--attributes %sqs-attrs($name,$fifo,$content_dedup,$visibility,$delay,$retention,$dlq_mode,$dlq,$max_receive,$receive_wait,$max_bytes,$dedup_scope,$throughput_limit,$sse,$kms_key,$policy)] [--tags %sqs-tags($tag_key,$tag_val)]"}}
+        {{template "cli_panel_plain" (dict "Note" "The queue exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it." "Cmd" "sqs create-queue --queue-name %sqs-name($name,$fifo) [--attributes %sqs-attrs($name,$fifo,$content_dedup,$visibility,$delay,$retention,$dlq_mode,$dlq,$max_receive,$receive_wait,$max_bytes,$dedup_scope,$throughput_limit,$sse,$kms_key,$policy)] [--tags %sqs-tags($tag_key,$tag_val)]")}}
         <span class="q-note cli-also" x-show="dlq==='new'" x-cloak>The console makes <span class="mono" x-text="(name||'orders').replace(/\.fifo$/,'')+(fifo?'-dlq.fifo':'-dlq')"></span> first, as a call of its own, so the queue in the command has something to name. Run both to get the same pair.</span>
       </aside>
       </div>

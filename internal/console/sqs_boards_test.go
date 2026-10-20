@@ -87,3 +87,24 @@ func TestQueueSettingsAreShownInTheBoardsUnits(t *testing.T) {
 		}
 	}
 }
+
+// Boards Sqs-03, Sqs-04 and Sqs-05 draw no "Made here, kept here" card. What
+// they say of the data directory and a template is one plain sentence under the
+// call, in the Create board's own words for a queue. The card (a bordered
+// callout with that heading) stays on the other services' create pages, where
+// the Create board draws it for them (TestTheCallPanelOpensOnACreatePage).
+func TestTheSQSCreatePageHasNoMadeHereKeptHereCard(t *testing.T) {
+	h := newConsole(t)
+	page := req(t, h, "GET", "/_console/sqs/create", nil).Body.String()
+	if strings.Contains(page, "Made here, kept here") || strings.Contains(page, `class="cli-note"`) {
+		t.Errorf("the SQS create page carries the Made here, kept here card, which no SQS board draws")
+	}
+	for _, want := range []string{
+		"The queue exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.",
+		"The call this makes", "Copy the command",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the SQS create page lacks %q", want)
+		}
+	}
+}

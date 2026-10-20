@@ -176,6 +176,9 @@ func TestTheCallPanelOpensOnACreatePage(t *testing.T) {
 		}
 		n++
 		for _, want := range []string{"The call this makes", "Copy the command", "Made here, kept here"} {
+			if p.svc == "sqs" && want == "Made here, kept here" {
+				continue // Sqs-03 to Sqs-05 draw none: TestTheSQSCreatePageHasNoMadeHereKeptHereCard
+			}
 			if !strings.Contains(page, want) {
 				t.Errorf("%s: the panel lacks %q", p.path, want)
 			}

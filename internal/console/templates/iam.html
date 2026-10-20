@@ -835,7 +835,7 @@
     <template x-for="(st, si) in stmts" :key="si">
       <div class="pb-stmt">
         <div class="pb-head">
-          <select class="input pb-effect" x-model="st.effect" @change="sync()" :class="st.effect==='Deny' && 'pb-deny'"><option>Allow</option><option>Deny</option></select>
+          <select class="input pb-effect" aria-label="Effect of this statement" x-model="st.effect" @change="sync()" :class="st.effect==='Deny' && 'pb-deny'"><option>Allow</option><option>Deny</option></select>
           <input class="input mono pb-sid" placeholder="Sid — optional" x-model="st.sid" @input="sync()" spellcheck="false">
           <button type="button" class="icon-btn sm danger" title="Remove this statement" @click="removeStatement(si)">{{icon "trash"}}</button>
         </div>

@@ -2130,6 +2130,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .cli-note span { font-size: 12px; line-height: 18px; color: var(--muted-foreground); }
 /* SQS: the dead-letter queue made alongside is a call of its own (create.html). */
 .cli-also { margin: 0; }
+.cli-panel > .cli-kept { display: block; margin: 10px 16px 14px; }
 
 /* The fidelity Info button: quiet in the pane header, next to the count. */
 .info-btn { display: inline-flex; align-items: center; border: 0; background: none; color: var(--muted-foreground); cursor: pointer; padding: 2px; }
@@ -2757,7 +2758,7 @@ a.map-chip { color: var(--foreground); }
 }
 .q-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .q-create-side { gap: 10px; }
-.is-fifo .q-create-side { gap: 12px; }
+.is-fifo .q-create-side { gap: 10px; }
 .q-side { min-width: 0; }
 .q-grant { margin: 0; }
 .q-group { margin: 0; }
@@ -2780,6 +2781,17 @@ a.map-chip { color: var(--foreground); }
 .q-create .dlq-mode .mono { overflow-wrap: anywhere; }
 .q-create .dlq-mode:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring); }
 @container pane (max-width: 520px) { .q-create .dlq-modes { grid-template-columns: minmax(0, 1fr); } }
+/* Create and Cancel stay in view. On a FIFO queue Advanced opens and is taller
+   than a window (board Sqs-04 draws it with the group panel and the buttons
+   beside it); at their own place they are under the group panel, and on a short
+   or narrow window that place is below the fold. Sticky, they sit at the foot of
+   the pane until their own place scrolls into view, and then they are where
+   the board has them. The 2px below is the strip that hides a card passing
+   under, and the negative margin gives it back, so it adds no height in flow. */
+.q-create .q-actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -4px -2px; padding: 0 4px 2px; background: var(--background); }
+/* Advanced's policy and tags are two closed rows, close together. */
+.q-create .q-advbody > .q-more > summary { padding: 0; }
+.q-create .q-advbody > .q-more + .q-more { margin-top: -4px; }
 .q-create .adv-sec { margin-top: 0; }
 .q-create .adv-sec > summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; list-style: none; }
 .q-create .adv-sec > summary::-webkit-details-marker { display: none; }

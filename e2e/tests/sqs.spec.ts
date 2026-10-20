@@ -839,6 +839,8 @@ test.describe('create form', () => {
     await page.locator('select[name=dedup_scope]').selectOption('messageGroup');
     await page.locator('select[name=throughput_limit]').selectOption('perMessageGroupId');
     await expect(pre).toContainText('"DeduplicationScope":"messageGroup","FifoThroughputLimit":"perMessageGroupId"');
+    // Tags are a closed row inside Advanced until wanted (Sqs-04's one screen).
+    await page.locator('details.q-more', { hasText: 'Tags' }).locator('summary').click();
     await page.getByRole('button', { name: 'Add tag' }).click();
     await page.locator('input[name=tag_key]').fill('team');
     await page.locator('input[name=tag_val]').fill('depot');
@@ -862,8 +864,9 @@ test.describe('create form', () => {
 
   test('the access policy hint says it is evaluated (SQS-2)', async ({ page }) => {
     await page.goto('sqs/create');
-    await page.locator('details.adv-sec summary').click();
-    const hint = page.locator('.field', { hasText: 'Access policy' }).locator('.hint');
+    await page.locator('details.adv-sec > summary').click();
+    await page.locator('details.q-more', { hasText: 'Access policy' }).locator('summary').click();
+    const hint = page.locator('details.q-more', { hasText: 'Access policy' }).locator('.hint');
     await expect(hint).toContainText('evaluated');
     await expect(hint).not.toContainText('does not evaluate');
   });
@@ -879,7 +882,7 @@ test.describe('create form', () => {
     await expect(retention.locator('.setting-meta')).toHaveText(/60\s–\s1\u00a0209\u00a0600 · default 4 days · enforced/);
     const maxrecv = page.locator('.field', { has: page.locator('input[name=max_receive]') });
     await expect(maxrecv.locator('.setting-meta')).toHaveText(/1\s–\s1\u00a0000 · enforced/);
-    await page.locator('details.adv-sec summary').click();
+    await page.locator('details.adv-sec > summary').click();
     const size = page.locator('.field', { has: page.locator('input[name=max_bytes]') });
     await expect(size.locator('.setting-meta')).toHaveText(/1\u00a0024\s–\s1\u00a0048\u00a0576 · default 1\u00a0048\u00a0576 · enforced/);
     // The value in words, below a minute as well.
@@ -944,6 +947,43 @@ test.describe('create form', () => {
     expect(advBox.y).toBeLessThan((await panel.boundingBox())!.y);
     await expect(page.locator('.field', { has: page.locator('input[name=delay]') })).toContainText('Queue-wide on a FIFO queue.');
     await expect(page.locator('.q-create')).toContainText("A FIFO queue's dead-letter queue has to be FIFO too, so the one made alongside gets the .fifo suffix.");
+  });
+
+  // Board Sqs-04 draws Advanced open, "How a group behaves" and the two buttons
+  // together on the first screen. The page's Advanced is taller (every field has
+  // its teaching lines, and the policy and tags are in it), which pushed the
+  // group panel and Create and Cancel a screen and a half down, so the person
+  // who opened Advanced to set one thing could not see the button that makes the
+  // queue. Create and Cancel sit under the group panel as the board has them
+  // (the call it makes comes after them) and are visible at 1440 by 900; on a
+  // window too short for the column they stay at the foot of the pane.
+  test('a FIFO create keeps the group panel and the buttons on the first screen with Advanced open (Sqs-04)', async ({ page }) => {
+    const inPane = async () => {
+      const pane = (await page.locator('section.detail').boundingBox())!;
+      const box = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
+      return { pane, adv: await box('details.adv-sec'), group: await box('.q-group'), create: await box('.q-actions .btn:not(.btn-outline)'), cancel: await box('.q-actions .btn-outline') };
+    };
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('sqs/create');
+    await page.locator('.q-seg', { has: page.locator('input[name=fifo]') }).click();
+    await expect(page.locator('details.adv-sec')).toHaveAttribute('open', '');
+    let b = await inPane();
+    const foot = b.pane.y + b.pane.height;
+    expect(b.group.y + b.group.height, 'How a group behaves ends inside the pane').toBeLessThanOrEqual(foot);
+    expect(b.create.y + b.create.height, 'Create queue is inside the pane').toBeLessThanOrEqual(foot);
+    expect(b.cancel.y + b.cancel.height, 'Cancel is inside the pane').toBeLessThanOrEqual(foot);
+    // The board's order in the right-hand column: Advanced, the group panel, the buttons.
+    expect(b.group.y).toBeGreaterThan(b.adv.y + b.adv.height - 1);
+    expect(b.create.y).toBeGreaterThan(b.group.y + b.group.height - 1);
+    expect(b.create.x).toBeGreaterThanOrEqual(b.adv.x);
+    // The call it makes is kept, after the buttons.
+    const cli = (await page.locator('.cli-panel').boundingBox())!;
+    expect(cli.y).toBeGreaterThan(b.create.y);
+
+    // Narrower and shorter: the buttons are still in view without scrolling.
+    await page.setViewportSize({ width: 1024, height: 768 });
+    b = await inPane();
+    expect(b.create.y + b.create.height, 'Create queue is inside the pane at 1024').toBeLessThanOrEqual(b.pane.y + b.pane.height);
   });
 });
 
@@ -1138,6 +1178,23 @@ test.describe('refusals are shown where the board shows them', () => {
     expect(errBox.y, 'the refusal sits above the form, as the board draws it').toBeLessThan(nameBox.y);
     await expect(page.locator('input[name=name]')).toHaveValue(name);
     await expect(page.locator('input[name=visibility]')).toHaveValue('45');
+  });
+
+  test('a create refused for its access policy opens the closed policy row it is about', async ({ page, uniqueName, setEditor }) => {
+    await page.goto('sqs/create');
+    await page.locator('input[name=name]').fill(uniqueName('e2e-sqs-badpol'));
+    await page.locator('.dlq-mode', { hasText: 'None' }).click();
+    await page.locator('details.adv-sec > summary').click();
+    const row = page.locator('details.q-more', { hasText: 'Access policy' });
+    await row.locator('summary').click();
+    await row.getByRole('link', { name: 'JSON' }).click();
+    await setEditor('textarea[name=policy]', '{"Version":"2012-10-17","Statement":[{"Effect":"Allow"}]}');
+    await row.locator('summary').click(); // closed again before the send
+    await expect(row).not.toHaveAttribute('open', '');
+    await page.getByRole('button', { name: 'Create queue' }).click();
+    await expect(page.locator('.err').first()).toContainText('Policy');
+    await expect(row).toHaveAttribute('open', '');
+    await expect(row.locator('.CodeMirror')).toBeVisible();
   });
 
   test('a refused create leaves no dead-letter queue behind', async ({ page, request, uniqueName }) => {
@@ -1359,7 +1416,7 @@ test.describe('what the pages say', () => {
     const f = (n: string) => page.locator('.field', { has: page.locator(`input[name=${n}]`) });
     await expect(f('visibility').locator('label')).toHaveText(/Visibility\s·\ss/);
     await expect(f('retention').locator('.setting-meta')).toHaveText(/60\s–\s1 209 600 · default 4 days · enforced/);
-    await page.locator('details.adv-sec summary').click();
+    await page.locator('details.adv-sec > summary').click();
     await expect(f('receive_wait').locator('label')).toHaveText(/Receive wait\s·\ss\s·\slong polling/);
     await expect(f('receive_wait').locator('.setting-meta')).toHaveText(/0\s–\s20 · default 0 · enforced/);
     await expect(f('max_bytes').locator('.setting-meta')).toHaveText(/1 024\s–\s1 048 576 · default 1 048 576 · enforced/);
