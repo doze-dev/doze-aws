@@ -737,7 +737,18 @@ Re-stated on 2026-10-20 (package P6), every box against its "done when".
       rebuild:** `check:full`; browser suite 387 passed (and 386 plus one flake
       under the second identity, since fixed at its cause: the wire inspector
       lost slow calls); conformance 160 passed; coverage 81.3%; `lightness`; `api`;
-      `console:fidelity -- sqs` 19 of 19.
+      `console:fidelity -- sqs` 19 of 19. **On 2026-10-20, package P6 (twice for
+      the second identity):** `check:full` green (the first run found a test of
+      P6's own leaving the mutation sweep's fixtures behind and two DynamoDB
+      fixtures named with 2 characters, both fixed); `lightness` and `api`
+      pass; coverage 81.5% against the floor of 80.5%; conformance 160 passed,
+      831 unverified; the browser suite 419 of 419 with the route gate at 370 of
+      371, and under account 111122223333 in eu-west-1 418 of 419 on the first
+      run (the key-bar spec "every key the cfgedit page names does what it says"
+      saw its form still visible after Esc once, under load; it passes alone,
+      five of five, and the second full run was 419 of 419: a flake, noted and
+      not explained) and 419 of 419 on the second; `console:fidelity -- sqs` 19
+      of 19; `bun test fidelity` 59 pass.
 - [x] The existing console still works for the sixteen services not yet
       rebuilt: the browser suite passes with the edits to its specs that A6, A12
       and A13 change on purpose (a refusal from a header button is inline; the
