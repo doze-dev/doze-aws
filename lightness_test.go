@@ -115,8 +115,14 @@ func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
 				t.Fatalf("%s: %v", name, err)
 			}
 			cur := want.Portable.Embed[name]
+			// The console's static assets change every week and get the tight
+			// band (lightness.Tight); the other trees keep a quarter of room.
+			h := lightness.Bytes
+			if name == "internal/console/static" {
+				h = lightness.Tight
+			}
 			want.Portable.Embed[name] = lightness.Tree{
-				Bytes: cur.Bytes.Record(bytes, lightness.Bytes), Files: files,
+				Bytes: cur.Bytes.Record(bytes, h), Files: files,
 			}
 		}
 		// Drop budgets for trees that no longer exist, or an embed site that is

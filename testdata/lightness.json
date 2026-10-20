@@ -18,21 +18,21 @@
     "embed": {
       "docs/SUPPORT.md": {
         "bytes": {
-          "measured": 196359,
+          "measured": 205582,
           "ceiling": 245760
         },
         "files": 1
       },
       "internal/console/static": {
         "bytes": {
-          "measured": 901252,
-          "ceiling": 1316864
+          "measured": 956967,
+          "ceiling": 976896
         },
         "files": 44
       },
       "internal/console/templates": {
         "bytes": {
-          "measured": 560088,
+          "measured": 622236,
           "ceiling": 700416
         },
         "files": 29

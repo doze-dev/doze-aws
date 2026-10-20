@@ -279,6 +279,18 @@ var (
 		Ceiling: func(n int64) int64 { return roundKiB(atLeast(n+n/4, n+4096)) },
 	}
 
+	// Tight is for the one embedded tree that changes every week, the console's
+	// static assets. A quarter of room (Bytes) on 900 KB is 225 KB, which is more
+	// than the stylesheet's whole weight to add before anything fires; and the
+	// ceiling had been left standing over a measurement that fell by 200 KB when
+	// the typeface was subsetted. Two percent (18 KB at today's size), with a
+	// two-KiB floor, tracks the measurement in both directions like every exact
+	// quantity: growing the console is a line somebody approves, not a margin.
+	Tight = Headroom{
+		Exact:   true,
+		Ceiling: func(n int64) int64 { return roundKiB(atLeast(n+n/50, n+2048)) },
+	}
+
 	// Footprint is for memory measured on whatever machine is running: heap,
 	// retained, resident. Half again, with a mebibyte of floor, because these
 	// legitimately differ between a laptop and a CI runner and a band that

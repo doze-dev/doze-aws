@@ -99,3 +99,22 @@ func TestOverIgnoresAnUnsetCeiling(t *testing.T) {
 		t.Error("a budget with no ceiling fired; an unrecorded entry must not gate")
 	}
 }
+
+// The console's static assets (CSS, JS, fonts, icons) are the one embedded tree
+// that changes every week, and a quarter of room (Bytes) let it carry 415 KiB of
+// headroom over a measurement that had already fallen by 200 KB: a ceiling that
+// loose cannot notice a stylesheet doubling. Tight is two percent, with a floor
+// of two KiB, and it follows the measurement down like every exact quantity.
+func TestTightIsTwoPercentAndFollowsTheMeasurementDown(t *testing.T) {
+	const measured = 900_000
+	got := Budget{Measured: 1_200_000, Ceiling: 1_316_864}.Record(measured, Tight)
+	if want := roundKiB(measured + measured/50); got.Ceiling != want {
+		t.Errorf("a measurement of %d got a ceiling of %d, want %d (two percent over)", measured, got.Ceiling, want)
+	}
+	if got.Ceiling >= measured+measured/10 {
+		t.Errorf("a ceiling of %d is not tight over %d", got.Ceiling, measured)
+	}
+	if small := Tight.Ceiling(100); small != roundKiB(100+2048) {
+		t.Errorf("a 100-byte tree got %d, want the two KiB floor", small)
+	}
+}
