@@ -57,6 +57,21 @@ from this tree, driven with curl, the aws CLI, a recording webhook and Playwrigh
 5. **The request walk** (SNS-37): unchecked second elements of every list on the one wire this service has.
 6. **Cross-service coupling to SQS FIFO and Lambda**: dedup at the topic against standard queues (SNS-31), group ids to fair queues (SNS-34), the Lambda record, a FIFO queue on a standard topic (SNS-12).
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | SNS: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 21 legacystub of 42 operations. Move each to `awshttp.NotBuilt`. |
+| B8 generated cases | 53 committed, 88 regenerated (0 only in the committed file, 35 only in the new one); a Query service, so a case is built around every element of a list (B13). Regenerate in this stage. |
+| B9 stored-policy validator | Pending, **SNS-16**: wire it with SNS's own code and wording. |
+| B4 settings records | 1 hand-written bounded number input in `sns.html`. |
+| A15 fragments | Walked and equal to its page: `sns_subs`. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`sns`); this stage runs `task mutate:check -- sns` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Standard and FIFO topics over one bbolt store (`sns.bolt`), on the Query/XML

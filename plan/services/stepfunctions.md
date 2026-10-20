@@ -123,6 +123,21 @@ Done before the stage, so that it starts from facts. The lessons it applies are
 
 ---
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | Step Functions: done, and what this stage does |
+|---|---|
+| B6 the model sweep | Nothing: 37 of 37 operations are handled. |
+| B8 generated cases | 248 committed, 248 regenerated, but five values differ (5 only in the committed file, 5 only in the new one): not a no-op. Regenerate in this stage and see which five. |
+| B9 stored-policy validator | Not on `resource_policy_wiring_test.go`'s list: this service stores no resource policy document: where the model has the operation (`PutResourcePolicy`, `PutPermission`) the sweep answers it `legacystub` or `unknown`, and where it does not there is nothing to store. If this stage builds one, it calls `iampolicy.ValidateResourcePolicy` with the service's own code and wording and is added to that test. |
+| B4 settings records | 0 hand-written bounded number inputs. |
+| A15 fragments | Walked and equal to their page: `sfn_executions`, `sfn_history`, `sfn_graph_live`. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`stepfunctions`); this stage runs `task mutate:check -- stepfunctions` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Standard and Express state machines over one bbolt store, on AWS JSON 1.0

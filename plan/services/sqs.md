@@ -3,6 +3,21 @@
 Stage 1, the pilot. Size S. Follows [../01-protocol.md](../01-protocol.md); the
 common acceptance criteria there apply in full, and this page adds SQS's own.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | SQS: done, and what this stage does |
+|---|---|
+| B6 the model sweep | Nothing: 23 of 23 operations are handled. |
+| B8 generated cases | 51 committed and 51 regenerated, **byte-identical** (2026-10-20): the one service whose cases are current. |
+| B9 stored-policy validator | Wired (`SQS-8`, closed). |
+| B4 settings records | The worked example: every number field is a `setting_field` over a record. Hand-written bounded number inputs: 0. |
+| A15 fragments | Walked and equal to their page: `sqs_config` (**fixed by the foundation, P6:** after Save the ARN and URL chips were empty; `sqsConfigView` is the one function), `message_panel`, `sqs_consumed`. |
+| A2 the why line | Nothing set `Local` here; if a doze-only limit appears, the same test applies. |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`sqs`); this stage runs `task mutate:check -- sqs` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Standard and FIFO queues over one bbolt store, on both wire protocols (Query

@@ -59,6 +59,21 @@ document's own (section 4); SSM-25 to SSM-49 are new (section 4, second table).
 4. **A board built from its sentences.** Fifteen of sixteen boards have a right-hand or inline panel the page has not got, and four boards describe behaviour that has since changed (A4, A5) or will change when a finding closes.
 5. **An identifier that names an account.** SSM-25 is SQS-23: the ARN is parsed for its tail and the account and region are ignored.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | Parameter Store: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 90 legacystub and 49 unknown of 152 operations (the false `InvalidAction`). Move the stubs to `awshttp.NotBuilt` and build or refuse the 49; `Unreached` is in `ssm/coverage_model_test.go` and empties here. |
+| B8 generated cases | 100 committed, 1752 regenerated (7 only in the committed file, 1659 only in the new one): the largest regeneration (229 constraints the old generator never read). Regenerate in this stage. |
+| B9 stored-policy validator | Not on `resource_policy_wiring_test.go`'s list: this service stores no resource policy document: where the model has the operation (`PutResourcePolicy`, `PutPermission`) the sweep answers it `legacystub` or `unknown`, and where it does not there is nothing to store. If this stage builds one, it calls `iampolicy.ValidateResourcePolicy` with the service's own code and wording and is added to that test. |
+| B4 settings records | 0 hand-written bounded number inputs; the model carries most of the ranges, so the records can be generated from `validate.go`. |
+| A15 fragments | On one view model already (`paramDetailView`, walked by `fragments_test.go`). |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`ssm`); this stage runs `task mutate:check -- ssm` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 The Parameter Store slice of Systems Manager: String, StringList and

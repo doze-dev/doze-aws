@@ -15,6 +15,21 @@ events, and Live Tail" and "Creating metrics from log events using filters",
 fetched 2026-10-11), `memory` (not fixed on; goes to the recording queue),
 `run` (reproduced against the built binary) and `read` (from the code).
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | CloudWatch Logs: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 93 legacystub of 118 operations. Move each to `awshttp.NotBuilt`. |
+| B8 generated cases | 237 committed, 1118 regenerated (5 only in the committed file, 886 only in the new one): the largest gap, mostly the tag-key and list rules B8 found. Regenerate in this stage and fix what they find (LOG tag keys). |
+| B9 stored-policy validator | Not on `resource_policy_wiring_test.go`'s list: this service stores no resource policy document: where the model has the operation (`PutResourcePolicy`, `PutPermission`) the sweep answers it `legacystub` or `unknown`, and where it does not there is nothing to store. If this stage builds one, it calls `iampolicy.ValidateResourcePolicy` with the service's own code and wording and is added to that test. |
+| B4 settings records | 0 hand-written bounded number inputs; the limits that live only in code (`validRetention`, the per-group filter caps) need hand-written records with a `doc` source. |
+| A15 fragments | `log_tail` is walked through the Lambda function's Logs tab; add the group page's own tail to `fragmentRegions` here (the route is `/logs/tail`). A missing log group now fails through the shared failure page with the list pane (foundation A16). |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`logs`); this stage runs `task mutate:check -- logs` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Log groups, streams and events over one bbolt store (`logs.bolt`, no fsync per

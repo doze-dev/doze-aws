@@ -126,6 +126,21 @@ re-sourced row by row (its header says how). The ones that matter:
   as AWS"); CFN-37 and CFN-38 had been swapped in the contract table.
 - **Counts of tests** in section 3 (54 / 47 / 13, were 50 / 46 / 9).
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | CloudFormation: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 67 legacystub of 90 operations, all stamped `X-Doze-Legacy-Stub` (they answer `ValidationError`, which by the code alone reads as an input refused). Move each to `awshttp.NotBuilt`; the sweep reads the stamp, so the count falls only when the stub does. |
+| B8 generated cases | 182 committed, 800 regenerated (12 only in the committed file, 630 only in the new one). Regenerate in this stage and fix what the new cases find. |
+| B9 stored-policy validator | Not on `resource_policy_wiring_test.go`'s list: this service stores no resource policy document: where the model has the operation (`PutResourcePolicy`, `PutPermission`) the sweep answers it `legacystub` or `unknown`, and where it does not there is nothing to store. If this stage builds one, it calls `iampolicy.ValidateResourcePolicy` with the service's own code and wording and is added to that test. |
+| B4 settings records | 0 hand-written bounded number inputs. Template parameters are the user's, not the model's, and are a second source for the records (B4). |
+| A15 fragments | `cfn_params` and `cfn_validate_result` are answers to a call; `cfn_resource_detail` is loaded on demand. Nothing is owed; keep `fragment_walk_test.go` green if this stage adds a partial. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Not recorded: `task mutate:record -- cloudformation` is run in this stage (an hour or more; run it in the background) and its survivors written down; the internal packages it leans on (`internal/modelcheck`, `internal/awshttp`, `internal/restroute`, `internal/peercall`) are already recorded. |
+
+
 ## 1. Summary
 
 A stack service over one bbolt store (`cloudformation/`), speaking the Query

@@ -141,6 +141,21 @@ pattern default) are enforced and which are listed (section 2 note).
 D-EB6 **The failed-delivery surface** (EB-29): a record the console can show,
 or Eb-24 says plainly there is none.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | EventBridge: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 17 legacystub of 57 operations. Move each to `awshttp.NotBuilt`. |
+| B8 generated cases | 448 committed, 608 regenerated (12 only in the committed file, 172 only in the new one). Regenerate in this stage. |
+| B9 stored-policy validator | Not on `resource_policy_wiring_test.go`'s list: this service stores no resource policy document: where the model has the operation (`PutResourcePolicy`, `PutPermission`) the sweep answers it `legacystub` or `unknown`, and where it does not there is nothing to store. If this stage builds one, it calls `iampolicy.ValidateResourcePolicy` with the service's own code and wording and is added to that test. |
+| B4 settings records | 3 hand-written bounded number inputs (`eb.html` 1, `eb_http.html` 2). |
+| A15 fragments | Walked and equal to their page: `eb_targets`, `eb_archive_detail`, `eb_archives_swap`, `eb_http_body`. `eb_connection_detail` and `eb_destination_detail` re-render by calling the GET handler that loads them. `eb_rule_list` after a sample event is a verdict over the list, not the list. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`eventbridge`); this stage runs `task mutate:check -- eventbridge` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Event buses, rules (pattern and schedule), targets, archives and replays,

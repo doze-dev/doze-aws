@@ -567,6 +567,30 @@
     "recorded": "2026-10-10",
     "gremlins": "v0.6.0"
   },
+  "internal/auditkit": {
+    "killed": 6,
+    "lived": [
+      "repeat.go:29:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 21,
+    "notViable": 0,
+    "efficacy": 85.7,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/awschunk": {
+    "killed": 24,
+    "lived": [
+      "awschunk.go:81:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 2,
+    "notCovered": 1,
+    "notViable": 0,
+    "efficacy": 96,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/awscron": {
     "killed": 75,
     "lived": [
@@ -590,6 +614,18 @@
     "notViable": 0,
     "efficacy": 84.3,
     "recorded": "2026-10-10",
+    "gremlins": "v0.6.0"
+  },
+  "internal/awshost": {
+    "killed": 28,
+    "lived": [
+      "awshost.go:130:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 4,
+    "notViable": 0,
+    "efficacy": 96.6,
+    "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
   "internal/awshttp": {
@@ -640,6 +676,16 @@
     "notViable": 0,
     "efficacy": 96.1,
     "recorded": "2026-10-10",
+    "gremlins": "v0.6.0"
+  },
+  "internal/bg": {
+    "killed": 2,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
   "internal/cfn": {
@@ -730,6 +776,26 @@
     "recorded": "2026-10-10",
     "gremlins": "v0.6.0"
   },
+  "internal/checksum": {
+    "killed": 4,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/config": {
+    "killed": 35,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 19,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/ddb": {
     "killed": 450,
     "lived": [
@@ -809,6 +875,28 @@
     "recorded": "2026-10-10",
     "gremlins": "v0.6.0"
   },
+  "internal/dozetest": {
+    "killed": 31,
+    "lived": [],
+    "timedOut": 1,
+    "notCovered": 82,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/emf": {
+    "killed": 20,
+    "lived": [
+      "emf.go:73:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 95.2,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/eventpattern": {
     "killed": 54,
     "lived": [
@@ -826,6 +914,28 @@
     "notViable": 0,
     "efficacy": 87.1,
     "recorded": "2026-10-10",
+    "gremlins": "v0.6.0"
+  },
+  "internal/gateway": {
+    "killed": 18,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/httpevent": {
+    "killed": 25,
+    "lived": [
+      "httpevent.go:64:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 96.2,
+    "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
   "internal/iamguard": {
@@ -926,6 +1036,48 @@
     "notViable": 0,
     "efficacy": 66.7,
     "recorded": "2026-10-10",
+    "gremlins": "v0.6.0"
+  },
+  "internal/lazybolt": {
+    "killed": 9,
+    "lived": [],
+    "timedOut": 1,
+    "notCovered": 3,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/lightness": {
+    "killed": 22,
+    "lived": [
+      "lightness.go:327:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 26,
+    "notViable": 0,
+    "efficacy": 95.7,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/logship": {
+    "killed": 15,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 3,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/metricship": {
+    "killed": 11,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 2,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
   "internal/modelcheck": {
@@ -1066,6 +1218,18 @@
     "recorded": "2026-10-10",
     "gremlins": "v0.6.0"
   },
+  "internal/rpcv2cbor": {
+    "killed": 130,
+    "lived": [
+      "encode.go:171:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 1,
+    "notCovered": 17,
+    "notViable": 0,
+    "efficacy": 99.2,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/s3store": {
     "killed": 174,
     "lived": [
@@ -1107,6 +1271,28 @@
     "recorded": "2026-10-10",
     "gremlins": "v0.6.0"
   },
+  "internal/schemaver": {
+    "killed": 7,
+    "lived": [],
+    "timedOut": 0,
+    "notCovered": 3,
+    "notViable": 0,
+    "efficacy": 100,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
+  "internal/settings": {
+    "killed": 2,
+    "lived": [
+      "settings.go:125:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 66.7,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/shapecheck": {
     "killed": 16,
     "lived": [
@@ -1120,6 +1306,18 @@
     "notViable": 0,
     "efficacy": 80,
     "recorded": "2026-10-10",
+    "gremlins": "v0.6.0"
+  },
+  "internal/sigparse": {
+    "killed": 18,
+    "lived": [
+      "sigparse.go:126:CONDITIONALS_BOUNDARY"
+    ],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 94.7,
+    "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
   "kinesis": {

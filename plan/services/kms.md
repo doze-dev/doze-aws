@@ -16,6 +16,21 @@ tags: `model` (the model's text or traits), `doc` (a named page actually read),
 `memory`, `run` (reproduced against a binary built from this tree on
 2026-10-11), `read` (from the code).
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | KMS: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 17 legacystub and 1 unknown of 54 operations. Move the stubs to `awshttp.NotBuilt`; `Unreached` (`GetKeyLastUsage`) is in `kms/coverage_model_test.go` and empties here. |
+| B8 generated cases | 263 committed, 487 regenerated (23 only in the committed file, 247 only in the new one). Regenerate in this stage. |
+| B9 stored-policy validator | Pending, **KMS-35**: wire it **without** refusing a statement with no `Action` or no `Resource` (KMS's model says such a key-policy statement is accepted and inert); the stage decides from its own model's text which shared problems it refuses. |
+| B4 settings records | 1 hand-written bounded number input in `kms.html`. |
+| A15 fragments | Walked and equal to its page: `kms_key_detail`. **Fixed by the foundation (P6):** after any action the re-encrypt destination menu was empty (the fragment left out the key list); `kmsKeyView` is the one function the page and the fragment call. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`kms`); this stage runs `task mutate:check -- kms` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Keys with real standard-library cryptography over one bbolt store (`kms.bolt`),

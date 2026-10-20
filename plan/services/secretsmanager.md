@@ -14,6 +14,21 @@ the dream design (section 6a), and what that found is marked
 *Corrected 2026-10-11* in place or sits in the findings from SM-39 on. The
 review itself is section 12.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | Secrets Manager: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 3 legacystub of 23 operations (stamped; they answer `InvalidRequestException`). Move each to `awshttp.NotBuilt`. |
+| B8 generated cases | 152 committed, 179 regenerated (2 only in the committed file, 29 only in the new one). Regenerate in this stage. |
+| B9 stored-policy validator | Pending, **SM-5**: wire it with `MalformedPolicyDocumentException`; and `ValidateResourcePolicy` agrees with what `PutResourcePolicy` accepts (SM-59). |
+| B4 settings records | 1 hand-written bounded number input in `sm.html`. |
+| A15 fragments | On one view model already (`secretDetailView`, walked by `fragments_test.go`). |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`secretsmanager`); this stage runs `task mutate:check -- secretsmanager` after its changes, and any survivor it adds has a test or a reason. |
+
+
 ## 1. Summary
 
 Secrets with versions and staging labels over one bbolt store

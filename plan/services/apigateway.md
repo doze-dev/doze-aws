@@ -20,6 +20,21 @@ Evidence marked `run` was reproduced against a binary built from this checkout
 (a REST API and an HTTP API driven over the wire with a signed header); `read`
 is from the code; `model` quotes the model's documentation or traits.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | API Gateway: done, and what this stage does |
+|---|---|
+| B6 the model sweep | REST: 51 legacystub and 8 unknown of 124 operations; HTTP: 64 legacystub and 2 unknown of 103. Each moves to `awshttp.NotBuilt` (declined or deferred, with the reason from `docs/not-built.md`) or is built; `testdata/modelsweep.json` shrinks by exactly those entries and `Unreached` stays empty. The 72 `NotFoundException` answers counted as handled are not yet verified as dispatched operations (an empty request cannot tell a built operation from an unbuilt one behind a parent lookup): drive each with a real parent. |
+| B8 generated cases | REST: the committed `cases_apigateway.json` has 126 cases, a regeneration against the current model 288 (16 only in the committed file, 178 only in the new one). HTTP: 94 committed, 379 regenerated, **none in common** (the generator now emits the REST binding for the v2 model). Regenerate both in this stage and fix what the new cases find; the routed-subset `routes_*.json` are not regenerated (see B8: `modelroutes_*.json` are). |
+| B9 stored-policy validator | Pending, **AGW-7**: wire `iampolicy.ValidateResourcePolicy` with `BadRequestException`; the pending list is `resource_policy_wiring_test.go`. |
+| B4 settings records | 2 hand-written bounded number inputs in `apigw.html` (frozen by `number_inputs_test.go`); the settings are patch paths, not flat attributes, so the record carries the path. |
+| A15 fragments | Walked and equal to their page: `apigw_routes`, `apigw_keys_body`, `apigw_authorizers`, `apigw_http_routes`. **Owed: `apigw_method`** (a method's panel is redrawn by five edits and the page opens it by POST `/apigw/{id}/method`): add its case to `fragmentRegions` in `fragment_walk_test.go` and put the five handlers and the opener on one view function. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Not recorded: `task mutate:record -- apigateway` is run in this stage (an hour or more; run it in the background) and its survivors written down; the internal packages it leans on (`internal/modelcheck`, `internal/awshttp`, `internal/restroute`, `internal/peercall`) are already recorded. |
+
+
 ## 1. Summary
 
 Two control planes (`/restapis/...` and `/v2/apis/...`, both restJson1) over one

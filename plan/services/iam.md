@@ -5,6 +5,21 @@ section 1*). Follows [../01-protocol.md](../01-protocol.md); the common
 acceptance criteria there apply in full, and this page adds IAM's and STS's own.
 Section 12 is the pre-stage review: read it first.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | IAM and STS: done, and what this stage does |
+|---|---|
+| B6 the model sweep | IAM: 85 legacystub and 4 unknown of 180 operations; STS: 0 legacystub and 2 unknown of 11. Move each stub to `awshttp.NotBuilt`; `Unreached` is still in `iam/coverage_model_test.go` and `sts/coverage_model_test.go` and empties here. |
+| B8 generated cases | IAM: 702 committed, 1268 regenerated (7 only in the committed file, 573 only in the new one). STS: 111 committed, 141 regenerated (0 / 30). Regenerate both in this stage; the Query wire's list cases are built around B13 (every element of a list is validated). |
+| B9 stored-policy validator | IAM validates what it stores itself (`own` in `resource_policy_wiring_test.go`); the shared validator's rules came from IAM's own create, so this stage decides whether it calls the shared function instead (IAM-21 `Version`). |
+| B4 settings records | 2 hand-written bounded number inputs in `iam.html`. |
+| A15 fragments | No region partials (the `iam_*` partials are answers to a call). Nothing is owed. |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`iam`); this stage runs `task mutate:check -- iam` after its changes, and any survivor it adds has a test or a reason. STS: `task mutate:record -- sts` is recorded. |
+
+
 ## 1. Summary
 
 Three things share this stage because none of them is finished without the

@@ -19,6 +19,22 @@ the model's documentation or traits (quoted), `memory` is not fixed on, `run`
 and `read` are about doze-aws. No documentation page outside the model was
 read, so nothing here is tagged `doc`.
 
+## Foundation hand-offs (stage 0, 2026-10-20)
+
+What the foundation (stage 0, package P6) left for this stage, so it is not lost, and what it did already. The shared items are in [../00-foundation.md](../00-foundation.md); each line here says what is done, what is owed, and the test that proves it.
+
+| Item | Kinesis: done, and what this stage does |
+|---|---|
+| B6 the model sweep | 2 legacystub and 6 unknown of 45 operations. Move the stubs to `awshttp.NotBuilt` and build or refuse the six that answer `InvalidAction`; `Unreached` is still in `kinesis/coverage_model_test.go` and empties here. |
+| B8 generated cases | 399 committed, 566 regenerated (36 only in the committed file, 203 only in the new one). Regenerate in this stage. |
+| B9 stored-policy validator | Pending, **KIN-3**: wire `iampolicy.ValidateResourcePolicy` with Kinesis's own code and wording. |
+| B4 settings records | 4 hand-written bounded number inputs in `kinesis.html`; the create form's shard count now reaches the service as typed (KIN-56). |
+| A15 fragments | Walked and equal to their page: `kinesis_record_table` (`kinesis_record_rows` is rows of it). |
+| A2 the why line | Set `Local: true` (`awshttp.APIError`) on each refusal that is doze-aws's own limit and not AWS's, which this document's findings mark; nothing sets the stamp today except the console's own 503. Test: one such limit per service answers with `X-Doze-Local-Limit` and the page says "Refused here" (`internal/console/why_line_test.go` is the worked example). |
+| B3 mutation | Baseline recorded in `testdata/mutation.json` (`kinesis`); this stage runs `task mutate:check -- kinesis` after its changes, and any survivor it adds has a test or a reason. |
+
+**KIN-56 (closed in the foundation):** a zero-shard stream. The service already refuses it; the console hid the refusal. This stage does not redo it.
+
 ## 1. Summary
 
 Kinesis Data Streams in Go over one bbolt store (`kinesis.bolt`), on one wire
@@ -206,6 +222,7 @@ there is one, and what was run. "Test to write first" is the first red test.
 | KIN-53 | P1 (pending) | The service answers `application/x-amz-cbor-1.1` with `SerializationException: malformed JSON body`. The model declares `awsJson1_1` only. | `internal/awsjson` | run (an empty CBOR map) | n/a | `memory`: the Java SDK v1 and KCL 1.x are said to send CBOR to Kinesis unless it is disabled. Not fixed on; if recorded true, the wire has a second decoder (L5) | Recording: a KCL 1.x consumer against the endpoint |
 | KIN-54 | P3 | The record drawer prints the arrival time as Go's `time.String()` ("2026-10-11 17:40:21.689363968 +0530 IST") where the table prints a clock; the Records table's Shard column wraps `shardId-` and the twelve digits onto two lines at 1440 wide. | `templates/kinesis.html` `kinesis_record_detail`, `kinesis_record_table` | run (renders) | n/a | n/a | Browser test asserts the drawer's time reads like the table's |
 | KIN-55 | P3 | `TagResource` accepts `Tags` as a list of `{Key, Value}` as well as the model's map. | `actions.go` `hTagResource` | read | more forgiving | model: `Tags` is a `TagMap` | Parity case: list form is `SerializationException` or `ValidationException` |
+| KIN-56 | P2 | **Closed in the foundation (P6, 2026-10-20); this stage does not redo it.** `CreateStream` with `ShardCount: 0` (or a negative) is refused by the service as the model's range from 1 says, and the foundation's check of "Kinesis accepts 0 shards" found the gap was the **console**, not the service: `backend.CreateStream` raised any number under 1 to 1 before the call, so the create form's 0 made a one-shard stream and said "Stream created" (the form's `min="1"` is no defence, `novalidate` is on). A blank field now sends no count, and text that is not a whole number is refused by the console in its own words. | `internal/console/client_kinesis.go` `CreateStream`, `handlers_kinesis.go` `kinesisCreate` | run (the page created `zeroed` with one shard) | model: `ShardCount` range 1.., `ValidationException` | wrong (hid a refusal) | **Done:** `kinesis/shard_count_test.go` `TestAStreamOfZeroShardsIsRefused` (0 and -1 refused `ValidationException` naming `shardCount`, nothing created, 1 allowed; the one wire this service serves is awsJson1.1; the `x-amz-cbor-1.1` wire is KIN-53, pending) and `internal/console/kinesis_shards_test.go` `TestAZeroShardStreamIsRefusedNotMadeIntoOne`. **Left for this stage:** a provisioned create with *no* count (KIN-10) now reaches the service from a blank form and is answered however KIN-10 settles |
 
 **Owned by the foundation, seen here.** Not repeated above.
 

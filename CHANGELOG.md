@@ -434,6 +434,21 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   three files. Databases are created on first use, so a stack nobody speaks to
   creates none. It was 793 ms and 2.1 MB across seventeen files.
 - Data is laid out per region, with IAM and STS under `_global`.
+- **DynamoDB refuses a table name that AWS refuses.** A name is 3 to 255
+  characters from `a-z A-Z 0-9 _ - .`; `a`, `bad name!` and a 300-character
+  name were all created. `ValidationException`, 400, naming `tableName`.
+- **Lambda refuses a function timeout above 900 seconds**, on create and on
+  update. The model's range goes to 5400, but the 5400 is for functions on a
+  capacity provider, which doze-aws does not serve.
+- Console: Kinesis's create form sends the shard count it was given (0 used to
+  become 1 and say "Stream created"; the service refuses it). The S3 create
+  form says "a bucket needs a name" for an empty name instead of showing
+  `PUT /`'s 405. A function error on the wire names the function, and a service
+  the stack was started without says so instead of "a limit of doze-aws".
+- Console: the page for a missing resource keeps the service's list pane, and a
+  missing CloudWatch alarm or log group is the same failure page as every other
+  service. After a save, SQS's Configuration tab keeps its ARN and URL chips and
+  a KMS key keeps the key list its re-encrypt form offers.
 
 ## 0.3.0
 
