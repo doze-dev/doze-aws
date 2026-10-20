@@ -108,6 +108,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 .tag.new{color:var(--deny);border:1px solid var(--deny);border-radius:3px;padding:1px 5px;font-size:10px}
 .tag.real{color:var(--ok);border:1px solid var(--ok);border-radius:3px;padding:1px 5px;font-size:10px}
 .tag.gone{color:var(--bad);border:1px solid var(--bad);border-radius:3px;padding:1px 5px;font-size:10px}
+.app .main>*,.app .insp .bd>*{flex:none}
 </style>
 </helmet>
 <div class="app">
@@ -141,62 +142,75 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <a class="nav" href="Cfn-Home.dc.html" aria-label="CloudFormation"><span class="sv c-cfn">CF</span></a>
 </nav>
 
-<div class="list">
-<div class="row sb ce" style="padding: 12px 12px 8px"><span class="h2">Queues</span><button class="btn sm pri">New</button></div>
-<div class="li on" style="font-style: italic"><span class="grow el">harbour-returns</span><span class="tag">new</span></div>
-<div class="li"><span class="grow el">harbour-checkout-orders</span><span class="m mut">2</span></div>
+<div class="list" style="width: 262px">
+<div class="row sb ce" style="padding: 12px 12px 8px"><span class="h2">Queues</span><span class="btn sm">New</span></div>
+<div class="li"><span class="grow el">harbour-checkout-orders</span><span class="m mut">3</span></div>
 <div class="li"><span class="grow el">harbour-checkout-orders-dlq</span><span class="m warn b">3</span></div>
 <div class="li"><span class="grow el">harbour-depot-dispatch.fifo</span><span class="m mut">2</span></div>
 <div class="li"><span class="grow el">harbour-loyalty-points-prod</span><span class="m mut">0</span></div>
 </div>
 
-<main class="main" style="padding: 20px 28px 0; gap: 18px">
-<div class="row ce g8"><span class="sv c-sqs">SQ</span><h1 class="h1">New queue</h1></div>
+<main class="main" style="padding: 12px 28px 0; gap: 10px; align-items: stretch; overflow: auto">
+<div class="col"><h1 class="h1">Create queue</h1><span class="note">Every setting can also be changed later.</span></div>
 
-<div class="col g16" style="max-width: 560px">
-<label class="col g4"><span class="b">Name</span><input class="inp m" value="harbour-returns"><span class="note ok">Free. Letters, digits, hyphens and underscores, up to 80; a FIFO queue's name ends in .fifo.</span></label>
+<div class="card pad col g8">
+<span class="h2">General</span>
+<label class="col g4"><span class="note">Queue name</span><input class="inp m" value="harbour-returns"><span class="note">Letters, digits, hyphens and underscores, up to 80. A FIFO queue's name ends in .fifo.</span></label>
+<div class="row sb ce"><div class="col"><span class="b">FIFO queue</span><span class="note">Strict ordering per message group; the name gets a .fifo suffix.</span></div><div class="seg"><span class="on">off</span><span>on</span></div></div>
+</div>
 
-<div class="col g4"><span class="b">Kind</span>
-<div class="row g8">
-<label class="callout grow" style="border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink)"><span class="row ce g8"><input type="radio" name="kind" checked><span class="b">Standard</span></span><span class="note">At least once, in roughly the order sent.</span></label>
-<label class="callout grow"><span class="row ce g8"><input type="radio" name="kind"><span class="b">FIFO</span></span><span class="note">Exactly once, in order within a message group.</span></label>
-</div></div>
-
+<div class="card pad col g8">
+<span class="h2">Delivery</span>
 <div class="row g12">
-<label class="col g4 grow"><span class="b">Visibility timeout</span><div class="row g6 ce"><input class="inp m" value="30"><span class="note">s</span></div></label>
-<label class="col g4 grow"><span class="b">Message retention</span><div class="row g6 ce"><input class="inp m" value="4"><span class="note">days</span></div></label>
-<label class="col g4 grow"><span class="b">Delivery delay</span><div class="row g6 ce"><input class="inp m" value="0"><span class="note">s</span></div></label>
+<label class="col g4 grow"><span class="note">Visibility · s</span><input class="inp m" placeholder="30"><span class="note">Hidden after a receive. Not deleted in time, it comes back.</span><span class="note m">0 – 43 200 · default 30 · <span class="ok">enforced</span></span></label>
+<label class="col g4 grow"><span class="note">Delay · s</span><input class="inp m" placeholder="0"><span class="note">New messages wait this long before anyone can receive them.</span><span class="note m">0 – 900 · default 0 · <span class="ok">enforced</span></span></label>
+<label class="col g4 grow"><span class="note">Retention · s</span><input class="inp m" placeholder="345600"><span class="note">An unread message is dropped after this long.</span><span class="note m">60 – 1 209 600 · default 4 days · <span class="ok">enforced</span></span></label>
+</div>
 </div>
 
-<div class="row g8 ce">
-<button class="btn pri">Create queue</button>
-<button class="btn ghost">Cancel</button>
+<div class="card pad col g8">
+<span class="h2">Dead-letter queue</span>
+<span class="note">A message that keeps coming back is probably the one your consumer cannot handle. A dead-letter queue sets it aside so the rest keep moving, and so you can read it.</span>
+<div class="row g8">
+<div class="well pad col grow" style="border-color: var(--ink)"><span class="b">Create one alongside</span><span class="note">makes <span class="m">harbour-returns-dlq</span></span></div>
+<div class="well pad col grow"><span class="b">Use an existing queue</span><span class="note">pick a queue below</span></div>
+<div class="well pad col grow"><span class="b">None</span><span class="note">failed messages retry forever</span></div>
 </div>
+<label class="col g4" style="max-width: 300px"><span class="note">After this many receives</span><input class="inp m" placeholder="3"><span class="note">A message is delivered this many times; the next receive moves it. Left blank, this form sends 3.</span><span class="note m">1 – 1 000 · <span class="ok">enforced</span></span></label>
 </div>
+
+<div class="card pad row sb ce"><div class="col"><span class="h2">Advanced</span><span class="note">long polling, size, encryption, policy, tags</span></div><span class="mut">▸</span></div>
+
+<div class="row g8" style="position: sticky; bottom: 0; background: var(--bg); padding: 8px 0 10px"><button class="btn">Cancel</button><button class="btn pri">Create queue</button></div>
 <div class="grow"></div>
 </main>
 
 <aside class="insp" style="width: 440px" aria-label="The call this makes">
-<div class="hd"><span class="cap">The call this makes</span><span class="mut">It changes as you fill the form. This is exactly what is sent, so the same call from your own code makes the same queue.</span></div>
-<div class="bd">
-<pre class="code">POST /
-X-Amz-Target: AmazonSQS.CreateQueue
+<div class="bd" style="gap: 10px; overflow: auto">
+<div class="card pad col g8">
+<span class="h2">The life of one message</span>
+<span class="note">Drawn from the numbers on the left. It redraws as you type.</span>
+<div class="col g10" style="gap: 10px; padding-top: 4px">
+<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col"><span class="b">Sent</span><span class="note">Waiting immediately. No delay is set.</span></div></div>
+<div class="row g8"><span class="dot" style="margin-top: 7px"></span><div class="col grow"><span class="b">A consumer receives it</span><span class="note">It is hidden for <span class="m">30 s</span>, so nobody else gets it meanwhile.</span>
+<div class="lane" style="margin-top: 6px"><div style="left: 0; width: 18%"></div></div></div></div>
+<div class="row g8"><span class="dot warn" style="margin-top: 7px"></span><div class="col"><span class="b">Not deleted in time</span><span class="note">It becomes visible again, and its receive count goes to <span class="m">2</span>.</span></div></div>
+<div class="row g8"><span class="dot bad" style="margin-top: 7px"></span><div class="col"><span class="b">Received <span class="m">3</span> times</span><span class="note">Its next receive moves it to <span class="m">harbour-returns-dlq</span> instead of delivering it again.</span></div></div>
+<div class="row g8"><span class="dot off" style="margin-top: 7px"></span><div class="col"><span class="b">Never read at all</span><span class="note">It is dropped after <span class="m">4 days</span>.</span></div></div>
+</div>
+</div>
+<span class="note">A received message that is deleted never reaches step 3. That is the whole point of deleting.</span>
 
-{
-  <span class="kw">"QueueName"</span>: <span class="s">"harbour-returns"</span>,
-  <span class="kw">"Attributes"</span>: {
-    <span class="kw">"VisibilityTimeout"</span>: <span class="s">"30"</span>,
-    <span class="kw">"MessageRetentionPeriod"</span>: <span class="s">"345600"</span>,
-    <span class="kw">"DelaySeconds"</span>: <span class="s">"0"</span>
-  }
-}</pre>
-<div class="row g8"><button class="btn">Copy as curl</button><button class="btn">Copy the body</button></div>
-<div class="callout">
+<div class="card col" style="gap: 0">
+<div class="col" style="padding: 10px 12px 8px; gap: 2px"><span class="cap">The call this makes</span><span class="note">It changes as you fill the form. This is the aws CLI call the form maps to.</span></div>
+<pre class="code" style="margin: 0 12px; white-space: pre-wrap; word-break: break-all">aws --endpoint-url http://127.0.0.1:4566 sqs create-queue --queue-name harbour-returns --attributes '{"RedrivePolicy":"{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:000000000000:harbour-returns-dlq\",\"maxReceiveCount\":\"3\"}"}'</pre>
+<div class="row g8" style="padding: 10px 12px"><button class="btn sm">Copy the command</button></div>
+<div class="callout" style="margin: 0 12px 12px">
 <span class="b">Made here, kept here</span>
 <span class="note">The queue exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.</span>
 </div>
-<div class="grow"></div>
-<span class="note">Attributes left at AWS's default are sent anyway on this form; the field list is the queue's own settings.</span>
+</div>
+<span class="note">The console makes harbour-returns-dlq first, as a call of its own, so the queue in the command has something to name. Run both to get the same pair.</span>
 </div>
 </aside>
 

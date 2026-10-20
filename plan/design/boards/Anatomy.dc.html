@@ -132,7 +132,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="list" style="width: 220px">
 <div class="row sb ce" style="padding: 12px 12px 8px"><span class="row ce g8"><span class="num">2</span><span class="h2">Queues</span></span><button class="btn sm">New</button></div>
-<div class="li on"><span class="grow el">harbour-checkout-orders</span><span class="m mut">2</span></div>
+<div class="li on"><span class="grow el">harbour-checkout-orders</span><span class="m mut">3</span></div>
 <div class="li"><span class="grow el">harbour-checkout-orders-dlq</span><span class="m warn">3</span></div>
 <div class="li"><span class="grow el">harbour-depot-dispatch.fifo</span><span class="m mut">2</span></div>
 <div class="li"><span class="grow el">harbour-loyalty-points-prod</span><span class="m mut">0</span></div>
@@ -141,26 +141,41 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <main class="main" style="padding: 14px 18px 0; gap: 10px">
 <div class="row sb ce">
 <div class="row ce g8"><span class="num">3</span><span class="sv" style="--c: #e0328c">SQ</span><h1 class="h1">harbour-checkout-orders</h1><span class="pill">standard</span></div>
-<div class="row g8 ce"><button class="btn pri">Send a message</button><button class="btn danger">Delete queue</button></div>
+<div class="row g8 ce"><button class="btn danger">Delete queue</button></div>
 </div>
 
 <div class="row ce g8 wrap"><span class="num">4</span>
-<span class="m mut">0 visible</span><span class="mut">·</span><span class="m">2 in flight</span><span class="mut">·</span><span class="m mut">hidden for 60 s on receive</span><span class="mut">·</span><span class="m mut">kept 4 days</span><span class="mut">·</span><span class="m mut">dead letters go to</span><a class="m" href="#">…-dlq</a><span class="m mut">after 3</span></div>
+<span class="m b">3 waiting</span><span class="mut">·</span><span class="m">2 in flight</span><span class="mut">·</span><span class="m mut">hidden for 60 s on receive</span><span class="mut">·</span><span class="m mut">kept 4 days</span><span class="mut">·</span><span class="m mut">dead letters to</span><a class="m" href="#">harbour-checkout-orders-dlq</a><span class="m mut">after 3</span></div>
 
 <div class="row ce g8"><span class="num">5</span>
 <div class="well row ce g8 grow" style="padding: 5px 10px"><span class="note">fed by</span><span class="sv sm" style="--c: #a83bf0">SN</span><span class="m">harbour-orders-topic</span><span class="mut">→</span><span class="b">this queue</span><span class="mut">→</span><span class="note">read by</span><span class="sv sm" style="--c: #e77610">λ</span><span class="m">harbour-order-validator</span></div></div>
 
 <div class="row ce g8"><span class="num">6</span>
-<div class="tabs grow"><a class="tab on" href="#">Messages</a><a class="tab" href="#">Consume</a><a class="tab" href="#">Configuration</a><a class="tab" href="#">Tags</a></div></div>
+<div class="tabs grow"><a class="tab on" href="#">Messages <span class="m">3</span></a><a class="tab" href="#">Consume</a><a class="tab" href="#">Configuration</a><a class="tab" href="#">Tags</a></div></div>
 
-<div class="card grow" style="--c: 22px 1fr 110px 86px">
-<div class="r h"><span></span><span>Body</span><span>Received</span><span>Hidden for</span></div>
-<div class="r on"><span><input type="checkbox" aria-label="Select" checked></span><span class="m">{"orderId":"HRB-2026-04811","lines":3}</span><span class="m">1 of 3</span><span class="m">0:52</span></div>
-<div class="r"><span><input type="checkbox" aria-label="Select"></span><span class="m">{"orderId":"HRB-2026-04812","lines":1}</span><span class="m">1 of 3</span><span class="m">0:52</span></div>
+<div class="row sb ce">
+<div class="row ce g8"><span class="pill ok"><span class="dot"></span>live peek</span><span class="note">Read without consuming. Looking never receives or hides a message.</span></div>
+<div class="row g8"><button class="btn sm danger">Purge</button></div>
 </div>
 
+<div class="card" style="--c: 18px 62px 1fr 84px 28px">
+<div class="r"><span class="mut">▸</span><span><span class="pill" style="height: 18px">json</span></span><span class="m el">{&quot;orderId&quot;:&quot;HRB-2026-04811&quot;,&quot;lines&quot;:3,&quot;totalPence&quot;:4215}</span><span class="note ra">12 s ago</span><span class="mut ra">🗑</span></div>
+<div class="r on" style="box-shadow: inset 2px 0 0 var(--ink)"><span class="mut">▾</span><span><span class="pill" style="height: 18px">json</span></span><span class="m el">{&quot;orderId&quot;:&quot;HRB-2026-04812&quot;,&quot;lines&quot;:1,&quot;totalPence&quot;:675}</span><span class="note ra">1 min ago</span><span class="mut ra">🗑</span></div>
+<div class="r" style="display: block; padding: 8px 12px 10px 90px; background: var(--well)">
+<div class="row sb ce"><span class="note m">4f2c1e77-9a0b-4c1d-8d12-3b6a0c5ebd8f</span><button class="btn ghost sm">Copy body</button></div>
+<pre class="code" style="margin-top: 6px">{
+  <span class="kw">"orderId"</span>: <span class="s">"HRB-2026-04812"</span>,
+  <span class="kw">"lines"</span>: <span class="n">1</span>,
+  <span class="kw">"totalPence"</span>: <span class="n">675</span>
+}</pre>
+<div class="row g6 wrap" style="margin-top: 8px"><span class="pill m">received 2 of 3</span><span class="pill m">source = checkout-api</span></div>
+</div>
+<div class="r"><span class="mut">▸</span><span><span class="pill" style="height: 18px">json</span></span><span class="m el">{&quot;orderId&quot;:&quot;HRB-2026-04813&quot;,&quot;lines&quot;:2,&quot;totalPence&quot;:1900}</span><span class="note ra">2 min ago</span><span class="mut ra">🗑</span></div>
+</div>
+<div class="grow"></div>
+
 <div class="row ce g8"><span class="num">7</span>
-<div class="card row ce g8 grow" style="padding: 6px 8px 6px 12px"><span class="mut grow">Send a message… <span class="m">{ "orderId": "…" }</span></span><button class="btn sm pri">Send</button></div></div>
+<div class="card pad row sb ce grow"><span class="row ce g8"><span class="b">Send a message</span><span class="k" style="margin: 0">⌘⏎</span></span><span class="note">lands in the list above</span></div></div>
 
 <div class="dock" style="margin: 0 -18px; border-top: 1px solid var(--line)">
 <div class="dh"><span class="num">8</span><span class="b">The wire</span><span class="note">calls that touched this queue</span><span class="grow"></span><span class="pill ok" style="height: 18px"><span class="dot"></span>live</span></div>
@@ -174,7 +189,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="bd" style="gap: 9px">
 <div class="row g8"><span class="num">1</span><span><span class="b">Rail.</span> Full names on the wire, marks only inside a service. The room goes to the work.</span></div>
 <div class="row g8"><span class="num">2</span><span><span class="b">List.</span> Every resource of this kind, with the one number that matters. A number that needs a look is coloured.</span></div>
-<div class="row g8"><span class="num">3</span><span><span class="b">Name and one action.</span> The thing you most often do is the only solid button. Delete sits beside it as an outline in red, and always confirms. (Decided 2026-10-16: not under ···.)</span></div>
+<div class="row g8"><span class="num">3</span><span><span class="b">Name and one action.</span> The thing you most often do is the only solid button. Delete sits beside it as an outline in red, and always confirms. (Decided 2026-10-16: not under ···.) On a queue the thing you most often do is the composer at the foot (7), so its header carries Delete alone.</span></div>
 <div class="row g8"><span class="num">4</span><span><span class="b">Facts.</span> A sentence, one line read left to right, where a resource has a few facts; a strip of labelled boxes where it has many. Each service's boards say which.</span></div>
 <div class="row g8"><span class="num">5</span><span><span class="b">Neighbours.</span> What feeds it and what reads it, each a link.</span></div>
 <div class="row g8"><span class="num">6</span><span><span class="b">Tabs.</span> The first is always what is inside it. Five at most.</span></div>
@@ -183,7 +198,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="grow"></div>
 <div class="callout">
 <span class="b">Selecting anything opens it on the right.</span>
-<span class="note">A message, an item, an object, a call. It replaces this panel, in place. Nothing opens at the foot of the page or in a drawer over the content.</span>
+<span class="note">An item, an object, a call. It replaces this panel, in place. Nothing opens at the foot of the page or in a drawer over the content. A queue's messages are the exception: the service's own boards (Queue, Sqs-11) put Release and Delete on the row and open the body in place, under it.</span>
 </div>
 </div>
 </aside>

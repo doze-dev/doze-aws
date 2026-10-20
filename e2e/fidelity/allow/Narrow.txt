@@ -6,21 +6,4 @@
 # the two boards disagree and neither has been corrected), conflict (the board draws a thing the page
 # draws another way, and the owner has not chosen), decision (a written decision).
 # A missing sentence is never listed here to make a board pass: every line says what it is.
-2 held by you # superseded: Sqs-11-Consume-Held and Queue.dc.html draw the same state: the header says "in flight", the count "1× of 3", and the composer is a card button
-HRB-2026-04811 · 3 lines · £42.15 # data: a label the board derives from the order JSON ("HRB-… · 3 lines · £42.15"); the page shows the body as sent and does not interpret it
-1 of 3 # superseded: Sqs-11-Consume-Held and Queue.dc.html draw the same state: the header says "in flight", the count "1× of 3", and the composer is a card button
-HRB-2026-04812 · 1 line · £6.75 # data: a label the board derives from the order JSON ("HRB-… · 3 lines · £42.15"); the page shows the body as sent and does not interpret it
-2 of 3 # superseded: Sqs-11-Consume-Held and Queue.dc.html draw the same state: the header says "in flight", the count "1× of 3", and the composer is a card button
-Message body # superseded: Sqs-11-Consume-Held and Queue.dc.html draw the same state: the header says "in flight", the count "1× of 3", and the composer is a card button
 3 calls touched this queue · 1 refused # data: the board counts 3 calls on the queue; the fixture's setup made more (the page says "N calls touched this queue · 1 refused" in the same words)
-Order HRB-2026-04811 # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-esc # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-sent 14:36:21 · 412 B # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-Hidden for another 0:52 # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-First receive. Two more without a delete and it is dead-lettered. # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-"orderId": "HRB-2026-04811", # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-"customer": "c_19f3", # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-"lines": 3, # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-"totalPence": 4215 # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-Delete · it is done # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them
-Let it go # conflict: Narrow draws an inspector on the right for a selected held message; Sqs-11 and Queue draw Release and Delete on the row and the message expanded in place. Not built; the owner has not chosen between them

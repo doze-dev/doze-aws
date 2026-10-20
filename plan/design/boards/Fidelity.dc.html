@@ -161,7 +161,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="card" style="--c: 56px 330px 1fr">
 <div class="r h"><span>Tier</span><span>Operations</span><span>Notes</span></div>
-<div class="r"><span class="pill ok" style="height: 18px; justify-self: start">F</span><span class="m">CreateQueue</span><span class="note">standard + FIFO (.fifo naming rule enforced), attributes, tags; idempotent re-create merges attributes</span></div>
+<div class="r"><span class="pill ok" style="height: 18px; justify-self: start">F</span><span class="m">CreateQueue</span><span class="note">standard + FIFO (.fifo naming rule enforced), attributes, tags; a re-create with the same attributes answers the queue that is there, and one with a different value is refused QueueNameExists naming the attribute</span></div>
 <div class="r"><span class="pill ok" style="height: 18px; justify-self: start">F</span><span class="m">ListQueues</span><span class="note">prefix filter; MaxResults 1–1,000 and NextToken. Without MaxResults a call returns up to 1,000 and no token, as the model says</span></div>
 <div class="r"><span class="pill ok" style="height: 18px; justify-self: start">F</span><span class="m">ReceiveMessage</span><span class="note">long polling (notifier-driven, no spin), visibility timeout + per-receive override, FIFO group locking</span></div>
 <div class="r"><span class="pill ok" style="height: 18px; justify-self: start">F</span><span class="m">StartMessageMoveTask</span><span class="note">an asynchronous task: it answers with a handle and is RUNNING while its messages move in the background, at MaxNumberOfMessagesPerSecond (1–500, default 500 here), after a short start-up; one running task per queue; DestinationArn is optional and each message returns to the queue it was dead-lettered from (kept as DeadLetterQueueSourceArn); the source must be some queue's DLQ; a missing queue is ResourceNotFoundException</span></div>
@@ -170,12 +170,12 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 
 <div class="col g6">
-<div class="row ce g8"><span class="h2">Differences from AWS</span><span class="tag new">new here</span><span class="note">already written in docs/SUPPORT.md; the dialog does not show it today</span></div>
+<div class="row ce g8"><span class="h2">Differences from AWS</span></div>
 <div class="callout">
 <span class="note"><span class="b" style="color: var(--ink)">Redrive and retention run on the receive path and a janitor</span>, rather than continuously server-side. A queue nobody reads is still swept, so the observable result converges; the timing of a move to the DLQ does not have to match AWS to the second.</span>
 </div>
 <div class="callout">
-<span class="note"><span class="b" style="color: var(--ink)">Delivery is in-process.</span> There is no delivery delay to observe and no partial-region failure to handle.</span>
+<span class="note"><span class="b" style="color: var(--ink)">Delivery is in-process.</span> A message fans out to a Lambda event source mapping or an S3 notification through the peers directory rather than over the network, so there is no delivery delay to observe and no partial-region failure to handle.</span>
 </div>
 </div>
 

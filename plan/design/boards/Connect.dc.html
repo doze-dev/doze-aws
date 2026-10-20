@@ -191,10 +191,19 @@ export AWS_REGION=us-east-1</pre>
 <div class="row sb ce"><span class="cap">provider.tf</span><button class="btn ghost sm">Copy</button></div>
 <pre class="code">provider "aws" {
   region                      = "us-east-1"
+  access_key                  = "test"
+  secret_key                  = "test"
   skip_credentials_validation = true
   skip_requesting_account_id  = true
   s3_use_path_style           = true
-  endpoints { s3 = "http://127.0.0.1:4566" … }
+
+  endpoints {
+    s3       = "http://127.0.0.1:4566"
+    sqs      = "http://127.0.0.1:4566"
+    sns      = "http://127.0.0.1:4566"
+    dynamodb = "http://127.0.0.1:4566"
+    lambda   = "http://127.0.0.1:4566"
+  }
 }</pre>
 </div>
 </div>

@@ -1,18 +1,6 @@
 # Board text the page legitimately omits or words differently. Kinds: see Bad-DLQ.txt.
 # A missing sentence is never listed here to make a board pass.
 #
-# Kms-19 draws the shell's fidelity dialog a second way (1360 wide, "Fidelity" for a title, "What is
-# real" as a right-hand column of tinted summaries). The page builds the shell's Fidelity board for
-# every service (plan/03-shell-fidelity.md D-c: 940 wide, "<service> · what is real here", the ledger's
-# "Differences from AWS" under the table). Every difference below is a consequence of that one choice,
-# plus the board's paraphrases of the ledger, which have no source sentence: the page shows the
-# ledger's own bullets, whole. The choice is the owner's to confirm; see the package report.
-Fidelity # decision: the title is "KMS · what is real here" (board Fidelity, D-c), not "Fidelity"
-From the ledger's "Differences from AWS", which the panel does not show today. # doc: the board's note to its reader about its own new column; the dialog shows the ledger's section under a heading with its name, "Differences from AWS"
-The key policy, evaluated on every request naming the key under IAM soft and enforce. As on AWS it gates the identity policies: they count only while the key policy allows the account root (the default policy's one statement), and a policy that names nobody locks everyone out, root and PutKeyPolicy included. Under off it is only stored and returned; the default is soft # doc: the board's row is older than the ledger and ends with a sentence the ledger has since corrected ("only stored and returned; the default is soft", which read as if soft stored and did not evaluate); the ledger's row ends "Under off it is stored and returned and nothing evaluates it", and the dialog shows the ledger's (plan/services/kms.md, Kms-19)
-Symmetric keys are AES-256-GCM with the encryption context as authenticated data. RSA and ECC keys really sign, verify and, for RSA, encrypt. HMAC keys really MAC. Signatures verify outside KMS. # decision: the board's first callout is the ledger's section introduction, tinted green, which is a verdict the ledger does not carry; the ledger's introduction is not one of its "Differences from AWS" bullets and the dialog shows only those, under the table
-Keys live in the data directory, not in an HSM, and anything that can read that directory has the key material. # doc: a paraphrase of the ledger's first bullet ("The crypto is real; the key custody is not. Keys live in the data directory, not in an HSM, and anything with read access to that directory has the key material. ..."); the dialog shows the bullet whole
-The flag and the period are stored and reported; nothing fires on the schedule. Rotate now is the switch. # doc: a paraphrase of the ledger's bullet ("Scheduled rotation has no clock. EnableKeyRotation and RotationPeriodInDays are stored and reported, and nothing fires on the schedule - RotateKeyOnDemand is the switch, and it does the real thing. Symmetric keys only, as on AWS."); the dialog shows the bullet whole
-One principal # doc: the board's title for the ledger's bullet "Every caller is the same principal"; the dialog shows the ledger's own lead
-Every caller is the same identity, so a key policy is evaluated for one. It cannot tell two callers apart. # doc: a paraphrase of the ledger's bullet ("Every caller is the same principal, so a key policy is evaluated against one identity. Under IAM soft it is evaluated and logged; under enforce it denies. What it cannot do is distinguish two callers."); the dialog shows the bullet whole
-Grants and imported key material are stubs: refused by name, because each needs infrastructure that has no local counterpart. # doc: a summary of two ledger lines (the S rows "Grants" and "Custom key stores, ImportKeyMaterial, ..." and the bullet "No key store you did not create here"), with no sentence of its own in the ledger; the dialog shows the rows and the bullet
+# Kms-19 draws the shell's Fidelity board's dialog (plan/03-shell-fidelity.md D-c: 940 wide,
+# "<service> · what is real here", the ledger's "Differences from AWS" under the table), with the
+# KMS ledger's rows and bullets whole.

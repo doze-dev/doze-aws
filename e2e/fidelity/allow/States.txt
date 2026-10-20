@@ -17,7 +17,6 @@ Success is a toast. A failure never is. # annotation: the States board's comment
 It did not work # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 inline, beside the control # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 Never a toast: an error has to be read, and it belongs next to what caused it. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
-Visibility timeout # superseded: Sqs-17-Config and Sqs-18-Config-Edit, the boards for this field, label it "Visibility · s"
 The code and the sentence the service answered with, placed beside the control that caused it. The form keeps what was typed. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 Four answers, four colours # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 everywhere a call is shown # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
@@ -30,8 +29,6 @@ A refusal is never red. Red is for things that are broken, and a refusal is doze
 It cannot be undone # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 confirm # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 Only for what destroys data. It names the thing, says what is lost, and the button is the verb. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
-Delete harbour-receipts? # superseded: S3-12-Confirms, the S3 confirm board the page follows, words the bucket confirm "Delete bucket “<name>”? It must be empty. ..."
-The bucket is removed from this machine. Nothing is sent to AWS. # superseded: S3-12-Confirms, the S3 confirm board the page follows, words the bucket confirm "Delete bucket “<name>”? It must be empty. ..."
 There is nothing here # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 Says what would put something here, and offers the one way to do it by hand. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
 It is taking a while # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
