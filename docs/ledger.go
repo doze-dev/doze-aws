@@ -84,6 +84,8 @@ func (r Row) TierLabel() string {
 		return "cosmetic"
 	case "S":
 		return "stub"
+	case ExtensionTier:
+		return "doze extension"
 	}
 	return r.Tier
 }
@@ -168,6 +170,33 @@ func Rows(svc string) []Row {
 	sort.SliceStable(rows, func(i, j int) bool {
 		rank := map[string]int{"F": 0, "C": 1, "S": 2}
 		return rank[rows[i].Tier] < rank[rows[j].Tier]
+	})
+	return rows
+}
+
+// ExtensionTier is the tier cell of a row that is not an AWS operation at all:
+// a call this emulator adds (SQS's DozePeek, IAM's DozeAccessLog). It is not a
+// fourth tier, so Rows leaves it out and every ratchet over the real tiers is
+// unchanged; the fidelity dialog draws it last, with the dash (board Fidelity).
+const ExtensionTier = "—"
+
+// Extensions parses the rows of a ledger that are the emulator's own, tier
+// ExtensionTier, in the order the ledger has them.
+func Extensions(svc string) []Row {
+	text, err := Read(svc)
+	if err != nil {
+		return nil
+	}
+	var rows []Row
+	forEachTableRow(text, func(m []string) {
+		if strings.TrimSpace(m[2]) != ExtensionTier {
+			return
+		}
+		rows = append(rows, Row{
+			Ops:  strings.TrimSpace(strings.ReplaceAll(m[1], "`", "")),
+			Tier: ExtensionTier,
+			Note: strings.TrimSpace(strings.ReplaceAll(m[3], "`", "")),
+		})
 	})
 	return rows
 }
@@ -269,4 +298,68 @@ func Section(svc, heading string) string {
 		}
 	}
 	return b.String()
+}
+
+// Difference is one bullet of a ledger's "### Differences from AWS": what this
+// emulator does otherwise than AWS does, in the maintainer's words.
+//
+// Lead is the bold phrase a bullet opens with, which the dialog draws in ink;
+// it may be empty (Lambda's bullets carry none). Text is everything after it,
+// beginning with the punctuation or space that followed the lead, so Lead+Text
+// reads as the sentence the bullet is. Neither holds Markdown.
+type Difference struct {
+	Lead, Text string
+}
+
+var (
+	mdLink = regexp.MustCompile(`\[([^\]]+)\]\([^)]*\)`)
+	mdBold = regexp.MustCompile(`\*\*([^*]+)\*\*`)
+)
+
+// Differences reads one service's "### Differences from AWS" bullets, at the
+// moment it is asked. The console calls it when someone opens a fidelity
+// dialog, not at start-up: nothing is parsed, kept or held while the dialog is
+// closed, and the text is the embedded ledger's, so the dialog and the
+// document cannot disagree.
+func Differences(svc string) []Difference {
+	var out []Difference
+	var cur []string
+	flush := func() {
+		if len(cur) == 0 {
+			return
+		}
+		s := strings.Join(cur, " ")
+		cur = nil
+		d := Difference{}
+		if strings.HasPrefix(s, "**") {
+			if end := strings.Index(s[2:], "**"); end >= 0 {
+				d.Lead = s[2 : 2+end]
+				s = s[2+end+2:]
+			}
+		}
+		d.Lead, d.Text = mdPlain(d.Lead), mdPlain(s)
+		if strings.TrimSpace(d.Lead+d.Text) != "" {
+			out = append(out, d)
+		}
+	}
+	for _, line := range strings.Split(Section(svc, "Differences from AWS"), "\n") {
+		switch {
+		case strings.HasPrefix(line, "- "):
+			flush()
+			cur = []string{strings.TrimSpace(line[2:])}
+		case strings.TrimSpace(line) == "":
+			flush()
+		case cur != nil:
+			cur = append(cur, strings.TrimSpace(line))
+		}
+	}
+	flush()
+	return out
+}
+
+// mdPlain turns the few inline marks a ledger uses into the words they hold.
+func mdPlain(s string) string {
+	s = mdLink.ReplaceAllString(s, "$1")
+	s = mdBold.ReplaceAllString(s, "$1")
+	return strings.ReplaceAll(s, "`", "")
 }
