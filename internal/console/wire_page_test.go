@@ -78,7 +78,7 @@ func TestTheWireSaysWhatNeedsALook(t *testing.T) {
 		t.Error("the panel says nothing needs a look beside three things that do")
 	}
 	// The window counts what the ring holds.
-	if !regexp.MustCompile(`(?s)<span>Refused</span><span class="m b deny">1</span>`).MatchString(body) {
+	if !regexp.MustCompile(`(?s)<span>Refused</span>\s*<span class="m b deny">1</span>`).MatchString(body) {
 		t.Errorf("the window does not count the refusal:\n%s", excerpt(body, "In this window"))
 	}
 }

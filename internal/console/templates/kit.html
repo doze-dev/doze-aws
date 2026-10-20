@@ -142,7 +142,7 @@
     <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
     <span class="rw-act">{{.Action}}</span>
     <span class="rw-what">{{with .Refused}}<span class="rw-why" title="{{.Code}}">{{.Message}}</span>{{else}}<span class="rw-res">{{.Resource}}</span>{{end}}{{with .Via}} <span class="tr-via">via {{.}}</span>{{end}}</span>
-    <span class="rw-st" title="{{.Millis}} ms"><span class="st {{.State}}">{{.Status}}</span>{{with .StateWord}}<span class="tr-state">{{.}}</span>{{end}}</span>
+    <span class="rw-st" title="{{.Millis}} ms"><span class="st {{.State}}">{{.Status}}</span> {{with .StateWord}}<span class="tr-state">{{.}}</span>{{end}}</span>
   </div>{{end}}
   {{if .More}}<p class="mini-note">{{.More}} earlier call{{if ne .More 1}}s{{end}} on the wire.</p>{{end}}
   </div>

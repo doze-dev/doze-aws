@@ -93,7 +93,7 @@
         <span class="res" title="{{.Resource}}">{{if .Ref.Path}}<a class="res-link"
              href="{{$w.Prefix}}{{.Ref.Path}}"
              hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML"
-             @click.stop>{{.Resource}}</a>{{else}}<span class="res-nm">{{.Resource}}</span>{{end}}{{with .Via}}<span class="tr-via note" title="what emitted this work">via {{.}}</span>{{end}}{{with .Why}}<span class="tr-why-t note" title="{{$row.WhyTitle}}">{{.}}</span>{{end}}</span>
+             @click.stop>{{.Resource}}</a>{{else}}<span class="res-nm">{{.Resource}}</span>{{end}} {{with .Via}}<span class="tr-via note" title="what emitted this work">via {{.}}</span>{{end}} {{with .Why}}<span class="tr-why-t note" title="{{$row.WhyTitle}}">{{.}}</span>{{end}}</span>
         <span class="tr-ans"><span class="st {{.State}}">{{.Answer}}</span></span>
         <span class="dur{{if .Wait}} wait{{end}}">{{.Millis}}</span>
         <span class="lane">{{if not .Wait}}<span class="{{if .LaneBad}}bad{{else if .Cascade}}kid{{end}}" style="--l:{{.LaneLeft}};--w:{{.LaneWidth}}"></span>{{end}}</span>
@@ -110,11 +110,11 @@
     <div class="wire-cap">In this window</div>
     <div class="wire-card">
       <div class="wire-kv">
-        <span>Calls</span><span class="m b">{{$w.Stats.Calls}}</span>
-        <span>Services</span><span class="m b">{{$w.Stats.Services}}</span>
-        <span>Refused</span><span class="m b{{if $w.Stats.Refused}} deny{{end}}">{{$w.Stats.Refused}}</span>
-        <span>Function errors</span><span class="m b{{if $w.Stats.FnErrors}} bad{{end}}">{{$w.Stats.FnErrors}}</span>
-        <span>Slowest</span><span class="m b">{{if $w.Stats.Slowest}}{{$w.Stats.Slowest}}{{else}}—{{end}}</span>
+        <span>Calls</span> <span class="m b">{{$w.Stats.Calls}}</span>
+        <span>Services</span> <span class="m b">{{$w.Stats.Services}}</span>
+        <span>Refused</span> <span class="m b{{if $w.Stats.Refused}} deny{{end}}">{{$w.Stats.Refused}}</span>
+        <span>Function errors</span> <span class="m b{{if $w.Stats.FnErrors}} bad{{end}}">{{$w.Stats.FnErrors}}</span>
+        <span>Slowest</span> <span class="m b">{{if $w.Stats.Slowest}}{{$w.Stats.Slowest}}{{else}}—{{end}}</span>
       </div>
     </div>
   </aside>
@@ -157,7 +157,7 @@
       <span class="note">A template.yaml in the folder you started doze-aws from is applied when it starts. There is none here.</span>
     </div>
   </div>
-  <div class="wire-waiting"><span class="live"></span><span class="m">waiting for a call…</span><span class="note">try <span class="m">aws s3 ls</span> with the block above</span></div>
+  <div class="wire-waiting"><span class="live"></span> <span class="m">waiting for a call…</span><span class="note">try <span class="m">aws s3 ls</span> with the block above</span></div>
 </div>
 {{end}}
 
@@ -168,7 +168,7 @@
 {{/* The keys an open call answers to: the next call, the curl, the resource it
      touched when it names one, and closing. */}}
 <div class="td-h" data-keys="j k=next call|c=copy as curl|{{if .Link}}→=go to the {{if .Noun}}{{.Noun}}{{else}}resource{{end}}|{{end}}esc=close">
-  <span class="td-id"><span class="td-svc">{{wireIcon .E.Service}}<span class="sr-only">{{.E.Service}}</span></span><span class="td-title">{{.Label}}</span><span class="st {{.State}}">{{.Answer}}</span></span>
+  <span class="td-id"><span class="td-svc">{{wireIcon .E.Service}}<span class="sr-only">{{.E.Service}}</span></span> <span class="td-title">{{.Label}}</span> <span class="st {{.State}}">{{.Answer}}</span></span>
   <button type="button" class="btn btn-ghost btn-sm td-x" aria-label="Close" @click="sel=null">esc</button>
 </div>
 <div class="td-meta"><time title="{{zoned .Time}}">{{.Time}}</time> · {{.Millis}} ms{{if .E.RequestID}} · request id <span class="mono">{{.E.RequestID}}</span>{{end}}</div>
@@ -208,10 +208,10 @@
 <div class="td-body">
   <div class="td-pane" x-show="tab==='request'">
     <div class="wire-kv td-kv">
-      <span>Sent to</span><span class="m el">{{.E.Method}} {{.E.Path}}  ·  Host {{.E.Host}}</span>
-      <span>Operation</span><span class="m">{{.Operation}}</span>
-      {{if .E.CT}}<span>Content type</span><span class="m">{{.E.CT}}</span>{{end}}
-      {{if .Link}}<span>On</span><a class="m" href="{{.Prefix}}{{.Link}}" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">{{.E.Resource}}</a>{{end}}
+      <span>Sent to</span> <span class="m el">{{.E.Method}} {{.E.Path}}  ·  Host {{.E.Host}}</span>
+      <span>Operation</span> <span class="m">{{.Operation}}</span>
+      {{if .E.CT}}<span>Content type</span> <span class="m">{{.E.CT}}</span>{{end}}
+      {{if .Link}}<span>On</span> <a class="m" href="{{.Prefix}}{{.Link}}" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">{{.E.Resource}}</a>{{end}}
     </div>
     <div class="td-s">
       <div class="td-sh"><span class="wire-cap">Body</span><span class="note">secrets are masked, long bodies cut</span></div>
@@ -236,7 +236,7 @@
       <div class="wire-cap">What it caused</div>
       {{range .Caused}}
       <div class="wire-well td-caused">
-        <div class="td-cah"><span class="td-resl">{{wireIcon .Service}}<span class="b">{{.Label}} {{.Resource}}</span></span><span class="m">{{.Millis}}{{if not (eq .Millis "")}} ms{{end}}</span></div>
+        <div class="td-cah"><span class="td-resl">{{wireIcon .Service}}<span class="b">{{.Label}} {{.Resource}}</span></span> <span class="m">{{.Millis}}{{if not (eq .Millis "")}} ms{{end}}</span></div>
         <span class="note">{{with .Via}}via {{.}}.{{end}}{{if .Detail}} What the function printed is on its row.{{end}}</span>
         {{with .Detail}}<pre class="code td-tail">{{.}}</pre>{{end}}
       </div>
@@ -257,7 +257,7 @@
 <div class="td-s" x-data="{info:false}">
   <div class="wire-cap">The same operation, in the ledger</div>
   <div class="wire-well td-led">
-    <div class="td-ledh"><span class="m b">{{.Op}}</span><span class="pill {{if eq .Tier "F"}}ok{{end}}">{{.Tier}} · {{.TierLabel}}</span></div>
+    <div class="td-ledh"><span class="m b">{{.Op}}</span> <span class="pill {{if eq .Tier "F"}}ok{{end}}">{{.Tier}} · {{.TierLabel}}</span></div>
     <span class="note">{{.Note}} <button type="button" class="linkish" @click="info=true">The {{.Label}} ledger</button></span>
   </div>
   {{template "info_overlay" dict "Svc" .Svc "Prefix" $.Prefix}}
