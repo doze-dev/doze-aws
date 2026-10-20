@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -245,7 +244,7 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 		}
 	}
 	var cases []Case
-	skipped := 0
+	var drops drops
 	for _, f := range found {
 		// A list's length, a map's size and a map's key are cases about the
 		// container: the member itself is set to a list or a map that breaks the
@@ -253,8 +252,11 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 		if f.Constraint.Container != "" {
 			vs, ok := containerViolations(f.Constraint)
 			if !ok {
-				skipped++
+				drops.add(f, noContainerCase(f.Constraint))
 				continue
+			}
+			for _, why := range partialContainerCase(f.Constraint) {
+				drops.add(f, why)
 			}
 			for _, v := range vs {
 				// An EMPTY list or map has no spelling on the query and XML
@@ -263,7 +265,7 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 				// is empty would replay as the baseline and read as a gap that
 				// is not one, so it is emitted only where the wire can say it.
 				if isEmptyContainer(v.Value) && !jsonBodied(proto) {
-					skipped++
+					drops.add(f, "an empty list or map has no spelling on the "+proto+" wire: no parameter, no element, the same request as leaving the member out")
 					continue
 				}
 				cases = append(cases, Case{
@@ -275,6 +277,9 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 			continue
 		}
 		// A required member is its own case; it is not also a value violation.
+		if len(violations(f.Constraint)) == 0 {
+			drops.add(f, noScalarCase(f.Constraint))
+		}
 		for _, v := range violations(f.Constraint) {
 			value, repeat := auditkit.FoldRepeat(v.Value)
 			cases = append(cases, Case{
@@ -291,10 +296,8 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 			})
 		}
 	}
-	if skipped > 0 {
-		fmt.Fprintf(os.Stderr, "dzaudit: %d list/map constraint(s) have no case: the element is itself constrained, "+
-			"is a structure, or the bound is above %d. They are in 'list', not in the cases.\n", skipped, maxContainerCase)
-	}
+	drops.cut = m.cut
+	drops.report(diagnostics)
 	sort.Slice(cases, func(i, j int) bool {
 		if cases[i].Operation != cases[j].Operation {
 			return cases[i].Operation < cases[j].Operation

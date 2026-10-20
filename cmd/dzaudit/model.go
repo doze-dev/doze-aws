@@ -21,6 +21,11 @@ import (
 
 type model struct {
 	Shapes map[string]shape `json:"shapes"`
+
+	// cut records the members audit did not look inside because they nest
+	// deeper than maxDepth ("Op path"), so the report can name them instead of
+	// the walk stopping without a word.
+	cut []string
 }
 
 type shape struct {

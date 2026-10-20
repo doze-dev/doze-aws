@@ -142,7 +142,16 @@ func (m *model) audit(opFilter string) []finding {
 // walk descends an input shape, recording every constraint it finds and the
 // path a caller would set it at.
 func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, out *[]finding) {
-	if depth > maxDepth || seen[shapeID+"@"+path] {
+	if depth > maxDepth {
+		// Not looked into, and said so (see drops.report). A member that is a
+		// plain scalar or an unconstrained shape has nothing below it to lose,
+		// so only a shape that can hold more is named.
+		if s, ok := m.Shapes[shapeID]; ok && (s.Type == "structure" || s.Type == "list" || s.Type == "set" || s.Type == "map") {
+			m.cut = append(m.cut, op+" "+path)
+		}
+		return
+	}
+	if seen[shapeID+"@"+path] {
 		return
 	}
 	seen[shapeID+"@"+path] = true

@@ -36,7 +36,7 @@ function free(port: number): Promise<boolean> {
   });
 }
 
-/** The first free port in 14960-14969 that this run has not already taken. */
+/** The first free port in the range that this run has not already taken. */
 export async function freePort(taken: Set<number>): Promise<number> {
   for (let p = PORT_MIN; p <= PORT_MAX; p++) {
     if (!taken.has(p) && (await free(p))) {
