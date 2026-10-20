@@ -51,7 +51,7 @@ is met and its test is named; "partly" says what is left.
 | B4 settings the console can read | the record and the lazy registry landed; each service adds its own (2026-10-20: unchanged, and why) | 64966f6 | `internal/settings`: a record per setting (name, unit, range or enum, default, tier per operation, what enforces it, source), registered per service and built on first lookup (`TestNothingIsBuiltUntilAsked`). SQS is the worked example and reads the numbers from `attrRange` and the `def*` constants rather than restating them; `TestFormConstraintsAreTheServicesOwnRange` holds every SQS number input's min and max to its record. Each service adds its records and its form rows in its stage; the check that every shown setting has one is that table. **2026-10-20, the ratchet:** `number_inputs_test.go` freezes, per template, how many hand-written `<input type="number">` with a min or a max remain (22 in 11 templates: API Gateway 2, DynamoDB 2, EventBridge 3, IAM 2, Kinesis 4, KMS 1, Lambda 5, S3 1, Secrets Manager 1, SNS 1), in both directions: a new one written by hand fails (make it a `setting_field` with a record) and a converted one fails until the count is lowered, so a stage's B4 progress is a number going down. Each service's stage also writes its record table (name, unit, range or enum, default, tier per operation, what enforces it, source) from its own `validate.go` and ledger, and registers it with `settings.Register`; only SQS has. The tables that are not flat attributes (API Gateway's patch paths, CloudFormation's template parameters, Logs' limits that live in code, DynamoDB's tier that differs by operation) are named in those services' documents. |
 | B1 a claims table per service | landed | 17af7bb | `conformance/claims/README.md` is the format; `sqs.md` is the worked example (21 claims: 12 on existing scenarios, 9 to write). `TestEveryClaimNamesARealScenarioOrSaysItIsToBeWritten` holds every row; `task claims`, and the end of `task test:conformance`, print recorded / model / doc / memory / to-write per service. Today nothing is recorded: `conformance/snapshots` is empty until an account exists. |
 | C the shell kit | landed | 5c2bc52, 788f865 | `kit.html`: `res_header` (name, badges, the destructive action, copyable ids, fact strip) and `setting_field` (bounds, unit and default from `internal/settings`, plus one taught sentence). The narrow-window notice already existed at 768 px; it is the one notice, moved to 1024 px. SQS's header and its five number fields render through them; `TestFormConstraintsAreTheServicesOwnRange` now reads the rendered pages. The rest of the anatomy (rail, list pane, tabs, dock, neighbours strip, the five states, dark theme, palette create entries from the catalogue) already existed. `res_wire` is the wire underneath a resource: the app's calls to that one resource, newest first and live, loaded by the slot so a page's handler does not have to know about it (`TestTheWireUnderAResourceIsThatResourcesCalls`, and a browser test). SQS has it on every tab. The rule that SQS's pages are built entirely from the kit is stage 1's done-when. |
-| B3 the first baselines | landed; the remaining `internal/` packages recorded 2026-10-20 | 1e93133 | `testdata/mutation.json` holds baselines for 31 packages: all of `internal/` that carries logic, and SQS, SNS, KMS, Kinesis, Secrets Manager, SSM, Logs, CloudWatch, EventBridge, STS, Step Functions (3.3 hours), IAM, DynamoDB and S3. Lambda, API Gateway and CloudFormation are recorded by `task mutate:record -- <pkg>` in their own stages, which is where the protocol's proof gates run it. A package of that size is a background job of an hour or more: Step Functions was 3.3 hours on this machine. **2026-10-20: sixteen more**, each run by `task mutate:record` in a copy of the tree (so a running baseline never meets a half-edited one), and **then made to earn it**: 69 survivors in the first run, and every one a reasonable test could kill got one (the commits "tests: kill the surviving mutants..."). Before and after, killed / lived / efficacy: `awschunk` 21/5/80.8% to 24/1/96%, `awshost` 22/7/75.9% to 28/1/96.6%, `config` 24/11/68.6% to 35/0/100%, `emf` 18/3/85.7% to 20/1/95.2%, `gateway` 15/3/83.3% to 18/0/100%, `httpevent` 24/2/92.3% to 25/1/96.2%, `lazybolt` 8/1 to 9/0, `logship` 9/5/64.3% to 15/0/100%, `metricship` 2/8/20% to 11/0/100%, `rpcv2cbor` 103/21/83.1% to 130/1/99.2%, `schemaver` 6/1 to 7/0, `lightness` 8/11/42.1% to 22/1/95.7%, `dozetest` 28/4/87.5% to 31/0/100%, `sigparse` 18/1, `settings` 2/1, `auditkit` 6/1. **The ten that still live are equivalent mutants or nearly, with the reason:** `sigparse.go:126` (`secs < 0` to `<= 0`: differs only when the expiry is 0 and now is the signing instant), `settings.go:125` (a sort's `<` to `<=` over unique names), `httpevent.go:64` (an empty binary body encodes to the empty string either way), `awschunk.go:81` (`len(p) > remain` at equality slices to the same slice), `awshost.go:130` (a `]` at index 0 gives the same result by either branch), `emf.go:73` (a two-byte line cannot hold the six-byte key), `rpcv2cbor encode.go:171` (the same sort), `lightness.go:327` (`atLeast` at equality returns the same number), `auditkit repeat.go:29` (`Times <= 0` against `< 0`: a zero repeat is empty either way). Recorded in `testdata/mutation.json` (50 packages in all). **Not recorded, and why:** `internal/console` (26,885 lines; its suite is about 150 s a run, so a baseline is days, and the browser suite is its test), `internal/migrate` (no tests of its own; the root package tests it), and Lambda, API Gateway and CloudFormation (their own stages, each an hour or more). |
+| B3 the first baselines | landed; the remaining `internal/` packages recorded 2026-10-20 | 1e93133 | `testdata/mutation.json` holds baselines for 31 packages: all of `internal/` that carries logic, and SQS, SNS, KMS, Kinesis, Secrets Manager, SSM, Logs, CloudWatch, EventBridge, STS, Step Functions (3.3 hours), IAM, DynamoDB and S3. Lambda, API Gateway and CloudFormation are recorded by `task mutate:record -- <pkg>` in their own stages, which is where the protocol's proof gates run it. A package of that size is a background job of an hour or more: Step Functions was 3.3 hours on this machine. **2026-10-20: sixteen more**, each run by `task mutate:record` in a copy of the tree (so a running baseline never meets a half-edited one), and **then made to earn it**: 69 survivors in the first run, and every one a reasonable test could kill got one (the commits "tests: kill the surviving mutants..."). Before and after, killed / lived / efficacy: `awschunk` 21/5/80.8% to 24/1/96%, `awshost` 22/7/75.9% to 28/1/96.6%, `config` 24/11/68.6% to 35/0/100%, `emf` 18/3/85.7% to 20/1/95.2%, `gateway` 15/3/83.3% to 18/0/100%, `httpevent` 24/2/92.3% to 25/1/96.2%, `lazybolt` 8/1 to 9/0, `logship` 9/5/64.3% to 15/0/100%, `metricship` 2/8/20% to 11/0/100%, `rpcv2cbor` 103/21/83.1% to 130/1/99.2%, `schemaver` 6/1 to 7/0, `lightness` 8/11/42.1% to 22/1/95.7%, `dozetest` 28/4/87.5% to 31/0/100%, `sigparse` 18/1, `settings` 2/1, `auditkit` 6/1. **The ten that still live are equivalent mutants or nearly, with the reason:** `sigparse.go:126` (`secs < 0` to `<= 0`: differs only when the expiry is 0 and now is the signing instant), `settings.go:125` (a sort's `<` to `<=` over unique names), `httpevent.go:64` (an empty binary body encodes to the empty string either way), `awschunk.go:81` (`len(p) > remain` at equality slices to the same slice), `awshost.go:130` (a `]` at index 0 gives the same result by either branch), `emf.go:73` (a two-byte line cannot hold the six-byte key), `rpcv2cbor encode.go:171` (the same sort), `lightness.go:327` (`atLeast` at equality returns the same number), `auditkit repeat.go:29` (`Times <= 0` against `< 0`: a zero repeat is empty either way). Recorded in `testdata/mutation.json` (50 packages in all). **Not recorded, and why:** Lambda, API Gateway and CloudFormation (their own stages, each an hour or more). **`internal/migrate` was recorded afterwards** (15 tests of its own, 100% of statements; killed 9, lived 1, the capacity of a slice at `migrate.go:84`, equivalent), and **`internal/console` is recorded in part**: see B3 below for exactly which files. |
 | B13 a Query request is validated whole | landed 2026-10-12 | c1ada87 | Found in SQS (SQS-26). `FromQuery` keeps one element of each list; SNS, IAM, STS and CloudFormation call it directly. Before SNS's stage. |
 | D-a the wire page, D-b the first-run wire, D-e the "cannot reach" banner | landed 2026-10-20 | branch worktree-agent-a239bd30f7b78bf69 | The wire to Main, Wire-Inspect, Wire-Refused, Wire-Empty and Bad-Down, from the recorder and the product only; the deck is gone. Two data paths closed on the way: an S3 notification says what emitted it, and an SQS mapping's invoke of an SDK's message is on the wire (it was on it nowhere), since 2026-10-20 as a child of the send (internal/msgcause), and a function error under a mapping reads "it threw" (trace.Event.FnError). Left, and why: [03-shell-fidelity.md](03-shell-fidelity.md) section 4, items 13, 15 and 16 (S3 to a FIFO queue, two states for one chip, the inspector's widths); item 14, the nested invoke, is closed. |
 | B14 the fidelity pairs as a task | landed (the machinery 2026-10-16; the board path decided and enforced 2026-10-20) | 1d3798e, c74627e | `go tool task console:fidelity -- <service|shell|Board-Name> [--dark] [--w900] [--id2]` builds the binary, boots it, seeds the harbour fixture, renders every board and drives the real page to its state, writes `board-*.png`, `page-*.png`, `report.html` and `results.json`, and checks that every line of the board's text is on the page (the allow-lists in `e2e/fidelity/allow/` each carry a reason kind and are never for a missing sentence). A board with no driver, an orphaned driver, a board that does not render and a page that lacks board text are each a failing row; the list of boards is the directory listing, never a table. **Decided 2026-10-16 and wired 2026-10-20: the boards live in `plan/design/boards/` in this repository and nowhere else.** The runner has no other path and no environment override; a checkout where the directory is missing, holds no `*.dc.html`, or lacks `con.css`, and a service the design draws no board for, each exit 2 with `FAIL: no design boards: ...` instead of comparing nothing and passing, and the unit tests that read the real boards fail (`the checkout has its boards`) where they used to skip. Verified by running `bun fidelity/run.ts sqs` with the directory missing and with it empty. Documented in `e2e/README.md`, `plan/01-protocol.md` and `plan/design/README.md`. **Result today:** `console:fidelity -- sqs` 19 of 19 match; `-- shell` 0 of 13 (4 more are skips with their reason: the map twice, the "cannot reach" banner, the Grounding document board), because those boards are the wire page and the foundation-D pieces ([03-shell-fidelity.md](03-shell-fidelity.md)); every other service's table is empty on purpose, which is its stage's to-do list (a board with no driver fails). `FIDELITY_PORT_MIN` and `FIDELITY_PORT_MAX` choose the port range when several worktrees run it at once. |
@@ -372,6 +372,74 @@ unattended run. Packages that
 hold a service's logic outside its own directory get their own baseline:
 `internal/asl`, `internal/ddb`, `internal/s3store`, `internal/lambdaruntime`,
 `internal/iampolicy`, `internal/iamguard`, `internal/cfn`, `internal/provision`.
+
+**2026-10-20: `internal/migrate` and part of `internal/console`.**
+
+*`internal/migrate`.* It had no tests of its own (the root package's
+`migrate_test.go` drives it end to end). `internal/migrate/migrate_test.go`
+now has 15 tests, 100% of statements, asserting exact plans, wording, order,
+file contents and each failure message. Baseline: killed 9, lived 1
+(`migrate.go:84:ARITHMETIC_BASE`, `make([]string, 0, len(p.Moves)+1)`: the
+capacity of a slice, equivalent), efficacy 90%.
+
+*`internal/console`: how it is made feasible.* gremlins runs the package's
+whole suite per mutant (about 150 s here), which is days for the console's 3,947
+runnable mutants. `scripts/mutation-select.ts` removes the waste and keeps the
+rigour: `map` runs every top-level test alone with coverage (and the whole suite
+once, for each test's cost among others), and a `go` shim on gremlins' PATH
+answers its coverage run from that map and, for each mutant, finds the changed
+file and line and runs only the tests that execute that line, plus four tests
+that read the package's source. Cheap tests run first and the slow ones only for
+a mutant the cheap ones let through, from one build. A test that does not
+execute the mutated line cannot see the mutant, so no verdict changes.
+`scripts/mutation-baseline.ts` takes `--only a.go,b.go --map <dir>`; `record
+--only` replaces just those files' entries in `testdata/mutation.json` (a
+`files` object per file, package totals the sums, `"partial": true`), so a
+baseline is built a few files at a time and progress survives. Gremlins is
+installed and run as a binary (`go run` puts GOROOT/bin ahead of the shim).
+To continue, per group of files, in a copy of the tree so edits cannot meet a
+running baseline:
+
+    bun scripts/mutation-select.ts map internal/console <dir>      # about 15 minutes
+    MUT_COVER_SECS=200 bun scripts/mutation-baseline.ts record internal/console \
+        --only console.go,glance.go --map <dir> --workers 16
+    bun scripts/mutation-baseline.ts check internal/console --map <dir>   # the recorded files
+
+**Recorded, and only this:** 10 of the 85 non-test Go files, 72 mutants:
+`catalog.go`, `client_sts.go`, `copy.go`, `icons.go`, `keys.go`,
+`listpane.go`, `routelist.go`, `routelog.go`, `routelog_e2e.go`,
+`timefmt.go`. Killed 31, lived 3, timed out 0, not covered 38, efficacy 91.2%.
+The three survivors: `client_sts.go:69` (`action == ""`, an unknown credential
+mode), `client_sts.go:141`, `listpane.go:69`. Each is a behaviour no test
+asserts and a reasonable test would kill; they were left because the work was
+stopped before the re-run that proves a kill. The check form above was run on
+`listpane.go` and `icons.go`: killed 4, lived 1, as recorded.
+
+**Not recorded: the other 75 files, about 3,900 runnable mutants.** A first pass
+over a "core" group (`console.go`, `glance.go`, `chrome.go`, `summarize.go`,
+`held.go`, `info.go`, `narrow.go`, `static.go` and those above) was run and the
+files with any TIMED OUT mutant were **discarded**: 83 of 208 mutants came back
+TIMED OUT, because gremlins' one deadline (10 times the coverage run) is shorter
+than a mutant that survives the cheap tests and then runs the slow ones on a
+busy machine, and that hides survivors as timeouts. The fix is in the scripts
+(each stage has its own budget, 60 s plus five times its normal time, and a
+stage that exceeds it counts as killed, the way `go test` counts its own
+timeout; `MUT_COVER_SECS=200` puts gremlins' deadline out of the way). It was
+checked on `listpane.go` and `icons.go` and not re-run over the discarded files.
+Cost: killed mutants are quick; a survivor runs the slow tests (the whole suite
+is about 154 s, of which about 120 s is eight tests, led by
+`TestEveryMutationRedirectStaysInTheConsole` at 36 s), so expect hours with 16
+or more workers (the tests mostly wait, so workers are cheap), and kill each
+group's survivors before the next.
+
+**Three tests fail on main as of 347ab96 and are excluded from every selection**
+(they would kill every mutant they touch):
+`TestTheSQSCreatePageHasNoMadeHereKeptHereCard`, `TestTheWhyLineIsThatKindsOwn`
+and `TestAFunctionErrorNamesTheFunction` (the last two look for `td-sec td-`
+markup the wire inspector no longer draws); lines only they execute count as
+not covered. `internal/console/sfngraph` (its own package) was recorded by the
+ordinary `mutate:record`: killed 87, lived 120, timed out 3, efficacy 42%; its
+survivors have not been looked at.
 
 ### B4. Settings tables the console can read
 
@@ -696,12 +764,10 @@ Re-stated on 2026-10-20 (package P6), every box against its "done when".
       for a doze-only limit is set by none) and A15 (one walk over every
       fragment, two defects fixed; `apigw_method` is owed to API Gateway's
       stage, and each stage adds the states its boards draw).
-- [~] B1 to B12 each meet their "done when". **Met:** B1, B2, B3 (50 packages
-      carry a baseline: 34 before and 16 more on 2026-10-20; named
-      exceptions: `internal/console`, whose own suite is about 150 s a run, so
-      a baseline is days and the browser suite is its test; `internal/migrate`,
-      tested only from the root package; and Lambda, API Gateway and
-      CloudFormation, recorded in their own stages), B5, B7, B10, B11, B12.
+- [~] B1 to B12 each meet their "done when". **Met:** B1, B2, B3 (51 packages
+      carry a baseline: 50 before and `internal/migrate` on 2026-10-20;
+      `internal/console` is PARTIAL, 10 of its 85 non-test Go files, see B3;
+      Lambda, API Gateway and CloudFormation are recorded in their own stages), B5, B7, B10, B11, B12.
       **Partly, and why it is not the foundation's:** B4 (the record, the lazy
       registry and SQS as the worked example; 22 hand-written bounded number
       inputs remain, frozen by a ratchet that only goes down; each service writes
