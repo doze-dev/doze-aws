@@ -1080,6 +1080,18 @@
     "recorded": "2026-10-20",
     "gremlins": "v0.6.0"
   },
+  "internal/migrate": {
+    "killed": 9,
+    "lived": [
+      "migrate.go:84:ARITHMETIC_BASE"
+    ],
+    "timedOut": 0,
+    "notCovered": 0,
+    "notViable": 0,
+    "efficacy": 90,
+    "recorded": "2026-10-20",
+    "gremlins": "v0.6.0"
+  },
   "internal/modelcheck": {
     "killed": 58,
     "lived": [
