@@ -44,10 +44,12 @@ export interface Ctx extends Inst {
    * and is seeded with the same harbour fixture; `empty` has nothing in it at
    * all (the "none yet" boards); `fresh` is the harbour fixture again, for a
    * board whose state needs the real queues spent (a redrive that drains the
-   * DLQ) and must not disturb the default instance. The page must be pointed
+   * DLQ) and must not disturb the default instance; `map` and `mapLarge` are
+   * wired as the Map and Map-Large boards draw (mapfixture.ts), with the
+   * boards' flows hot. The page must be pointed
    * at it with `page.goto(inst.url(...))`.
    */
-  instance(kind: 'enforce' | 'empty' | 'fresh'): Promise<Inst>;
+  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge'): Promise<Inst>;
   /** Log a thing the report should carry beside the row (a note, not a failure). */
   note(text: string): void;
 }

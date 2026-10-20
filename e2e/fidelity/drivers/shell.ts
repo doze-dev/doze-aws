@@ -159,9 +159,25 @@ export const drivers: DriverTable = {
     },
   },
 
+  // The map: the wiring graph, drawn while it fits. The instance is wired as
+  // the board draws it (mapfixture.ts), with the statements bucket read so the
+  // wire out of it is dark.
+  Map: {
+    async drive(c) {
+      const m = await c.instance('map');
+      await c.page.goto(m.url('map'));
+    },
+  },
+
+  // The same page at scale: 41 wired resources in 11 flows, seeded from a spec.
+  'Map-Large': {
+    async drive(c) {
+      const m = await c.instance('mapLarge');
+      await c.page.goto(m.url('map'));
+    },
+  },
+
   // Boards with nothing to drive, and why. A skip is shown in the report.
-  Map: { skip: 'There is no map page: foundation D ("The map" is `new`, built from the wiring graph). Nothing to drive until it exists.' },
-  'Map-Large': { skip: 'There is no map page (foundation D); this is the same board at scale.' },
   'Bad-Down': { skip: 'The "cannot reach doze-aws" banner is not built (foundation D); it is the console\'s own poll failing, browser-side.' },
   Grounding: { skip: 'A document board (what was grounded in code and what is new), not a screen: there is no page state to drive.' },
 };

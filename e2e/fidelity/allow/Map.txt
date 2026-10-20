@@ -1,0 +1,2 @@
+# See Bad-DLQ.txt for the kinds. A missing sentence is never listed here to make a board pass.
+new page # annotation: the board's own tag, saying the page is new in the design; the product does not label itself

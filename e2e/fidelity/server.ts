@@ -13,8 +13,10 @@ export const REPO_DIR = resolve(E2E_DIR, '..');
 export const TMP_DIR = join(E2E_DIR, '.tmp');
 const BIN = join(TMP_DIR, 'bin', 'doze-aws-fidelity');
 
-export const PORT_MIN = 14960;
-export const PORT_MAX = 14969;
+// FIDELITY_PORT_MIN moves the ten-port window, so two checkouts can run the
+// harness at once without taking each other's ports.
+export const PORT_MIN = Number(process.env.FIDELITY_PORT_MIN ?? 14960);
+export const PORT_MAX = PORT_MIN + 9;
 
 export function build(): void {
   mkdirSync(join(TMP_DIR, 'bin'), { recursive: true });

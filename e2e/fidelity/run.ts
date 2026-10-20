@@ -24,6 +24,7 @@ import { allBoards, boardsFor, coverage, isSkip, resolveTarget, SHELL } from './
 import type { Ctx, Driver, Inst } from './drivers/types';
 import { DRIVERS } from './drivers';
 import { seedHarbour } from './harbour';
+import { seedMap, seedMapLarge } from './mapfixture';
 import { counts, failing, renderReport, type Row } from './report';
 import { boot, build, E2E_DIR, freePort, ID2, inst, REPO_DIR, TMP_DIR, type Booted } from './server';
 import { checkText } from './text';
@@ -104,11 +105,12 @@ async function main(): Promise<number> {
   let browser: Browser | undefined;
   const rows: Row[] = [];
   try {
-    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean): Promise<Inst> => {
+    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | ((i: Inst) => Promise<void>)): Promise<Inst> => {
       const b = await boot({ port: await freePort(taken), id2: flags.id2, iamMode: enforceMode ? 'enforce' : undefined, tag });
       booted.push(b);
       const i = inst(b.server);
-      if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s));
+      if (typeof seed === 'function') await seed(i);
+      else if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s));
       return i;
     };
     const main = await bootSeeded('main', false, true);
@@ -116,6 +118,8 @@ async function main(): Promise<number> {
     let enforce: Promise<Inst> | undefined;
     let empty: Promise<Inst> | undefined;
     let fresh: Promise<Inst> | undefined;
+    let map: Promise<Inst> | undefined;
+    let mapLarge: Promise<Inst> | undefined;
 
     browser = await chromium.launch();
     const pageWidth = flags.w900 ? 900 : 1440;
@@ -229,6 +233,8 @@ async function main(): Promise<number> {
           if (kind === 'enforce') return (enforce ??= bootSeeded('enforce', true, true));
           if (kind === 'empty') return (empty ??= bootSeeded('empty', false, false));
           if (kind === 'fresh') return (fresh ??= bootSeeded('fresh', false, true));
+          if (kind === 'map') return (map ??= bootSeeded('map', false, seedMap));
+          if (kind === 'mapLarge') return (mapLarge ??= bootSeeded('map-large', false, seedMapLarge));
           throw new Error(`unknown instance ${kind}`);
         },
       };

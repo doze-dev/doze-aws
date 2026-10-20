@@ -101,10 +101,10 @@ describe('the real tables against the real boards', () => {
     expect(coverage(boards, DRIVERS.sqs!)).toEqual({ undriven: [], orphaned: [] });
   });
 
-  test.skipIf(!have)('the shell table covers the cross-cutting boards, with the four undrivable ones as explicit skips', () => {
+  test.skipIf(!have)('the shell table covers the cross-cutting boards, with the two undrivable ones as explicit skips', () => {
     const boards = boardsFor(SHELL, real);
     expect(coverage(boards, DRIVERS.shell!)).toEqual({ undriven: [], orphaned: [] });
-    for (const name of ['Map', 'Map-Large', 'Bad-Down', 'Grounding']) {
+    for (const name of ['Bad-Down', 'Grounding']) {
       const d = DRIVERS.shell![name];
       expect(d && 'skip' in d && d.skip.length > 10).toBe(true);
     }
