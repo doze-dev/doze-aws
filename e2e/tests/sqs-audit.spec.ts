@@ -75,7 +75,8 @@ test.describe('configuration edit', () => {
 
 test.describe('a disabled event source mapping', () => {
   test('is drawn as disabled, not as a reader', async ({ page, request, uniqueName }) => {
-    const queue = await createQueue(request, uniqueName('e2e-aud-off'), { visibility: 30 });
+    // 60 s covers the function's 60 s: a trigger is refused otherwise (LAM-5; doze-aws checks a disabled one too, the doc says "create or update").
+    const queue = await createQueue(request, uniqueName('e2e-aud-off'), { visibility: 60 });
     const fn = uniqueName('e2e-aud-off-fn');
     const empty = path.resolve(__dirname, `../.tmp/sqs-off-${fn}`);
     fs.mkdirSync(empty, { recursive: true });

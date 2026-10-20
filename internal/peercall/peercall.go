@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -50,6 +51,30 @@ func SQSQueueMissing(ctx context.Context, dir peers.Directory, queue string) boo
 	// shape name, which is the one this call gets back.
 	return err != nil && (strings.Contains(err.Error(), "NonExistentQueue") ||
 		strings.Contains(err.Error(), "QueueDoesNotExist"))
+}
+
+// SQSVisibilityTimeout is the queue's VisibilityTimeout in seconds. known is
+// false when nobody can say (no SQS in this stack, the queue is not there, SQS
+// failed): like SQSQueueMissing, the caller is deciding whether to refuse
+// something, and "I could not find out" is not grounds to refuse.
+func SQSVisibilityTimeout(ctx context.Context, dir peers.Directory, queue string) (seconds int, known bool) {
+	ep, ok := dir.Endpoint("sqs")
+	if !ok {
+		return 0, false
+	}
+	body, err := postJSONResult(ctx, ep, "AmazonSQS.GetQueueAttributes", "application/x-amz-json-1.0",
+		map[string]any{"QueueUrl": peerQueueURL(queue), "AttributeNames": []string{"VisibilityTimeout"}})
+	if err != nil {
+		return 0, false
+	}
+	var out struct {
+		Attributes map[string]string `json:"Attributes"`
+	}
+	if json.Unmarshal(body, &out) != nil {
+		return 0, false
+	}
+	n, err := strconv.Atoi(out.Attributes["VisibilityTimeout"])
+	return n, err == nil
 }
 
 // SQSSend sends one message to a queue by name (SQS JSON protocol).

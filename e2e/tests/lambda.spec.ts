@@ -201,7 +201,8 @@ test.describe('lifecycle', () => {
     uniqueName,
     waitForToast,
   }) => {
-    queueName = await createQueue(request, uniqueName('lam-trig'));
+    // The function's timeout is 45 s, so the queue hides a message for longer: a trigger is refused otherwise (LAM-5).
+    queueName = await createQueue(request, uniqueName('lam-trig'), { visibility: 60 });
 
     await page.goto(`lambda/${fnName}?tab=triggers`);
     await expect(page.locator('#lambda-triggers')).toContainText('No triggers yet');

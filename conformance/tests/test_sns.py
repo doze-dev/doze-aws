@@ -202,3 +202,21 @@ def test_fifo_topic_delivers_to_a_fifo_queue(client, names, cleanup, snapshot, e
         Name=names("plain", suffix=".fifo")))
     snapshot.error("the-attribute-without-the-fifo-name", lambda: sns.create_topic(
         Name=names("plain"), Attributes={"FifoTopic": "true"}))
+
+
+def test_a_fifo_queue_on_a_standard_topic(client, names, cleanup, snapshot):
+    """SNS-12 / SQS plan section 9. doze-aws accepts the subscription and then
+    drops every delivery; the model says nothing of it. Whichever AWS does (SNS
+    refuses a FIFO queue endpoint for a standard topic with InvalidParameter, as
+    recalled) is recorded."""
+    sns, sqs = client("sns"), client("sqs")
+    arn = sns.create_topic(Name=names("topic"))["TopicArn"]
+    cleanup(sns.delete_topic, TopicArn=arn)
+    url = sqs.create_queue(QueueName=names("queue", suffix=".fifo"),
+                           Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"})["QueueUrl"]
+    cleanup(sqs.delete_queue, QueueUrl=url)
+    qarn = sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
+    sub = snapshot.outcome("subscribe", lambda: sns.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint=qarn, ReturnSubscriptionArn=True), opaque=("SubscriptionArn",))
+    if isinstance(sub, dict):
+        cleanup(sns.unsubscribe, SubscriptionArn=sub["SubscriptionArn"])

@@ -258,3 +258,37 @@ def test_copy_replaces_or_keeps_metadata(client, names, cleanup, snapshot):
         Bucket=name, Key="src", CopySource=src))
     snapshot.error("absent-source", lambda: s3.copy_object(
         Bucket=name, Key="x", CopySource={"Bucket": name, "Key": "absent"}))
+
+
+def test_notification_fifo_queue(client, names, cleanup, snapshot):
+    """SQS plan section 9 / S3-5, S3-26. "Amazon SQS FIFO queues aren't
+    supported" as an event notification destination. Both queues carry a policy
+    that lets this bucket send, so the difference between them is the type: the
+    standard queue is the control, and the FIFO queue is refused (the code and
+    text are recorded)."""
+    import json
+
+    s3, sqs = client("s3"), client("sqs")
+    name = bucket(s3, names, cleanup)
+
+    def queue(label, suffix, **attrs):
+        url = sqs.create_queue(QueueName=names(label, suffix=suffix), Attributes=attrs)["QueueUrl"]
+        cleanup(sqs.delete_queue, QueueUrl=url)
+        arn = sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
+        sqs.set_queue_attributes(QueueUrl=url, Attributes={"Policy": json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{"Effect": "Allow", "Principal": {"Service": "s3.amazonaws.com"},
+                           "Action": "sqs:SendMessage", "Resource": arn,
+                           "Condition": {"ArnLike": {"aws:SourceArn": f"arn:aws:s3:::{name}"}}}]})})
+        return arn
+
+    def put(arn):
+        return s3.put_bucket_notification_configuration(Bucket=name, NotificationConfiguration={
+            "QueueConfigurations": [{"QueueArn": arn, "Events": ["s3:ObjectCreated:*"]}]})
+
+    standard = queue("standard", "")
+    fifo = queue("fifo", ".fifo", FifoQueue="true")
+    snapshot.match("standard-queue", put(standard))
+    snapshot.error("fifo-queue", lambda: put(fifo))
+    snapshot.match("configuration-after", s3.get_bucket_notification_configuration(Bucket=name),
+                   opaque=("Id", "QueueArn"))

@@ -280,6 +280,11 @@ func (s *Server) putBucketDoc(w http.ResponseWriter, r *http.Request, bucket, na
 			return awshttp.Errf(400, "MalformedXML", "%s configuration is not well-formed XML", name)
 		}
 	}
+	if name == "notification" {
+		if aerr := refuseFIFODestinations(doc); aerr != nil {
+			return aerr
+		}
+	}
 	if err := s.store.UpdateBucket(bucket, func(bk *s3store.Bucket) error {
 		*bucketDocField(bk, name) = doc
 		return nil
@@ -287,6 +292,28 @@ func (s *Server) putBucketDoc(w http.ResponseWriter, r *http.Request, bucket, na
 		return awshttp.AsAPIError(err)
 	}
 	w.WriteHeader(200)
+	return nil
+}
+
+// refuseFIFODestinations: "Amazon SQS FIFO queues aren't supported" as an S3
+// event notification destination (doc: the S3 developer guide's Event
+// Notifications page, read for S3-5 and S3-26; the S3 model says nothing of it).
+// A FIFO queue's name ends in ".fifo" and its ARN ends in its name, so no call
+// to SQS is needed. The code and text are memory (the InvalidArgument S3 gives a
+// destination it cannot validate), and no test asserts the text. A document
+// that does not parse is stored as before. Direction before this: more forgiving
+// than AWS.
+func refuseFIFODestinations(doc string) *awshttp.APIError {
+	var cfg notificationConfig
+	if xml.Unmarshal([]byte(doc), &cfg) != nil {
+		return nil
+	}
+	for _, q := range cfg.Queues {
+		if strings.HasSuffix(q.Queue, ".fifo") {
+			return awshttp.Errf(400, "InvalidArgument",
+				"Unable to validate the following destination configurations: %s (an Amazon SQS FIFO queue is not a supported destination; use Amazon EventBridge)", q.Queue)
+		}
+	}
 	return nil
 }
 

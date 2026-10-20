@@ -14,6 +14,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/restroute"
+	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/trace"
 )
 
@@ -258,7 +259,8 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 			"doze-aws event source mappings support SQS queues, DynamoDB streams and Kinesis streams; got %q", req.EventSourceArn)
 	}
 	fnName := req.FunctionName[strings.LastIndex(req.FunctionName, ":")+1:]
-	if _, err := s.store.GetFunction(fnName); err != nil {
+	fn, err := s.store.GetFunction(fnName)
+	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
 	// A mapping to a queue that is not there is refused, as Lambda refuses it
@@ -271,6 +273,9 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 			return awshttp.Errf(400, "InvalidParameterValueException",
 				"Error occurred while ReceiveMessage. SQS Error Code: AWS.SimpleQueueService.NonExistentQueue. "+
 					"SQS Error Message: The specified queue does not exist.")
+		}
+		if aerr := queueHidesAsLongAsTheFunctionRuns(r.Context(), s.peers, req.EventSourceArn, fn); aerr != nil {
+			return aerr
 		}
 	}
 	enabled := true
@@ -292,6 +297,26 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	return nil
 }
 
+// queueHidesAsLongAsTheFunctionRuns refuses a trigger whose queue hides a
+// received message for less time than the function may run: "Your function's
+// timeout must be less than or equal to the queue's visibility timeout. Lambda
+// validates this requirement when you create or update an event source mapping
+// and returns an error if the function timeout exceeds the queue's visibility
+// timeout" (doc: Creating and configuring an Amazon SQS event source mapping;
+// LAM-5). Equal is allowed. The model lists InvalidParameterValueException (400)
+// as the one fitting client error; the message is memory (AWS's own wording, as
+// recalled) and no test asserts it. Without a queue to ask, nothing is refused.
+// Direction before this: more forgiving than AWS.
+func queueHidesAsLongAsTheFunctionRuns(ctx context.Context, dir peers.Directory, sourceARN string, fn *function) *awshttp.APIError {
+	queue := sourceARN[strings.LastIndex(sourceARN, ":")+1:]
+	visibility, known := peercall.SQSVisibilityTimeout(ctx, dir, queue)
+	if !known || fn.Timeout <= visibility {
+		return nil
+	}
+	return awshttp.Errf(400, "InvalidParameterValueException",
+		"Queue visibility timeout: %d seconds is less than Function timeout: %d seconds", visibility, fn.Timeout)
+}
+
 func (s *Server) updateMapping(w http.ResponseWriter, r *http.Request, uuid string) *awshttp.APIError {
 	var req struct {
 		Enabled   *bool `json:"Enabled"`
@@ -303,6 +328,16 @@ func (s *Server) updateMapping(w http.ResponseWriter, r *http.Request, uuid stri
 	m, err := s.store.GetMapping(uuid)
 	if err != nil {
 		return awshttp.AsAPIError(err)
+	}
+	// Validated on update as on create, against the function's timeout as it is
+	// now: a function raised past its queue's visibility timeout after the
+	// mapping was made is refused its next update (LAM-5).
+	if strings.Contains(m.EventSourceArn, ":sqs:") {
+		if fn, ferr := s.store.GetFunction(m.FunctionName); ferr == nil {
+			if aerr := queueHidesAsLongAsTheFunctionRuns(r.Context(), s.peers, m.EventSourceArn, fn); aerr != nil {
+				return aerr
+			}
+		}
 	}
 	if req.BatchSize > 0 {
 		m.BatchSize = req.BatchSize

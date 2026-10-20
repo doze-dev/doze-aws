@@ -6,18 +6,38 @@ command and a review, not a day of finding out what to set.
 
 ## SQS
 
-Everything in `plan/services/sqs.md` section 8 (the recording queue) is one
-file: `conformance/tests/test_sqs.py`, 50 scenarios, about 180 recorded labels.
-Nothing in it is recorded yet; `uv run pytest tests/test_sqs.py` reports every
-response as UNVERIFIED. The claims they would settle are in
-`conformance/claims/sqs.md`, each row naming its scenario.
+Everything in `plan/services/sqs.md` section 8 (the recording queue) is
+`conformance/tests/test_sqs.py` (50 scenarios, about 180 recorded labels) and
+four scenarios in the neighbours' files that section 9 (owed to integration)
+needs: `test_lambda.py::test_a_trigger_whose_queue_hides_for_less_than_the_function_runs`
+and `::test_a_deleted_functions_mapping` (each makes a Python function and a
+Lambda execution role, which the `service_role` fixture creates and removes; the
+second sleeps 30 s), `test_s3.py::test_notification_fifo_queue` and
+`test_sns.py::test_a_fifo_queue_on_a_standard_topic`. Nothing in them is
+recorded yet; `uv run pytest tests/test_sqs.py` reports every response as
+UNVERIFIED. The claims they would settle are in `conformance/claims/sqs.md`,
+each row naming its scenario. Record the five files in one run:
+
+```sh
+uv run --frozen pytest tests/test_sqs.py \
+  tests/test_lambda.py::test_a_trigger_whose_queue_hides_for_less_than_the_function_runs \
+  tests/test_lambda.py::test_a_deleted_functions_mapping \
+  tests/test_s3.py::test_notification_fifo_queue \
+  tests/test_sns.py::test_a_fifo_queue_on_a_standard_topic
+```
+
+(with the environment of the next section).
 
 ### Before
 
 1. **An account** you may create queues in, and credentials for it in the
    environment (`AWS_PROFILE=<name>`, or the key variables). Nothing here
    needs an administrator: `sqs:*` on `arn:aws:sqs:<region>:<account>:dzc-*`,
-   `sqs:ListQueues`, and `sts:GetCallerIdentity` (the account check).
+   `sqs:ListQueues`, and `sts:GetCallerIdentity` (the account check). The four
+   neighbour scenarios add `lambda:*` on `dzc-*` functions and mappings,
+   `iam:CreateRole`, `AttachRolePolicy`, `PassRole` and their deletes on `dzc-*`
+   roles, `s3:CreateBucket` and bucket configuration on `dzc-*` buckets, and
+   `sns:*` on `dzc-*` topics.
 2. **The account id, typed.** `CONFORMANCE_AWS_ACCOUNT=<12 digits>` must equal
    the account the credentials resolve to; if it does not, nothing is created.
 3. **A Region.** `CONFORMANCE_AWS_REGION` defaults to `us-east-1`, doze-aws's

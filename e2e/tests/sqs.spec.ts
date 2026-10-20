@@ -993,12 +993,16 @@ test.describe('configuration tab', () => {
     request,
     uniqueName,
   }) => {
-    const queue = await createQueue(request, uniqueName('e2e-sqs-reader'), { visibility: 30 });
+    // A trigger is refused when the queue hides a message for less than the function
+    // may run (LAM-5), so it is made while the queue covers the function, and the
+    // queue's visibility timeout is lowered after: AWS does not check a queue's change.
+    const queue = await createQueue(request, uniqueName('e2e-sqs-reader'), { visibility: 600 });
     const fn = uniqueName('e2e-sqs-reader-fn');
     const empty = path.resolve(__dirname, `../.tmp/sqs-reader-${fn}`);
     fs.mkdirSync(empty, { recursive: true });
     await createFunction(request, fn, { code: empty, timeout: 60 });
     await postForm(request, `lambda/${fn}/add-mapping`, { queue, batch: 5 });
+    await postForm(request, `sqs/${queue}/attributes`, { visibility: 30 });
 
     await page.goto(`sqs/${queue}?tab=config`);
     const reader = page.locator('.stack-readers .q-callout', { hasText: fn });

@@ -218,3 +218,65 @@ def test_refusals(client, names, cleanup, snapshot, service_role, target):
     snapshot.error("mapping-to-absent-queue", lambda: lam.create_event_source_mapping(
         FunctionName=name,
         EventSourceArn=f"arn:aws:sqs:{target.region}:{target.account}:{absent}"))
+
+
+def queue_arn(sqs, url):
+    return sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
+
+
+def test_a_trigger_whose_queue_hides_for_less_than_the_function_runs(
+        client, names, cleanup, snapshot, service_role):
+    """LAM-5 / SQS plan section 9. "Your function's timeout must be less than or
+    equal to the queue's visibility timeout. Lambda validates this requirement
+    when you create or update an event source mapping and returns an error if the
+    function timeout exceeds the queue's visibility timeout." The function's
+    timeout is 10 s (function() above)."""
+    lam, sqs = client("lambda"), client("sqs")
+    name, _ = function(lam, names, cleanup, service_role("lambda", BASIC, SQS_EXEC))
+
+    def queue(label, visibility):
+        url = sqs.create_queue(QueueName=names(label), Attributes={"VisibilityTimeout": visibility})["QueueUrl"]
+        cleanup(sqs.delete_queue, QueueUrl=url)
+        return queue_arn(sqs, url)
+
+    snapshot.error("visibility-2-timeout-10", lambda: lam.create_event_source_mapping(
+        FunctionName=name, EventSourceArn=queue("short", "2"), BatchSize=1))
+    made = snapshot.outcome("visibility-10-timeout-10", lambda: lam.create_event_source_mapping(
+        FunctionName=name, EventSourceArn=queue("equal", "10"), BatchSize=1),
+        opaque=MINTED, drop=("State", "StateTransitionReason"))
+    if isinstance(made, dict):
+        cleanup(lam.delete_event_source_mapping, UUID=made["UUID"])
+        # Raised past the queue's after the mapping was made: the next update.
+        lam.update_function_configuration(FunctionName=name, Timeout=60)
+        lam.get_waiter("function_updated_v2").wait(FunctionName=name, WaiterConfig=FAST)
+        snapshot.outcome("update-after-the-timeout-was-raised", lambda: lam.update_event_source_mapping(
+            UUID=made["UUID"], BatchSize=5), opaque=MINTED, drop=("State", "StateTransitionReason"))
+
+
+def test_a_deleted_functions_mapping(client, names, cleanup, snapshot, service_role, eventually):
+    """SQS plan section 9: does the mapping of a deleted function go on reading
+    its queue? The model says only that "to delete Lambda event source mappings
+    that invoke a function, use DeleteEventSourceMapping". Recorded: what the
+    queue holds some time after a message is sent, and what the mapping says."""
+    import time
+
+    lam, sqs = client("lambda"), client("sqs")
+    name, _ = function(lam, names, cleanup, service_role("lambda", BASIC, SQS_EXEC))
+    url = sqs.create_queue(QueueName=names("queue"), Attributes={"VisibilityTimeout": "30"})["QueueUrl"]
+    cleanup(sqs.delete_queue, QueueUrl=url)
+    made = lam.create_event_source_mapping(FunctionName=name, EventSourceArn=queue_arn(sqs, url), BatchSize=1)
+    cleanup(lam.delete_event_source_mapping, UUID=made["UUID"])
+
+    def enabled():
+        got = lam.get_event_source_mapping(UUID=made["UUID"])
+        assert got["State"] == "Enabled", got["State"]
+
+    eventually(enabled, timeout=120)
+    lam.delete_function(FunctionName=name)
+    time.sleep(10)  # a poller mid-receive when the function went
+    sqs.send_message(QueueUrl=url, MessageBody="for nobody")
+    time.sleep(20)
+    counters = sqs.get_queue_attributes(QueueUrl=url, AttributeNames=[
+        "ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"])["Attributes"]
+    snapshot.match("the-queue", counters)
+    snapshot.outcome("the-mapping", lambda: lam.get_event_source_mapping(UUID=made["UUID"]), opaque=MINTED)
