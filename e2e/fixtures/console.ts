@@ -7,6 +7,15 @@ function randomSuffix(len = 6): string {
 
 type ConfirmAction = 'accept' | 'cancel';
 
+/** The address of one REST API's page, and not of the create page, which is
+ *  `/apigw/create`: a pattern of `/apigw/[a-z0-9]+$` matches both, so a
+ *  waitForURL for the page a Create leads to returned at once, on the create
+ *  page's own address. The address also trails the page: the "API created"
+ *  toast is on screen while the address still reads /apigw/create (20 of 40
+ *  creates, measured), so a URL read after waiting for the toast could be the
+ *  create page's and a later goto landed on the Create form. */
+export const API_PAGE = /\/apigw\/(?!create$)[a-z0-9]+$/;
+
 type ConsoleFixtures = {
   /** A short unique resource name: `${prefix}-${randomHex}`. Use this for
    *  every resource a spec creates so parallel tests never collide. */

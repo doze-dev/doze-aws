@@ -1496,7 +1496,16 @@ test.describe('Esc does what the key bar says', () => {
 
     await page.goto(`sqs/${name}?tab=config`);
     await page.getByRole('button', { name: 'Edit settings' }).click();
+    // Wait for the form to be shown before focusing into it and pressing a key.
+    // Alpine's x-show shows an element from a setTimeout (so a click that opens
+    // it is not also a click-away), which is a task after the click: a focus()
+    // sent before it does nothing, and an Escape sent before it finds the Cancel
+    // button not yet displayed, so nothing closes and the form then appears.
+    // Under a full-suite run the gap is long enough for Playwright to land in
+    // (seen: Escape 5 ms after the click). A person cannot press a key that fast.
+    await expect(page.locator('#sqs-config input[name=visibility]')).toBeVisible();
     await page.locator('#sqs-config input[name=visibility]').focus();
+    await expect(page.locator('#sqs-config input[name=visibility]')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page.locator('#sqs-config input[name=visibility]')).toBeHidden();
 

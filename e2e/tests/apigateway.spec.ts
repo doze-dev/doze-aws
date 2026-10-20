@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/console';
+import { test, expect, API_PAGE } from '../fixtures/console';
 import { ORIGIN } from '../playwright.config';
 
 // API Gateway console coverage: the build-an-API path end to end — create,
@@ -13,7 +13,7 @@ test.describe('API Gateway console', () => {
     await page.goto('apigw/create');
     await page.locator('input[name="name"]').fill(name);
     await page.getByRole('button', { name: 'Create API' }).click();
-    await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+    await page.waitForURL(API_PAGE);
     // The flash rides the same feedback sequence the toast fixture tracks —
     // consume it through the fixture so later toast asserts see fresh entries.
     let toast = await waitForToast();
@@ -95,7 +95,7 @@ test.describe('API Gateway gates', () => {
     await page.goto('apigw/create');
     await page.locator('input[name="name"]').fill(name);
     await page.getByRole('button', { name: 'Create API' }).click();
-    await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+    await page.waitForURL(API_PAGE);
     await waitForToast();
     const apiURL = page.url();
 
@@ -179,7 +179,7 @@ test.describe('API Gateway gates', () => {
     await page.goto('apigw/create');
     await page.locator('input[name="name"]').fill(name);
     await page.getByRole('button', { name: 'Create API' }).click();
-    await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+    await page.waitForURL(API_PAGE);
     await waitForToast();
     const apiURL = page.url();
     const apiID = apiURL.split('/').pop()!;
@@ -284,7 +284,7 @@ async function newRestApi(page: import('@playwright/test').Page, waitForToast: T
   await page.goto('apigw/create');
   await page.locator('input[name="name"]').fill(name);
   await page.getByRole('button', { name: 'Create API' }).click();
-  await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+  await page.waitForURL(API_PAGE);
   await waitForToast();
   const url = page.url();
   return { url, id: url.split('/').pop()! };

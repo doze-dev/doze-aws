@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect } from '../fixtures/console';
+import { test, expect, API_PAGE } from '../fixtures/console';
 
 // API keys and usage plans: the controls apigateway.spec.ts's gate tests
 // never touch — disabling and re-enabling a key, a plan created with no stage
@@ -15,7 +15,7 @@ async function deployedApi(page: Page, waitForToast: ToastFn, name: string, stag
   await page.goto('apigw/create');
   await page.locator('input[name="name"]').fill(name);
   await page.getByRole('button', { name: 'Create API' }).click();
-  await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+  await page.waitForURL(API_PAGE);
   await waitForToast();
   const url = page.url();
   await page.locator('button[title="Add method on /"]').click();
