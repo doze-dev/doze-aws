@@ -84,10 +84,6 @@
       </div>
     </div>
   </section>
-  <svg class="map-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs>
-    <marker id="map-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L7 4L1 7z" class="map-head"/></marker>
-    <marker id="map-arrow-hot" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L7 4L1 7z" class="map-head hot"/></marker>
-  </defs></svg>
 {{template "shell_bottom" .}}{{end}}
 
 {{/* One flow, drawn: its name, the boxes (links) over the wires (SVG), each
@@ -98,7 +94,7 @@
   <h2 class="map-flow-h" id="mf-{{.F.Num}}">{{if not .Solo}}<a href="{{.F.URL}}">{{end}}Flow {{.F.Num}} · from {{.F.Title}}{{if not .Solo}}</a>{{end}}{{if .F.Hot}} <span class="map-hot">hot</span>{{end}}</h2>
   <div class="map-canvas" style="--w:{{$d.W}}px;--h:{{$d.H}}px;--bw:{{$d.BoxW}}px;--bh:{{$d.BoxH}}px">
     <svg class="map-wires" width="{{$d.W}}" height="{{$d.H}}" viewBox="0 0 {{$d.W}} {{$d.H}}" aria-hidden="true" focusable="false">
-      {{range $d.Wires}}<path class="map-wire{{if .Hot}} hot{{end}}{{if .Off}} off{{end}}" d="{{.Path}}" marker-end="url(#map-arrow{{if .Hot}}-hot{{end}})"/>{{end}}
+      {{range $d.Wires}}<path class="map-wire{{if .Hot}} hot{{end}}{{if .Off}} off{{end}}" d="{{.Path}}"/>{{end}}
     </svg>
     {{range $d.Wires}}<span class="map-label{{if .Hot}} hot{{end}}" style="--x:{{.LX}}px;--y:{{.LY}}px">{{.Label}}</span>{{end}}
     {{range $d.Boxes}}<a class="map-box" href="{{$.P}}{{.URL}}" title="{{.Word}} {{.Label}}{{with .Sub}} · {{.}}{{end}}" style="--x:{{.X}}px;--y:{{.Y}}px">{{awsIcon .Svc}}<span class="map-name">{{.Label}}</span></a>{{end}}

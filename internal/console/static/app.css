@@ -2552,12 +2552,9 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .map-hot { margin-left: 6px; padding: 1px 5px; font-size: 10px; line-height: 1; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--success); border: 1px solid var(--success); border-radius: 3px; }
 .map-canvas { position: relative; width: var(--w); height: var(--h); }
 .map-wires { position: absolute; left: 0; top: 0; overflow: visible; }
-.map-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .map-wire { fill: none; stroke: var(--muted-foreground); stroke-width: 2; }
 .map-wire.hot { stroke: var(--foreground); }
 .map-wire.off { stroke-dasharray: 5 4; }
-.map-head { fill: var(--muted-foreground); }
-.map-head.hot { fill: var(--foreground); }
 .map-label { position: absolute; left: var(--x); top: var(--y); font-family: var(--mono); font-size: 11px; line-height: 12px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; }
 .map-label.hot { color: var(--foreground); }
 .map-box { position: absolute; left: var(--x); top: var(--y); width: var(--bw); height: var(--bh); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
