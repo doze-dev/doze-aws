@@ -27,14 +27,21 @@ type cwServer struct {
 	mu    sync.Mutex
 	calls []int // MetricData length of each PutMetricData
 	names []string
-	fail  bool
+	// values and units are what each datum carried, in the order published.
+	values []float64
+	units  []string
+	fail   bool
 }
 
 func (c *cwServer) handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Namespace  string
-			MetricData []struct{ MetricName string }
+			MetricData []struct {
+				MetricName string
+				Value      float64
+				Unit       string
+			}
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
 		c.mu.Lock()
@@ -42,6 +49,8 @@ func (c *cwServer) handler() http.Handler {
 		c.calls = append(c.calls, len(req.MetricData))
 		for _, m := range req.MetricData {
 			c.names = append(c.names, req.Namespace+"/"+m.MetricName)
+			c.values = append(c.values, m.Value)
+			c.units = append(c.units, m.Unit)
 		}
 		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
 		if c.fail {
@@ -95,6 +104,13 @@ func TestAnObservationIsPublished(t *testing.T) {
 	}
 	if got := log.all(); len(got) != 0 {
 		t.Errorf("a publish that worked said %v", got)
+	}
+	// A count is a Count of the value given; a duration is MILLISECONDS, so a
+	// quarter of a second is 250.
+	cw.mu.Lock()
+	defer cw.mu.Unlock()
+	if len(cw.values) != 2 || cw.values[0] != 3 || cw.units[0] != "Count" || cw.values[1] != 250 || cw.units[1] != "Milliseconds" {
+		t.Errorf("published values %v units %v, want 3 Count then 250 Milliseconds", cw.values, cw.units)
 	}
 }
 

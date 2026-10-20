@@ -176,6 +176,20 @@ func TestEncodeSpellsTimestampsAndEmptiesAsTheProtocolDoes(t *testing.T) {
 	}
 }
 
+// A map's keys are written in sorted order, ascending, whatever order Go
+// iterates them in, so two encodings of one value are the same bytes and a
+// recorded body can be compared.
+func TestMapKeysAreWrittenAscending(t *testing.T) {
+	got, err := Marshal(map[string]any{"b": 1, "c": 2, "a": 0, "ab": 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{0xa4, 0x61, 'a', 0x00, 0x62, 'a', 'b', 0x03, 0x61, 'b', 0x01, 0x61, 'c', 0x02}
+	if !bytes.Equal(got, want) {
+		t.Errorf("wrote % x, want % x", got, want)
+	}
+}
+
 func TestWriteSendsTheResultItWasGiven(t *testing.T) {
 	w := httptest.NewRecorder()
 	Write(w, map[string]any{"Count": 3})

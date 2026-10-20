@@ -48,6 +48,13 @@ func TestAssertPaginatesFailsForTheReasonItGives(t *testing.T) {
 		t.Errorf("an empty page with a token: said %q", got)
 	}
 
+	// A token that never ends is cut off after len(want)+2 pages and says so:
+	// five items allow seven pages, so the eighth is the one that fails.
+	forever := func(limit int, token string) ([]string, string, error) { return pagingItems[:1], "more", nil }
+	if got := saysOn(t, forever, pagingItems, PagingOptions{}); !strings.Contains(got, "still returning tokens after 8 pages for 5 items") {
+		t.Errorf("a token that never ends: said %q", got)
+	}
+
 	// With the order asked for, a listing that drops its last item says its
 	// order was wrong. (It must not index past the end of what it saw.)
 	dropsLast := func(limit int, token string) ([]string, string, error) {
