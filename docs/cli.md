@@ -133,7 +133,7 @@ export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
 aws sts get-caller-identity
 aws s3 mb s3://my-bucket
 aws s3 cp ./file.txt s3://my-bucket/
-aws dynamodb create-table --table-name t \
+aws dynamodb create-table --table-name items \
   --attribute-definitions AttributeName=id,AttributeType=S \
   --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
 aws sqs create-queue --queue-name jobs

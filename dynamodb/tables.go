@@ -4,8 +4,11 @@ package dynamodb
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/ddb/store"
@@ -140,10 +143,50 @@ var handlers = map[string]handler{
 	"UpdateContributorInsights":   (*Server).describeContributorInsights,
 }
 
+// validTableName holds a name that is being made to the model's shape
+// TableName: 3 to 255 characters of a-z A-Z 0-9 _ - . (the naming-rules page
+// says the same). CreateTable's own member targets TableArn because it may also
+// carry an ARN; the name that results is the shape's. The code is
+// ValidationException; the wording follows AWS's validation style and is
+// `memory`, so a recording replaces it, not a reader's taste.
+func validTableName(name string) *awshttp.APIError {
+	var broken []string
+	if n := utf8.RuneCountInString(name); n < 3 {
+		broken = append(broken, "Member must have length greater than or equal to 3")
+	} else if n > 255 {
+		broken = append(broken, "Member must have length less than or equal to 255")
+	}
+	for _, r := range name {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-' || r == '.') {
+			broken = append(broken, "Member must satisfy regular expression pattern: [a-zA-Z0-9_.-]+")
+			break
+		}
+	}
+	if len(broken) == 0 {
+		return nil
+	}
+	shown := name
+	if len(shown) > 64 {
+		shown = shown[:64] + "..."
+	}
+	var parts []string
+	for _, b := range broken {
+		parts = append(parts, fmt.Sprintf("Value '%s' at 'tableName' failed to satisfy constraint: %s", shown, b))
+	}
+	noun := "error"
+	if len(broken) > 1 {
+		noun = "errors"
+	}
+	return awshttp.Errf(400, "ValidationException", "%d validation %s detected: %s", len(broken), noun, strings.Join(parts, "; "))
+}
+
 func (s *Server) createTable(body []byte) (any, *awshttp.APIError) {
 	var req createTableReq
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
+	}
+	if aerr := validTableName(req.TableName); aerr != nil {
+		return nil, aerr
 	}
 	hash, rng, aerr := keyParts(req.KeySchema, req.AttributeDefinitions, "table")
 	if aerr != nil {

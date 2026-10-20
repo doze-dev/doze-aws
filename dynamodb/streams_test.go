@@ -62,7 +62,7 @@ func TestDynamoDBStreamsAPI(t *testing.T) {
 
 	// Stream-enabled table.
 	ct, err := c.CreateTable(ctx, &awsddb.CreateTableInput{
-		TableName:            aws.String("t"),
+		TableName:            aws.String("streamed"),
 		BillingMode:          ddbtypes.BillingModePayPerRequest,
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
 		KeySchema:            []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
@@ -78,16 +78,16 @@ func TestDynamoDBStreamsAPI(t *testing.T) {
 
 	// Generate INSERT, MODIFY, REMOVE.
 	put := func(v string) {
-		c.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("t"), Item: map[string]ddbtypes.AttributeValue{
+		c.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("streamed"), Item: map[string]ddbtypes.AttributeValue{
 			"pk": &ddbtypes.AttributeValueMemberS{Value: "k"}, "v": &ddbtypes.AttributeValueMemberS{Value: v},
 		}})
 	}
 	put("one")                                                                                                                                                         // INSERT
 	put("two")                                                                                                                                                         // MODIFY
-	c.DeleteItem(ctx, &awsddb.DeleteItemInput{TableName: aws.String("t"), Key: map[string]ddbtypes.AttributeValue{"pk": &ddbtypes.AttributeValueMemberS{Value: "k"}}}) // REMOVE
+	c.DeleteItem(ctx, &awsddb.DeleteItemInput{TableName: aws.String("streamed"), Key: map[string]ddbtypes.AttributeValue{"pk": &ddbtypes.AttributeValueMemberS{Value: "k"}}}) // REMOVE
 
 	// ListStreams + DescribeStream.
-	ls := streamsPost(t, ts.URL, "ListStreams", map[string]any{"TableName": "t"})
+	ls := streamsPost(t, ts.URL, "ListStreams", map[string]any{"TableName": "streamed"})
 	if len(ls["Streams"].([]any)) != 1 {
 		t.Fatalf("ListStreams = %v", ls["Streams"])
 	}

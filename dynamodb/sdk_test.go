@@ -464,7 +464,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	ctx := context.Background()
 	c := ddbClient(t)
 	if _, err := c.CreateTable(ctx, &awsddb.CreateTableInput{
-		TableName: aws.String("gt"),
+		TableName: aws.String("gsi-recreate"),
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{
 			{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS},
 			{AttributeName: aws.String("a"), AttributeType: ddbtypes.ScalarAttributeTypeS},
@@ -479,7 +479,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateTable: %v", err)
 	}
-	if _, err := c.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("gt"), Item: map[string]ddbtypes.AttributeValue{
+	if _, err := c.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("gsi-recreate"), Item: map[string]ddbtypes.AttributeValue{
 		"pk": &ddbtypes.AttributeValueMemberS{Value: "p1"}, "a": &ddbtypes.AttributeValueMemberS{Value: "old"},
 	}}); err != nil {
 		t.Fatalf("PutItem: %v", err)
@@ -487,7 +487,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 
 	// Drop the GSI.
 	if _, err := c.UpdateTable(ctx, &awsddb.UpdateTableInput{
-		TableName: aws.String("gt"),
+		TableName: aws.String("gsi-recreate"),
 		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
 			{Delete: &ddbtypes.DeleteGlobalSecondaryIndexAction{IndexName: aws.String("gsi")}},
 		},
@@ -496,7 +496,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	}
 	// Recreate a same-named GSI on a different attribute.
 	if _, err := c.UpdateTable(ctx, &awsddb.UpdateTableInput{
-		TableName: aws.String("gt"),
+		TableName: aws.String("gsi-recreate"),
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{
 			{AttributeName: aws.String("b"), AttributeType: ddbtypes.ScalarAttributeTypeS},
 		},
@@ -513,7 +513,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	// Querying the new GSI by the OLD attribute value must return nothing —
 	// the stale entry must not have survived.
 	out, err := c.Query(ctx, &awsddb.QueryInput{
-		TableName: aws.String("gt"), IndexName: aws.String("gsi"),
+		TableName: aws.String("gsi-recreate"), IndexName: aws.String("gsi"),
 		KeyConditionExpression:    aws.String("b = :v"),
 		ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{":v": &ddbtypes.AttributeValueMemberS{Value: "old"}},
 	})
