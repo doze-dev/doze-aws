@@ -133,12 +133,12 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <a class="nav" href="#"><span class="sv" style="--c: #e77610">λ</span>Lambda<span class="dot bad" style="margin-left: auto"></span><span class="n" style="margin-left: 0">4</span></a>
 <a class="nav" href="#"><span class="sv" style="--c: #00997a">AG</span>API Gateway<span class="n">2</span></a>
 <a class="nav" href="#"><span class="sv" style="--c: #d6247a">SF</span>Step Functions<span class="n">1</span></a>
-<a class="nav" href="#"><span class="sv" style="--c: #c13b6a">LG</span>Logs<span class="n">6</span></a>
+<a class="nav" href="#"><span class="sv" style="--c: #c13b6a">LG</span>CloudWatch Logs<span class="n">6</span></a>
 <a class="nav" href="#"><span class="sv" style="--c: #e0407e">CW</span>CloudWatch<span class="n">3</span></a>
 <div class="cap">Config and secrets</div>
 <a class="nav" href="#"><span class="sv" style="--c: #e5352b">KM</span>KMS<span class="n">2</span></a>
-<a class="nav" href="#"><span class="sv" style="--c: #c78806">SM</span>Secrets<span class="n">3</span></a>
-<a class="nav" href="#"><span class="sv" style="--c: #5ea60c">PS</span>Parameters<span class="n">9</span></a>
+<a class="nav" href="#"><span class="sv" style="--c: #c78806">SM</span>Secrets Manager<span class="n">3</span></a>
+<a class="nav" href="#"><span class="sv" style="--c: #5ea60c">PS</span>Parameter Store<span class="n">9</span></a>
 <div class="cap">Stack-wide</div>
 <a class="nav" href="#"><span class="sv" style="--c: #6a4dfb">IA</span>IAM<span class="n">3</span></a>
 <a class="nav" href="#"><span class="sv" style="--c: #97921a">CF</span>CloudFormation<span class="n">1</span></a>
@@ -149,10 +149,10 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="col"><h1 class="h1">The wire</h1><span class="mut">The grounds are neutral, never tinted. The services keep their own colours, and the four answers get lighter inks.</span></div>
 <div class="row g8 ce"><span class="pill ok"><span class="dot"></span>live</span><button class="btn">Pause</button></div>
 </div>
-<div class="row g8 ce"><div class="seg"><span class="on">All 212</span><span>Errors 1</span><span>Refused 1</span></div><button class="btn sm">every service</button></div>
+<div class="row g8 ce"><div class="seg"><span class="on">All</span><span>Errors</span><span>Refused</span></div><button class="btn sm">every service</button></div>
 
 <div class="card grow" style="--c: 96px 236px 1fr 104px 44px 100px">
-<div class="r h"><span>When</span><span>Call</span><span>On</span><span>Answer</span><span class="ra">ms</span><span>Where the time went</span></div>
+<div class="r h"><span>When</span><span>Call</span><span>On</span><span>Answer</span><span class="ra">ms</span><span>Time</span></div>
 <div class="r on"><span class="m">14:36:21.402</span><span class="row g6 ce"><span class="sv sm" style="--c: #e0328c">SQ</span><span class="b">SendMessage</span></span><span class="m">harbour-checkout-orders</span><span class="m ok">200</span><span class="m ra">2.1</span><div class="lane"><div style="left: 0; width: 4%"></div><div class="kid" style="left: 5%; width: 92%"></div></div></div>
 <div class="r kid"><span></span><span class="row g6 ce"><span class="tree">└</span><span class="sv sm" style="--c: #e77610">λ</span><span>Invoke</span></span><span class="m">harbour-order-validator</span><span class="m ok">200</span><span class="m ra">48.0</span><div class="lane"><div class="kid" style="left: 5%; width: 92%"></div></div></div>
 <div class="r" style="border-bottom-color: var(--line)"><span class="m">14:36:19.870</span><span class="row g6 ce"><span class="sv sm" style="--c: #e0328c">SQ</span><span class="b">SendMessage</span></span><span class="row g8 ce"><span class="m">harbour-checkout-orders</span><span class="note el">MessageDeduplicationId belongs to FIFO queues</span></span><span><span class="pill deny">400 refused</span></span><span class="m ra">0.1</span><div class="lane"></div></div>

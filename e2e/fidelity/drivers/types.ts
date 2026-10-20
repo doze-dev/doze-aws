@@ -49,7 +49,9 @@ export interface Ctx extends Inst {
    * boards' flows hot; `wire` is the harbour fixture and then the afternoon the
    * wire boards show (e2e/fidelity/wire.ts: a bucket, a table, a function that
    * throws, a firing alarm, and the calls made against them, with the ring
-   * started over before them). The page must be pointed at it with
+   * started over before them); `wireEnforce` is that afternoon on an instance
+   * that enforces IAM, with one more call: a read a bucket policy denies (the
+   * Dark board). The page must be pointed at it with
    * `page.goto(inst.url(...))`.
    *
    * `reader` is the harbour fixture with an ENABLED event source mapping to a
@@ -61,7 +63,7 @@ export interface Ctx extends Inst {
    * with nobody: for a board that spends the queues, enables a trigger, or holds
    * messages, and must not hand that state to the next board.
    */
-  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire' | 'reader' | 'own'): Promise<Inst>;
+  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire' | 'wireEnforce' | 'reader' | 'own'): Promise<Inst>;
   /** Log a thing the report should carry beside the row (a note, not a failure). */
   note(text: string): void;
 }

@@ -112,12 +112,13 @@ async function main(): Promise<number> {
   let browser: Browser | undefined;
   const rows: Row[] = [];
   try {
-    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | 'wire' | ((i: Inst) => Promise<void>), name?: string, reader = false): Promise<Inst> => {
+    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | 'wire' | 'wireEnforce' | ((i: Inst) => Promise<void>), name?: string, reader = false): Promise<Inst> => {
       const b = await boot({ port: await freePort(taken), id2: flags.id2, iamMode: enforceMode ? 'enforce' : undefined, tag, name });
       booted.push(b);
       const i = inst(b.server);
       if (typeof seed === 'function') await seed(i);
       else if (seed === 'wire') await seedWire(i, (s) => console.warn('  warning:', s));
+      else if (seed === 'wireEnforce') await seedWire(i, (s) => console.warn('  warning:', s), { denyRead: true });
       else if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s), { reader });
       return i;
     };
@@ -130,6 +131,7 @@ async function main(): Promise<number> {
     let map: Promise<Inst> | undefined;
     let mapLarge: Promise<Inst> | undefined;
     let wire: Promise<Inst> | undefined;
+    let wireEnforce: Promise<Inst> | undefined;
 
     browser = await chromium.launch();
     const pageWidth = flags.w900 ? 900 : flags.w1024 ? 1024 : 1440;
@@ -249,6 +251,8 @@ async function main(): Promise<number> {
           // been called yet; the instance is named so the page says the same.
           if (kind === 'empty') return (empty ??= bootSeeded('empty', false, false, 'shop'));
           if (kind === 'wire') return (wire ??= bootSeeded('wire', false, 'wire'));
+          // The wire's afternoon on an instance that enforces IAM, with a denied read (the Dark board).
+          if (kind === 'wireEnforce') return (wireEnforce ??= bootSeeded('wire-enforce', true, 'wireEnforce'));
           if (kind === 'fresh') return (fresh ??= bootSeeded('fresh', false, true));
           if (kind === 'map') return (map ??= bootSeeded('map', false, seedMap));
           if (kind === 'mapLarge') return (mapLarge ??= bootSeeded('map-large', false, seedMapLarge));

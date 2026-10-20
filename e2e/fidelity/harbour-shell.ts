@@ -8,8 +8,6 @@
 // Palette draws, under its dialog, "PutObject harbour-receipts/2026/HRB-2026-04811.pdf"
 // and "Query harbour-products"; States draws a DynamoDB Scan taking a while.
 
-import { join } from 'node:path';
-import { E2E_DIR } from './server';
 import type { Inst } from './drivers/types';
 
 /** A JSON-protocol call (DynamoDB 1.0). */
@@ -53,85 +51,6 @@ export async function enableTrigger(i: Inst, fn = 'harbour-order-validator'): Pr
     if (t.includes('<span class="nb-lbl">read by</span>')) return;
     if (Date.now() > until) throw new Error('the queue page still says "mapping disabled" 20 s after the trigger was enabled');
     await new Promise((res) => setTimeout(res, 500));
-  }
-}
-
-/** A form-encoded query-protocol call (CloudFormation 2010-05-15). */
-async function query(i: Inst, params: Record<string, string>): Promise<{ status: number; text: string }> {
-  const r = await fetch(`${i.server.origin}/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params).toString(),
-  });
-  return { status: r.status, text: await r.text() };
-}
-
-const seededWire = new Set<string>();
-
-/**
- * The traffic the Dark board lists on the wire, made for real: a function that
- * throws (a 200 flagged in X-Amz-Function-Error), a read of an object a bucket
- * policy denies (a 403, so on an instance that enforces IAM), a secret read, and
- * a stack update. Tolerant, like the rest: a call that fails warns, and the
- * board's text for it stays missing so the gap is visible.
- */
-export async function seedWire(i: Inst, warn: (s: string) => void): Promise<void> {
-  if (seededWire.has(i.server.origin)) return;
-  seededWire.add(i.server.origin);
-  const o = i.server.origin;
-  try {
-    // A function that raises a KeyError.
-    let r = await fetch(`${o}/_console/lambda/create`, {
-      method: 'POST',
-      redirect: 'manual',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        name: 'harbour-price-calculator',
-        runtime: 'python3.12',
-        handler: 'handler.handler',
-        code: join(E2E_DIR, 'fixtures', 'lambda-handler-throws'),
-        timeout: '30',
-      }),
-    });
-    if (r.status >= 400) warn(`seed: create harbour-price-calculator -> ${r.status}`);
-    r = await fetch(`${o}/2015-03-31/functions/harbour-price-calculator/invocations`, { method: 'POST', body: JSON.stringify({ sku: 'AMB-COF-227' }) });
-    if (!r.headers.get('x-amz-function-error')) warn(`seed: harbour-price-calculator did not throw (${r.status}); is python3 on the PATH?`);
-
-    // A read a bucket policy refuses.
-    const bucket = 'harbour-product-images';
-    r = await fetch(`${o}/${bucket}`, { method: 'PUT' });
-    if (!r.ok && r.status !== 409) warn(`seed: CreateBucket ${bucket} -> ${r.status}`);
-    r = await fetch(`${o}/${bucket}/catalogue/AMB-COF-227.png`, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: 'png' });
-    if (!r.ok) warn(`seed: PutObject catalogue/AMB-COF-227.png -> ${r.status}`);
-    r = await fetch(`${o}/${bucket}?policy`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [{ Sid: 'DenyReads', Effect: 'Deny', Principal: '*', Action: 's3:GetObject', Resource: `arn:aws:s3:::${bucket}/*` }],
-      }),
-    });
-    if (!r.ok) warn(`seed: PutBucketPolicy ${bucket} -> ${r.status}`);
-    r = await fetch(`${o}/${bucket}/catalogue/AMB-COF-227.png`);
-    if (r.status !== 403) warn(`seed: GetObject was not denied (${r.status}); is the instance in IAM enforce mode?`);
-
-    // A secret, read.
-    const sm = (target: string, body: Record<string, unknown>) =>
-      fetch(`${o}/`, { method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': `secretsmanager.${target}` }, body: JSON.stringify(body) });
-    r = await sm('CreateSecret', { Name: 'harbour/db', SecretString: JSON.stringify({ user: 'harbour', host: 'db.harbour.internal' }) });
-    if (!r.ok && r.status !== 400) warn(`seed: CreateSecret harbour/db -> ${r.status}`);
-    r = await sm('GetSecretValue', { SecretId: 'harbour/db' });
-    if (!r.ok) warn(`seed: GetSecretValue harbour/db -> ${r.status}`);
-
-    // A stack, updated.
-    const tpl = (retention: string) =>
-      JSON.stringify({ Resources: { LoyaltyQueue: { Type: 'AWS::SQS::Queue', Properties: { QueueName: 'harbour-loyalty-points-stack', MessageRetentionPeriod: retention } } } });
-    let q = await query(i, { Action: 'CreateStack', StackName: 'harbour-loyalty', TemplateBody: tpl('86400'), Version: '2010-05-15' });
-    if (q.status !== 200) warn(`seed: CreateStack harbour-loyalty -> ${q.status}`);
-    await new Promise((res) => setTimeout(res, 800));
-    q = await query(i, { Action: 'UpdateStack', StackName: 'harbour-loyalty', TemplateBody: tpl('172800'), Version: '2010-05-15' });
-    if (q.status !== 200) warn(`seed: UpdateStack harbour-loyalty -> ${q.status}`);
-  } catch (e) {
-    warn(`seed: wire traffic skipped: ${e}`);
   }
 }
 

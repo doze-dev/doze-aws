@@ -6,8 +6,11 @@
 # the two boards disagree and neither has been corrected), conflict (the board draws a thing the page
 # draws another way, and the owner has not chosen), decision (a written decision).
 # A missing sentence is never listed here to make a board pass: every line says what it is.
-6 # data: a sample rail count on the board ("Parameters 9", "Logs 6"); the fixture's counts are its own
-Parameters # superseded: the rail says "Parameter Store" on Main, on every service board and on the page (the service's name in AWS); Dark abbreviates it
+2.1 # data: a measured latency (the board's SendMessage); the page prints this run's
+48.0 # data: a measured latency (the board's Invoke); the page prints this run's
+0.2 # data: a measured latency (the board's GetSecretValue); the page prints this run's
+212 # data: a measured latency (the board's Invoke that threw); the page prints this run's
+38.2 # data: a measured latency (the board's UpdateStack); the page prints this run's
 The grounds are neutral, never tinted. The services keep their own colours, and the four answers get lighter inks. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
 APPEARANCE # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
 light # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar

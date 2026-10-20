@@ -10,13 +10,13 @@
 
 import type { Ctx, DriverTable } from './types';
 import { DLQ, FIFO, LOYALTY, MAIN } from '../harbour';
-import { PRODUCTS, RECEIPTS, enableTrigger, seedShell, seedWire } from '../harbour-shell';
+import { PRODUCTS, RECEIPTS, enableTrigger, seedShell } from '../harbour-shell';
 
 const orderBody = (id: string, lines: number, pence?: number) =>
   JSON.stringify(pence === undefined ? { orderId: id, lines } : { orderId: id, lines, totalPence: pence });
 
 /**
- * The queue as Anatomy and Narrow draw it: nothing waiting, two messages held
+ * The queue as Narrow draws it: nothing waiting, two messages held
  * (04812 already received once, so its receive makes it "2 of 3"; 04811 on its
  * first), and the Lambda trigger ENABLED, so the strip says "read by". Done on a
  * scratch copy of the fixture, in the order that keeps it true: held first, and
@@ -42,10 +42,15 @@ async function heldQueue(c: Ctx, bodies: { first: string; second: string }) {
 }
 
 export const drivers: DriverTable = {
-  // The annotated queue page: the eight parts of a resource page.
+  // The annotated queue page: the eight parts of a resource page. It draws the queue as
+  // the service's own Queue board does (the Messages tab, three waiting, one message
+  // opened in place), on the same copy of the fixture: an enabled mapping whose reader is
+  // busy, so the messages are still waiting and the strip says "read by".
   Anatomy: {
     async drive(c) {
-      const o = await heldQueue(c, { first: orderBody('HRB-2026-04811', 3), second: orderBody('HRB-2026-04812', 1) });
+      const o = await c.instance('reader');
+      // The board opens the order that has been received twice (04812), as Queue does.
+      await o.sqs('ReceiveMessage', { QueueUrl: o.queueUrl(MAIN), MaxNumberOfMessages: 10, VisibilityTimeout: 0 });
       // The board's wire row: a send the service refuses (a dedup id on a standard queue).
       const refused = await o.sqs('SendMessage', {
         QueueUrl: o.queueUrl(MAIN),
@@ -53,17 +58,11 @@ export const drivers: DriverTable = {
         MessageDeduplicationId: 'x',
       });
       if (refused.status !== 400) throw new Error(`expected a refusal, got ${refused.status}`);
-      // The board's active tab is Messages and its table is the held messages: on the
-      // page they are two tabs. The Consume tab (the held table) is the picture; the
-      // Messages tab (the composer, the empty state) is the second.
-      await c.page.goto(o.url(`sqs/${MAIN}?tab=consume`));
-      await c.settle(900);
-      await c.capture();
       await c.page.goto(o.url(`sqs/${MAIN}`));
-      await c.settle(600);
-      await c.capture('messages');
+      await c.page.locator('.msg:has-text("HRB-2026-04812") .rowopen').click();
+      await c.settle(900);
     },
-    note: 'The board is an annotated queue page (numbered parts and a "rule" panel). The page is the queue page: the Consume tab is the picture, because it is where the board\'s held-message table lives (the board puts it under Messages); the Messages tab is page-Anatomy-messages.png.',
+    note: 'The board is an annotated queue page (numbered parts and a "rule" panel). The page is the queue page on the Messages tab, drawn as Queue.dc.html draws it.',
   },
 
   // The Create board: a new queue, named, with the call it makes.
@@ -77,20 +76,18 @@ export const drivers: DriverTable = {
   },
 
   // The wire in the dark theme, in IAM enforce mode (the board's pill says so), with the
-  // calls the board lists on it.
+  // afternoon the board lists on it: the wire boards' afternoon (wire.ts) plus a read a
+  // bucket policy denies, on an instance that enforces.
   Dark: {
     async drive(c) {
-      const e = await c.instance('enforce');
-      await seedShell(e, (s) => c.note(s));
-      await seedWire(e, (s) => c.note(s));
-      // The board's refused row: a dedup id sent to a standard queue.
-      await e.sqs('SendMessage', { QueueUrl: e.queueUrl(MAIN), MessageBody: '{}', MessageDeduplicationId: 'x' });
+      const e = await c.instance('wireEnforce');
       await c.page.goto(e.url(''));
       await c.page.evaluate(() => localStorage.setItem('theme', 'dark'));
       await c.page.reload();
+      await c.page.waitForSelector('.tr-row');
       await c.settle(900);
     },
-    note: 'Dark is driven by storing the theme and reloading, on an IAM enforce instance. The wire page itself (its header, table and right-hand panel) is another package\'s.',
+    note: 'Dark is driven by storing the theme and reloading, on the wire boards\' afternoon (wire.ts) on an instance that enforces IAM, with a denied read. The wire page itself (its header, table and right-hand panel) is another package\'s.',
   },
 
   // At 1024: the list pane is a name switcher, the sentence and the dock are short, the notice is in the key bar.
@@ -103,12 +100,8 @@ export const drivers: DriverTable = {
       await c.page.goto(o.url(`sqs/${MAIN}?tab=consume`));
       await c.settle(900);
       await c.capture();
-      // The board's tab is Messages and its list is the held messages; the page has them on two tabs.
-      await c.page.goto(o.url(`sqs/${MAIN}`));
-      await c.settle(700);
-      await c.capture('messages');
     },
-    note: 'Rendered at 1024 by 768, the board\'s own size (the board sits in the top-left of a 1440 by 900 canvas). The Consume tab is the picture (the held table); the Messages tab is page-Narrow-messages.png.',
+    note: 'Rendered at 1024 by 768, the board\'s own size (the board sits in the top-left of a 1440 by 900 canvas). The board draws the Consume tab, as Sqs-11 does: the held table with Release and Delete on each row.',
   },
 
   // Seen from the wire, with a query typed.
@@ -148,6 +141,14 @@ export const drivers: DriverTable = {
       await p.goto(c.url(`sqs/${MAIN}`));
       await c.settle(900);
       await c.capture('answers');
+      // Something broke: a function that threw. Its answer is on the wire (a 200 flagged in
+      // X-Amz-Function-Error says "it threw" in place of the 200), so the picture is the wire
+      // of the afternoon the wire boards use, which holds one such Invoke.
+      const w = await c.instance('wire');
+      await p.goto(w.url(''));
+      await p.locator('.tr-row', { hasText: 'it threw' }).first().waitFor();
+      await c.settle(300);
+      await c.capture('threw');
       // A denied call (a policy said no): the queue's own policy denies a send, on the
       // instance that enforces, and the dock of the queue shows the call that was refused.
       const e = await c.instance('enforce');

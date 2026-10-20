@@ -131,6 +131,17 @@ async function seedShop(i: Inst, warn: (s: string) => void): Promise<string> {
   // Parameter Store holds nine (Main's rail): the stack's, below, and eight of the shop's.
   for (const p of ['currency', 'region', 'tax-rate', 'free-shipping-over', 'depot', 'support-email', 'feature-returns', 'feature-loyalty'])
     must(await jsonCall(i, 'AmazonSSM.PutParameter', '1.1', { Name: `/harbour/${p}`, Value: p, Type: 'String' }), `parameter ${p}`);
+  // The rail draws six log groups (Main): /harbour/checkout is the harbour seed's, the two
+  // functions' groups appear when they run, and these are the other three.
+  for (const name of ['/harbour/depot', '/harbour/payments', '/harbour/storefront']) {
+    const g = await fetch(`${server.origin}/_console/logs/create`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ name }),
+    });
+    if (g.status >= 400) warn(`wire seed: log group ${name} -> ${g.status}`);
+  }
   // A stack, to be updated.
   must(await queryCall(i, '2010-05-15', { Action: 'CreateStack', StackName: 'harbour-loyalty', TemplateBody: TEMPLATE('1') }), 'create stack');
   // Three alarms, one of them firing (the "Needs a look" panel's second callout).
@@ -163,12 +174,25 @@ async function seedShop(i: Inst, warn: (s: string) => void): Promise<string> {
   return sealed.json.CiphertextBlob as string;
 }
 
+export interface WireOptions {
+  /**
+   * The Dark board's afternoon: the instance enforces IAM, a bucket policy
+   * denies reads of one product image, and the afternoon reads it once (a 403
+   * the page shows as "403 denied"). Only on an instance booted with
+   * --iam-mode enforce: in soft mode the read would go through.
+   */
+  denyRead?: boolean;
+}
+
+const IMAGES = 'harbour-product-images';
+const IMAGE_KEY = 'catalogue/AMB-COF-227.png';
+
 /**
  * The afternoon. The validator's event source mapping is enabled last, so the
  * messages the harbour seed left on the queue are read before the ring is
  * cleared and not after.
  */
-export async function seedWire(i: Inst, warn: (s: string) => void): Promise<void> {
+export async function seedWire(i: Inst, warn: (s: string) => void, opts: WireOptions = {}): Promise<void> {
   buildHandler();
   await seedHarbour(i, warn, { handlerDir: HANDLER_DIR });
   // The shop's FIFO dispatch queue is the other boards' (the SQS pages). The
@@ -176,6 +200,38 @@ export async function seedWire(i: Inst, warn: (s: string) => void): Promise<void
   // FIFO, and the rail counts four queues either way.
   must(await i.sqs('DeleteQueue', { QueueUrl: i.queueUrl(FIFO) }), 'delete the FIFO queue');
   const blob = await seedShop(i, warn);
+  if (opts.denyRead) {
+    // Made before the ring is cleared, so none of it is on the wire. Under enforce a bucket's
+    // notification needs the queue's own say-so, as on AWS: without this policy the receipt's
+    // notification would be a second denied call of the afternoon.
+    must(
+      await i.sqs('SetQueueAttributes', {
+        QueueUrl: i.queueUrl(DISPATCH),
+        Attributes: {
+          Policy: JSON.stringify({
+            Version: '2012-10-17',
+            Statement: [{ Sid: 'S3Notifications', Effect: 'Allow', Principal: { Service: 's3.amazonaws.com' }, Action: 'sqs:SendMessage', Resource: i.queueArn(DISPATCH) }],
+          }),
+        },
+      }),
+      'dispatch queue policy',
+    );
+    must(await rest(i, 'PUT', `/${IMAGES}`), 'create bucket images');
+    must(await rest(i, 'PUT', `/${IMAGES}/${IMAGE_KEY}`, 'png', 'image/png'), 'put image');
+    must(
+      await rest(
+        i,
+        'PUT',
+        `/${IMAGES}?policy`,
+        JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [{ Sid: 'DenyReads', Effect: 'Deny', Principal: '*', Action: 's3:GetObject', Resource: `arn:aws:s3:::${IMAGES}/*` }],
+        }),
+        'application/json',
+      ),
+      'bucket policy',
+    );
+  }
 
   const list = await rest(i, 'GET', '/2015-03-31/event-source-mappings/');
   const uuid = list.json?.EventSourceMappings?.[0]?.UUID;
@@ -197,6 +253,11 @@ export async function seedWire(i: Inst, warn: (s: string) => void): Promise<void
   must(await jsonCall(i, 'secretsmanager.GetSecretValue', '1.1', { SecretId: 'harbour/db' }), 'get secret');
   // The price calculator is called without a unit_price and raises.
   await rest(i, 'POST', '/2015-03-31/functions/harbour-price-calculator/invocations', JSON.stringify({ price: { sku: 'HRB-1' } }), 'application/json');
+  if (opts.denyRead) {
+    // A read the bucket's policy refuses: after the function that threw, before the refused send.
+    const denied = await rest(i, 'GET', `/${IMAGES}/${IMAGE_KEY}`);
+    if (denied.status !== 403) throw new Error(`wire seed: the read of ${IMAGE_KEY} was not denied (${denied.status}); is the instance in IAM enforce mode?`);
+  }
   // A send the service refuses: a deduplication id on a standard queue.
   await i.sqs('SendMessage', {
     QueueUrl: i.queueUrl(MAIN),
