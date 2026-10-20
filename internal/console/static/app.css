@@ -3017,10 +3017,11 @@ a.wire-callout:hover { text-decoration: underline; }
   .wire.open .wire-tbl { --c: 92px 124px minmax(0, 1fr) 88px 44px; }
   .tr-head, .tr-row { column-gap: 8px; }
   .lane, .tr-lane-h { display: none; }
-  /* The refusal's sentence is on the inspector and its word is in the chip; at
-     this width the cell has room for the resource and not for a sentence beside
-     it, and a sentence cut to a letter says nothing. */
-  .tr-why-t { display: none; }
+  /* The refusal's sentence is on the inspector and its word is in the chip, and
+     what emitted a call is on the inspector too; at this width the cell has room
+     for the resource and not for a sentence beside it, and a sentence cut to a
+     letter ("v…") says nothing. */
+  .tr-why-t, .tr-via { display: none; }
   .wire-first { padding: 32px 28px 0; }
   .wf-cards { flex-wrap: wrap; }
 }
