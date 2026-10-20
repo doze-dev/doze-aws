@@ -59,12 +59,12 @@ question for the owner.
 
 | Board | Lacked before | Now | Built | Harness | Allowed (kind: n) | Still lacking (not this package's) |
 |---|---|---|---|---|---|---|
-| Anatomy | 30 of 71 | 0 | IAM pill "IAM soft · recording" | trigger enabled ("read by"); a refused call on the dock; the held table on its tab | annotation 17, superseded 6 | |
-| Create | 23 of 49 | 0 | the Create board's key bar; "The queue exists as long as the data directory does" | | decision 11, superseded 9 | |
-| Dark | 40 of 88 | 23 | IAM enforce pill (enforce instance) | theme kept across the reload (the runner overwrote it light); the calls the board lists, made for real (a function that throws, a denied read, a secret, a stack, a refused send) | annotation 9, data 1, superseded 1 | the wire page's own header, table and right-hand panel, and the rail's "The map" |
-| Narrow | 27 of 46 | 0 | the notice in the key bar; j k over messages; the short sentence; the dock's two forms | 1024 by 768, held messages, trigger enabled, a refused call | conflict 11, superseded 4, data 3 | |
-| Palette | 6 of 32 | 2 | the query typed at 16 px | the wire's PutObject and Query rows (a bucket, a table) | | "when" and "answer": the wire table's header |
-| States | 43 of 48 | 1 | | the toast on the board's queue; a refused and a denied call in the dock; the empty queue; the bucket confirm; a scan running past 300 ms | annotation 29, superseded 3, icon 1 | "it threw" (a Lambda or wire row; the S3 and Lambda pages have no dock yet) |
+| Anatomy | 30 of 71 | 0 | IAM pill "IAM soft · recording" | trigger enabled ("read by"); a refused call on the dock; the held table on its tab | annotation 17, icon 2 (was superseded 6) | |
+| Create | 23 of 49 | 0 | the Create board's key bar; "The queue exists as long as the data directory does" | | icon 1 (was decision 11, superseded 9) | |
+| Dark | 40 of 88 | 0 | IAM enforce pill (enforce instance) | theme kept across the reload (the runner overwrote it light); the wire boards' afternoon on an enforce instance (wireEnforce), with a bucket policy that denies one read | annotation 9, data 5 (was data 1, superseded 1) | |
+| Narrow | 27 of 46 | 0 | the notice in the key bar; j k over messages; the short sentence; the dock's two forms | 1024 by 768, held messages, trigger enabled, a refused call | data 1 (was conflict 11, superseded 4, data 3) | |
+| Palette | 6 of 32 | 0 | the query typed at 16 px | the wire's PutObject and Query rows (a bucket, a table) | | |
+| States | 43 of 48 | 0 | | the toast on the board's queue; a refused and a denied call in the dock; the empty queue; the bucket confirm; a scan running past 300 ms; a function that threw, on the wire | annotation 29, icon 1 (was superseded 3) | |
 | Teaching | 34 of 41 | 0 | line five under the field when the number fits ("Its timeout is 30 s ... so one run finishes before the message returns") | 60 typed, the trigger enabled | annotation 31 | |
 
 Decisions taken (the owner's, 2026-10-20, and what followed from them):
@@ -93,27 +93,43 @@ Decisions taken (the owner's, 2026-10-20, and what followed from them):
 - **D9 changes**: the IAM pill says "IAM soft · recording" above 1100 px, as
   Anatomy draws it (D9 had dropped the suffix).
 
-Disagreements between boards, not decided (each is allow-listed with its
-board named, so none is hidden):
+Disagreements between boards, decided 2026-10-20 (the service board and the
+code win; the shell board was corrected and its allow-list entries deleted):
 
-1. **Narrow's inspector** (a held message opens in a 340 px panel on the right:
-   "Delete · it is done", "Let it go", the hidden-for callout) against Sqs-11
-   and Queue (Release and Delete on the row; a message expands in place), and
-   Anatomy's rule "selecting anything opens it on the right". Not built.
-2. **Narrow's "2 held by you"** against Sqs-11's "3 in flight" for the same
-   state. The page follows Sqs-11: the number is the queue's, and the console
-   cannot say that *it* holds messages other consumers hold.
+1. **Narrow's inspector** (a held message opens in a 340 px panel on the right)
+   against Sqs-11 and Queue (Release and Delete on the row; a message expands
+   in place). Narrow now draws the Consume tab as Sqs-11 does and the inspector
+   is gone. Anatomy's "selecting anything opens it on the right" stays the
+   shell's rule for objects, items and calls; its annotation now says a queue's
+   messages are the exception.
+2. **Narrow's "2 held by you"**, "1 of 3": now "2 in flight" and "1× of 3".
 3. **Create's call panel** (the HTTP request, "Copy as curl", "Copy the body",
    and "attributes left at AWS's default are sent anyway on this form") against
-   D4 (the aws CLI call, "Copy the command"). The sentence would be false for
-   this form, which sends only what is set.
-4. **Create, Narrow and Anatomy's wording** against Sqs-03/04, Sqs-11 and
-   Queue ("New queue" and "Create queue"; "Visibility timeout" and
-   "Visibility · s"; "0 visible" and "0 waiting"; "dead letters go to …-dlq" and
-   "dead letters to <queue> after 3"; "1 of 3" and "1× of 3"). The service's
-   board is followed.
-5. **Narrow draws no neighbours strip** and a solid "Send" beside "Delete"; the
-   page keeps the strip (Anatomy part 5) and no primary (D2).
+   D4: the board now draws D4's panel (the aws CLI call, "Copy the command",
+   "Made here, kept here", the sentence about the dead-letter queue made first).
+   The sentence was false for this form, which sends only what is set; it is
+   gone. The ghost row (decided off) is gone from the board too.
+4. **Create, Narrow, Anatomy and States wording** against Sqs-03/04, Sqs-11,
+   Sqs-21 and Queue: the boards now say "Create queue", "Visibility · s",
+   "0 waiting", "dead letters to <queue> after 3", "1× of 3".
+5. **Narrow and Anatomy's solid "Send"** beside "Delete": Queue draws Delete
+   alone and the composer card at the foot, so the boards do, and Anatomy's
+   rule 3 says so. Narrow draws the neighbours strip.
+6. **Kms-19-Fidelity** drew the dialog a second way (1360 wide, "Fidelity", a
+   right-hand column of tinted summaries). It now draws the Fidelity board's
+   one dialog (940 wide, "KMS · what is real here", the ledger's bullets under
+   the table), as every service's page does.
+7. **Fidelity's** CreateQueue note ("merges attributes", which the ledger
+   contradicts) and its paraphrase of "Delivery is in-process" are the ledger's
+   words now; the board's "new here" tag and note (the dialog shows the section)
+   are gone.
+8. **Dark** said "All 212 / Errors 1 / Refused 1", "Where the time went" and
+   "Logs", "Secrets", "Parameters": the wire boards (Main, Wire-Refused) and the
+   page say "All / Errors / Refused", "Time", "CloudWatch Logs", "Secrets
+   Manager", "Parameter Store", and Dark does now.
+9. **Bad-Down** drew the queue behind the banner as a table with column heads;
+   Queue draws rows. **Connect** abbreviated the endpoints block with an
+   ellipsis; the page writes the whole block, and the board does now.
 
 **How to read the rest of this file.** Sections 2.1 to 2.14 each describe "Page:"
 (what the console did on 2026-10-11) beside "Board:" (the design). The Page
