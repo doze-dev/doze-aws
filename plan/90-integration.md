@@ -124,12 +124,12 @@ Rows are added as each service closes. Seeded from the findings so far.
 
 | From | What | With | Status |
 |---|---|---|---|
-| SQS | Visibility shorter than the function's timeout is refused at trigger creation | Lambda | open |
-| SQS | A deleted function's poller stops | Lambda | open |
-| SQS | Queue and DLQ in one template | CloudFormation | open |
-| S3 | A FIFO queue or a missing target as a notification destination | SQS, Lambda | open |
+| SQS | Visibility shorter than the function's timeout is refused at trigger creation | Lambda | **closed 2026-10-20**: `TestATriggerWhoseQueueHidesMessagesForLessThanTheFunctionRunsIsRefused`; fixed in `lambda/extras.go` (LAM-5, doc) |
+| SQS | A deleted function's poller stops | Lambda | **test written, skipped (memory)**: `TestADeletedFunctionsMappingDoesNotReadItsQueue` fails today (LAM-1); recording scenario `test_lambda::test_a_deleted_functions_mapping` |
+| SQS | Queue and DLQ in one template | CloudFormation | **closed 2026-10-20**: `TestServiceAQueueAndItsDeadLetterQueueInOneStack` (`CreateStack`); the event trail now in creation order (SQS-57) |
+| S3 | A FIFO queue or a missing target as a notification destination | SQS, Lambda | **FIFO closed 2026-10-20** (`TestAFIFOQueueIsNotAnS3NotificationDestination`, doc; `refuseFIFODestinations`); a missing target stays open (S3-5) |
 | S3 | `DeleteObjects` sends one removal event per key | SQS, SNS, Lambda | open |
-| SNS | A FIFO queue subscribed to a standard topic | SQS | open |
+| SNS | A FIFO queue subscribed to a standard topic | SQS | **test written, skipped (memory)**: `TestAFIFOQueueCannotBeSubscribedToAStandardTopic` fails today (SNS-12); recording scenario `test_sns::test_a_fifo_queue_on_a_standard_topic` |
 | EventBridge | A target that is gone; a destination with a `*` endpoint | SQS, Lambda | open |
 | Lambda | Trigger batch size above 10 | SQS | open |
 | CloudWatch | An alarm's Publish denied under enforce reads as 500 on the wire | SNS, IAM | open |

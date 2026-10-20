@@ -63,8 +63,8 @@ which settings do anything:
 |---|---|
 | Package tests | `sqs/`: 158 tests (counted 2026-10-12; it was 45 when the stage began) across store, server, SDK v1 and v2, both wires as raw requests, batch, attribute round trip, hardening, notify leak |
 | Parity | `model_parity_test.go`, `rejection_parity_test.go` (7), `coverage_model_test.go`; 51 of 51 model constraints enforced across all 22 operations, `knownGaps` and `needState` empty (the cases were regenerated on 2026-10-12: 49 became 51) |
-| Conformance | `conformance/tests/test_sqs.py`: 45 scenarios (8 when the stage began), all **unverified** (no recordings exist) |
-| Browser | `e2e/tests/sqs.spec.ts`: 62 tests on 2026-10-16 (17 when the stage began) |
+| Conformance | `conformance/tests/test_sqs.py`: 50 scenarios on 2026-10-20 (45 on 2026-10-12, 8 when the stage began) and four neighbour scenarios for section 9, all **unverified** (no recordings exist); `conformance/RECORDING.md` |
+| Browser | `e2e/tests/sqs.spec.ts`: 64 tests on 2026-10-20 (62 on 2026-10-16, 17 when the stage began), `sqs-audit.spec.ts` 21, `sqs-links.spec.ts` 1 (the link crawl) |
 | Mutation | `testdata/mutation.json` holds the `sqs` baseline (section 10) |
 
 SQS's AWS model carries no `@range`, `@length` or `@pattern` at all, so its
@@ -139,6 +139,15 @@ correct caller exactly as "more forgiving" breaks a deploy.
 | SQS-51 | P3 | **Closed 2026-10-17** (e2e "offers no count it would drop", red first). Edit on a queue with no dead-letter queue showed "After receives" prefilled with 3 and a sentence about it; saving dropped it. The count is off until a dead-letter queue is chosen or kept. | wrong | the page promised a setting it did not keep |
 | SQS-52 | P3 | **Closed 2026-10-17** (`TestRecreatingAQueueWhoseDeadLetterQueueIsGoneIsTheSameAsk`). An identical `CreateQueue` after the dead-letter queue was deleted answered `InvalidAttributeValue`. The idempotent branch now compares values and does not look the target up. | stricter | model: "the exact same names and values" |
 | SQS-53 | P3 | **Closed 2026-10-17, direction not established** (`TestAQueryBatchWithAGapInItsIndicesLosesNoEntry`). A Query batch with entries 1 and 3 answered 200 for entry 1 and said nothing of entry 3. Every index present is read now, in order. The model is silent on gaps; added to SQS-46's recording queue. | wrong whichever way AWS answers | memory |
+| SQS-54 | P3 | **Closed 2026-10-20, not reproduced.** A 404 on `/sqs%2F<dead-letter queue>` seen once in a link crawl of the console. Two crawls now stand and neither found it: `internal/console/sqs_links_test.go` follows every `href`, `hx-get` and `data-live` the server renders on the SQS pages (the list, create, each queue's page and its three tabs and fragments) in the states a queue can be in (DLQ made alongside and picked, FIFO with its own, an 80-character name, waiting, held and dead-lettered messages, a topic feeding a queue) and on the CloudFormation, SNS, EventBridge, wire and Connect pages that link to a queue, 522 targets, none refused and none spelling the queue as `/sqs%2F`; `e2e/tests/sqs-links.spec.ts` does the same in a browser (which also follows what scripts write and resolves relative hrefs as a browser does, and opens the composer, the edit form and the redrive dialog first), 34 pages and 86 links. Reading the code found no way for `/sqs/` to be escaped as one segment either (`seg`, `pathesc` and `resourceURL` escape one name). They stay as the guard. | n/a | read |
+| SQS-55 | P2 | **Closed 2026-10-20** (`e2e/tests/sqs.spec.ts` "a FIFO create keeps the group panel and the buttons on the first screen with Advanced open", red first: the group panel ended at y=1182 against a pane foot of 872). Board Sqs-04's open Advanced was 920 px tall on the page, so "How a group behaves" and Create and Cancel were a screen and a half down (Create at y=1537 at 1440x900). Now Create and Cancel sit under the group panel as the board has them (the call this makes follows them) and are sticky at the pane's foot, so a short or narrow window (1024x768, 900x800 checked) still shows them; the access policy and tags are closed rows inside Advanced (the edit form's policy is a closed disclosure already), and a refusal that names the policy opens its row (`data-opens`). The page keeps all the teaching lines in Advanced (6a decision 2), so the first screen at 1440x900 has 2 px of room, and the sticky strip is the guarantee. | wrong | the design |
+| SQS-56 | P3 | **Closed 2026-10-20** (`TestTheSQSCreatePageHasNoMadeHereKeptHereCard`). The SQS create page's call panel carried a bordered "Made here, kept here" callout, which boards Sqs-03 to Sqs-05 do not draw. It is the **Create** board's callout (the frame D4 decided), so the other services' create pages keep it. On the SQS page the Create board's sentence about the data directory and a template stays as one plain note under the call, in its words for a queue ("The queue exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it."). Nothing in the card was a fact the boards lack: the sentence is true (`docs/cli.md`: a `./template.yaml` beside where doze-aws starts is applied at boot). **For the owner:** if the Create frame is to win over Sqs-03 to Sqs-05, the one-line revert is `cli_panel_plain` back to `cli_panel` in `create.html`. | wrong | the design |
+| SQS-57 | P2 | **Closed 2026-10-20** (`TestServiceAQueueAndItsDeadLetterQueueInOneStack`, red first, found by the section 9 CloudFormation test). The resources were created in the right order (SQS-1) but `DescribeStackEvents` listed them in template order: the queue was `CREATE_IN_PROGRESS` before its dead-letter queue was done, and a queue policy before its queue. `synthesizeEvents` emits the pairs in the order apply made them. The trail's other faults (one timestamp for every resource, CFN-17) stay with the CloudFormation stage. | wrong | doc (dependency order), model (events newest first) |
+| SQS-58 | P3 | **Closed 2026-10-20** (the `layout.spec.ts` "no control is left without a name" sweep, red). The policy builder's Allow/Deny select had no name; it was found when the access policy became a closed row (it had borrowed the old field's label). `aria-label` on the select in `iam.html`, which the IAM pages share. | wrong | the console |
+| SQS-59 | P1 | **Closed 2026-10-20** (`TestAFIFOQueueIsNotAnS3NotificationDestination`, red first: stored). `PutBucketNotificationConfiguration` accepted a FIFO queue; S3 does not support one (doc, S3-5 and S3-26). Refused in `s3/handlers_bucket.go` (400 `InvalidArgument`, text memory). The rest of S3-5 stays with the S3 stage. | more forgiving | doc |
+| SQS-60 | P1 | **Closed 2026-10-20** (LAM-5; `TestATriggerWhoseQueueHidesMessagesForLessThanTheFunctionRunsIsRefused`, red first: 202). A trigger whose queue hides messages for less than the function may run is refused on create and on update; fixed in `lambda/extras.go`. See section 9. | more forgiving | doc |
+| SQS-61 | P1 | **Open, memory** (LAM-1; `TestADeletedFunctionsMappingDoesNotReadItsQueue`, skipped; run: the poller of a deleted function receives the queue's message and holds it). Not changed: what AWS does with those messages is not established. Recording scenario `test_lambda.py::test_a_deleted_functions_mapping`. | wrong (Lambda's) | memory |
+| SQS-62 | P1 | **Open, memory** (SNS-12; `TestAFIFOQueueCannotBeSubscribedToAStandardTopic`, skipped; run: accepted, every delivery dropped). Not changed. Recording scenario `test_sns.py::test_a_fifo_queue_on_a_standard_topic`. | more forgiving (SNS's) | memory |
 
 
 **Moved into this stage from other services.** They keep their own ids, and
@@ -156,9 +165,10 @@ both callers, so it needs no mode (foundation B12 resolved that), and
 `TestApplyAdoptsWhatIsThereAndDeletesNothing` pins what `apply` must keep doing.
 
 Owned elsewhere, listed so they are not lost: the queue-visibility versus
-function-timeout check (Lambda, LAM-5), a FIFO queue accepted as an S3
-notification target or subscribed to a standard topic (S3, SNS), a deleted
-function's poller still receiving (Lambda, LAM-1). All are in section 9.
+function-timeout check (Lambda, LAM-5: closed here, SQS-60), a FIFO queue accepted
+as an S3 notification target (S3: closed here, SQS-59) or subscribed to a standard
+topic (SNS-12: open, memory, SQS-62), a deleted function's poller still receiving
+(Lambda, LAM-1: open, memory, SQS-61). All are in section 9.
 
 ## 5. What to check
 
@@ -315,7 +325,13 @@ wrong.**
    dialogs, 900 wide, and under account 111122223333 in eu-west-1). The table
    below is that comparison. `go tool task console:fidelity -- sqs` (foundation B14, built 2026-10-16)
    now makes the comparison a repeatable task; on 2026-10-16 all 19 boards
-   pass its text check (a human still reads each pair).
+   pass its text check (a human still reads each pair). On 2026-10-20 they
+   pass it with **the seven reader-line allow-list entries gone** (Queue, Sqs-17,
+   Sqs-18: the harness's `reader` instance has an enabled event source mapping to
+   a real function that is busy with one message, so the queue has a reader and
+   its messages are still waiting; see `e2e/README.md`). The disabled-mapping
+   state keeps its own test (`sqs-audit.spec.ts`, "a disabled event source
+   mapping").
 
 There are 19 board files, not 21: 17 `Sqs-*`, `Queue` and `Bad-DLQ`. Numbers
 06, 07, 12 and 13 were never drawn.
@@ -337,8 +353,8 @@ the "boards" box in section 10 is not ticked:
 |---|---|---|
 | Sqs-01 None | matches | Heading, sentence and button, centred both ways. |
 | Sqs-02 Pick | matches | `/sqs` lists the queues and opens none; both sentences are there; a dead-letter queue's waiting count is amber as drawn. |
-| Sqs-03 Create | matches | Decision: "After this many receives" keeps one sentence above its range line (the teaching pattern's line 3; the board draws only the range). |
-| Sqs-04 Create FIFO | matches in shape | Advanced is in the right column, open, above "How a group behaves" (three bullets); the life panel is not shown. Decision: the board abbreviates what sits under each field ("1 minute. Hidden after a receive."); the page keeps all the teaching lines under every field, FIFO or not, and adds the board's FIFO sentences to them. Advanced also holds the access policy and tags, which the board's own summary line names and its drawing crops. |
+| Sqs-03 Create | matches | Decision: "After this many receives" keeps one sentence above its range line (the teaching pattern's line 3; the board draws only the range). The board draws no call panel; the page keeps "The call this makes" (decided, D4) and, under it, the Create board's one sentence about the data directory and a template as a plain note: no "Made here, kept here" card (SQS-56). |
+| Sqs-04 Create FIFO | matches in shape | Advanced is in the right column, open, above "How a group behaves" (three bullets); the life panel is not shown. Decision: the board abbreviates what sits under each field ("1 minute. Hidden after a receive."); the page keeps all the teaching lines under every field, FIFO or not, and adds the board's FIFO sentences to them. Advanced also holds the access policy and tags, which the board's own summary line names and its drawing crops: they are **closed rows** inside Advanced (decision 6 below), so the open Advanced is 568 px and not 920. **At 1440x900 the group panel, Create and Cancel are on the first screen, in the board's order (Advanced, the group panel, the buttons), and the call this makes follows them** (SQS-55; the buttons are also sticky at the pane's foot, so 1024x768 and 900x800 show them too). The first screen has 2 px to spare, and typing a receive wait adds a 15 px line under the field, which puts the buttons over the group panel's last line until the pane is scrolled; that is the cost of the teaching lines (decision 2), which the owner may overrule. |
 | Sqs-05 Create refused | matches | Refusal above the form in the service's words, the name outlined, "What you typed is kept…". The board's right-hand list of other refusals is documentation, not a screen; the page keeps the life panel there. |
 | Queue | matches | Rows on the board's grid, chips inside the opened row, "Copy body", both sentences. Differs: a row's summary is the body's first line ("json {…}") where the board draws a domain summary ("order HRB-… · 3 lines · £42.15"); the console summarises only shapes it recognises (S3, SNS, EventBridge envelopes). |
 | Sqs-08 Send | matches | Body; delay, copies and Send on one row; attributes; the cli line with its sentence. Added, for truth: "More than one goes as a single SendMessageBatch, at most 10." appears when Copies is above 1. The body editor carries the shared editor's "valid JSON / Format" strip. |
@@ -371,6 +387,16 @@ They are yours to overrule:
    boards are corrected** (Queue, Bad-DLQ, Sqs-08, 11, 14 now draw the body's
    first line under a `json` chip), as the rule that boards show only what is
    buildable asks.
+6. **(2026-10-20)** The create form's access policy and tags are closed rows
+   inside Advanced ("Access policy · JSON, optional", "Tags · optional"). The
+   board's Advanced draws neither (its summary line names them); open they are
+   two thirds of Advanced's height, and board Sqs-04 draws Advanced open with
+   the group panel and the buttons beside it on one screen. A refusal that names
+   the policy opens its row. A board that draws them open would have to give up
+   the first screen at 1440x900.
+7. **(2026-10-20)** The call panel on the SQS create page is kept (D4), and its
+   note is the Create board's sentence as a plain line, without the "Made here,
+   kept here" card (SQS-56).
 
 **Where the design was wrong, and was corrected in the working copy** (the
 published canvas carries the old text until it is republished):
@@ -430,53 +456,93 @@ test that failed first; `e2e/tests/sqs.spec.ts` has 20 new tests,
 
 ## 8. Recording queue
 
-Every one of these is `doc` or `memory` today.
+Every one of these is `doc`, `model` or `memory` today, and none is recorded:
+there is no AWS account yet. **Recording is one command** (profile, account,
+Region, what it costs, how to clean up, what is compared: `conformance/RECORDING.md`):
 
-| Claim | Source now | Scenario |
+```sh
+cd conformance && AWS_PROFILE=<profile> CONFORMANCE_TARGET=aws \
+  CONFORMANCE_AWS_ACCOUNT=<account> CONFORMANCE_RECORD=1 \
+  uv run --frozen pytest tests/test_sqs.py \
+  tests/test_lambda.py::test_a_trigger_whose_queue_hides_for_less_than_the_function_runs \
+  tests/test_lambda.py::test_a_deleted_functions_mapping \
+  tests/test_s3.py::test_notification_fifo_queue \
+  tests/test_sns.py::test_a_fifo_queue_on_a_standard_topic
+```
+
+Each row names the scenario **by its exact file and function**, and the claim is
+what its labels will hold once recorded (a label that is `error` must be a
+refusal on AWS, or the run fails and writes nothing; a label that is `outcome`
+is "whichever AWS does"). `conformance/claims/sqs.md` is the same list with the
+source of each belief. A row marked **(2026-10-20)** had no scenario, or named
+one that did not test the claim, until the SQS leftovers package.
+
+| Claim | Source now | Scenario (`conformance/tests/`) |
 |---|---|---|
-| Every attribute range and its error code | doc | `test_sqs::attribute_ranges` |
-| `MaxNumberOfMessages` 11 is `ReadCountOutOfRange` | memory (the code name) | `receive_out_of_range` |
-| `QueueDeletedRecently` within 60 s | doc | `recreate_after_delete` |
-| `PurgeQueueInProgress` within 60 s | doc | `purge_twice` |
-| A redriven message's `ApproximateReceiveCount` | memory | `redrive_receive_count` |
-| A visibility change and messages already in flight | memory | `visibility_change_in_flight` |
-| `StartMessageMoveTask` with no destination returns each message to its origin; a source that is no queue's DLQ is refused; a message with no origin fails the task | doc | `move_task_default_destination` |
-| An invalid `Policy` at `SetQueueAttributes` | memory | `invalid_policy` |
-| Message attribute limits and MD5 | doc | `test_message_attributes_and_batches`, `test_message_limits` |
-| `MaximumMessageSize` default and range (1 MiB), a batch total of 1 MiB | model | `test_message_limits`, `test_batch_total_size` |
-| `MessageGroupId` accepted on a standard queue; `MessageDeduplicationId` there refused (wording memory) | model, memory | `test_message_group_on_a_standard_queue` |
-| The code for a body character outside the set (`InvalidMessageContents`) and for a malformed handle (`ReceiptHandleIsInvalid`, 404 on the Query wire) | model | `test_message_limits`, `test_refusals` |
-| More than 50 tags accepted | model | `test_tag_limits` |
-| `AddPermission`: any action, seven at most (`OverLimit`), no ARN principal, label rules | model | `test_add_permission_rules` |
-| The twelve hours from the receive | model | `test_twelve_hours_from_the_receive` |
-| `ReceiveRequestAttemptId` replay, and refusal on a standard queue | model, memory | `test_receive_request_attempt_id` |
-| A queue URL's account and `QueueOwnerAWSAccountId` | model | `test_queue_in_another_account` |
-| Boolean and KMS attribute values; `DeduplicationScope` on a standard queue | model | `test_fifo_attribute_rules` |
-| An old receipt handle after the message was received again: the request succeeds but the message "might not be deleted" (here a delete with an earlier receive's handle succeeds and leaves it; change-visibility with one is still accepted) | model | `test_an_old_receipt_handle` |
-| The statement count at which `AddPermission` is `OverLimit` (the model says a limit exists, not its value); the in-flight limit of about 120,000 `OverLimit` on ReceiveMessage (not modelled, a listed difference) | model | `test_add_permission_statement_limit` |
-| `RedrivePolicy` without `maxReceiveCount`: the model says the default is 10 (doze-aws takes 10 since SQS-40) | model | `test_redrive_policy_without_max_receive_count` |
-| The code for `FifoQueue` in `SetQueueAttributes` (doze-aws: `InvalidAttributeName`) | memory | `test_queue_type_cannot_change` |
-| An ARN in another account or service: the code for a `RedrivePolicy` that names one | model, memory | `test_an_arn_elsewhere` |
-| The generated content-based deduplication id is the SHA-256 of the body | model | `test_content_based_deduplication_id` |
-| No `SequenceNumber` on a standard queue | model | `test_sequence_number_is_fifo_only` |
-| Boolean spellings other than true and false; `ContentBasedDeduplication` on a standard queue | model, memory | `test_boolean_attribute_spelling`, `test_fifo_attribute_rules` |
-| A message system attribute other than `AWSTraceHeader`, or not a String; whether the header's format is checked | model, memory | `test_message_system_attributes` |
-| `NextToken` only with `MaxResults` | model | `test_list_queues_token_needs_max_results` |
-| 404 on the JSON protocol for `ReceiptHandleIsInvalid` and `ResourceNotFoundException` | model | `test_error_statuses` |
-| A read-only attribute in `SetQueueAttributes` or `CreateQueue` (doze-aws ignores it; the model is silent) | memory | `test_attribute_ranges` |
-| `KmsMasterKeyId` with `SqsManagedSseEnabled=true` (the model: one option per queue; doze-aws stores both) | model, memory | `test_fifo_attribute_rules` |
-| A paging token from another listing (not detected here, by `awspage`'s design; the model is silent) | memory | `test_list_queues_paging` |
+| Every attribute range and its error code (labels `<attr>-<bad>`, `at-the-bounds`, `unknown-attribute`) | doc | `test_sqs.py::test_attribute_ranges` |
+| `MaxNumberOfMessages` 0 and 11, `WaitTimeSeconds` 21, `VisibilityTimeout` 43201: the code (`ReadCountOutOfRange` for the first two) | memory (the code name) | `test_sqs.py::test_receive_out_of_range` |
+| `QueueDeletedRecently` when a name is created again straight after its delete (label `create-at-once`; doze-aws differs unless `--sqs-strict`, a listed difference) | doc | `test_sqs.py::test_recreate_after_delete` |
+| `PurgeQueueInProgress` on a second purge within 60 s (label `second`; same difference) | doc | `test_sqs.py::test_purge_twice` |
+| A redriven message's `ApproximateReceiveCount` and `DeadLetterQueueSourceArn` (label `in-the-dlq`) | memory | `test_sqs.py::test_redrive_receive_count` |
+| A visibility change on the queue leaves messages already in flight on the timeout they were received with (label `still-hidden`) | memory | `test_sqs.py::test_visibility_change_in_flight` |
+| `StartMessageMoveTask` with no destination returns each message to its origin; a source that is no queue's DLQ is refused; a finished task has no `TaskHandle`; `MaxResults` above 10 | doc | `test_sqs.py::test_move_task_default_destination` |
+| An invalid `Policy` at `SetQueueAttributes`: not JSON, no Effect, no Principal, no Resource are refused; an empty `Statement` is `outcome` | memory (the empty statement), doc | `test_sqs.py::test_invalid_policy` |
+| Message attribute limits and MD5; a batch's per-entry and whole-batch limits | doc | `test_sqs.py::test_message_attributes_and_batches`, `test_sqs.py::test_message_limits` |
+| `MaximumMessageSize` default and range (1 MiB); a batch total of 1 MiB (labels `one-mebibyte`, `over-one-mebibyte`, `four-quarter-mebibytes`, `one-byte-more`) | model | `test_sqs.py::test_message_limits`, `test_sqs.py::test_batch_total_size` |
+| `MessageGroupId` accepted on a standard queue (fair queues) and returned; `MessageDeduplicationId` there is `outcome` (doze-aws refuses it; wording memory) | model, memory | `test_sqs.py::test_message_group_on_a_standard_queue` |
+| `InvalidMessageContents` for a body character outside the set; `ReceiptHandleIsInvalid` for a malformed handle (404 on the Query wire) | model | `test_sqs.py::test_message_limits` (label `bad-character`), `test_sqs.py::test_refusals` (label `bad-receipt-handle`) |
+| More than 50 tags: `outcome` (doze-aws accepts; the model calls it "not recommended") | model | `test_sqs.py::test_tag_limits` (label `fifty-one`) |
+| `AddPermission`: any action name accepted, seven at most (`OverLimit`), no ARN principal, label rules | model | `test_sqs.py::test_add_permission_rules` |
+| The twelve hours from the receive (label `past-the-twelve-hours`) | model | `test_sqs.py::test_twelve_hours_from_the_receive` |
+| `ReceiveRequestAttemptId` replay on a FIFO queue; refusal on a standard queue is `outcome` | model, memory | `test_sqs.py::test_receive_request_attempt_id` |
+| A queue URL's account and `QueueOwnerAWSAccountId` that are not this account's (labels `send-to-another-accounts-url`, `owner-id`) | model | `test_sqs.py::test_queue_in_another_account` |
+| Boolean and KMS attribute values; `DeduplicationScope` on a standard queue; **(2026-10-20)** `ContentBasedDeduplication` on a standard queue (label `content-based-deduplication-on-a-standard-queue`) | model, memory | `test_sqs.py::test_fifo_attribute_rules`, `test_sqs.py::test_boolean_attribute_spelling`, `test_sqs.py::test_attribute_ranges` (KMS reuse period) |
+| An old receipt handle after the message was received again: `DeleteMessage` succeeds and the message "might not be deleted" (label `delete-with-the-old-handle`); **(2026-10-20, SQS-46)** `ChangeMessageVisibility` with the old handle (label `change-visibility-with-the-old-handle`; doze-aws accepts and re-hides it) | model; memory for the second | `test_sqs.py::test_an_old_receipt_handle` |
+| The statement count at which `AddPermission` is `OverLimit` (label `first-refusal`); the in-flight limit of about 120,000 is not modelled (a listed difference) | model | `test_sqs.py::test_add_permission_statement_limit` |
+| `RedrivePolicy` without `maxReceiveCount`: the model's default is 10 (doze-aws takes 10 since SQS-40) | model | `test_sqs.py::test_redrive_policy_without_max_receive_count` |
+| The code for `FifoQueue` in `SetQueueAttributes` (doze-aws: `InvalidAttributeName`) | memory | `test_sqs.py::test_queue_type_cannot_change` |
+| An ARN in another account or service: the code for a `RedrivePolicy` and for a move task that names one | model, memory | `test_sqs.py::test_an_arn_elsewhere` |
+| The generated content-based deduplication id is the SHA-256 of the body | model | `test_sqs.py::test_content_based_deduplication_id` |
+| No `SequenceNumber` on a standard queue | model | `test_sqs.py::test_sequence_number_is_fifo_only` |
+| Boolean spellings other than `true` and `false` (labels `content-based-deduplication-TRUE`, `-True`, `-1`) | model | `test_sqs.py::test_boolean_attribute_spelling` |
+| A message system attribute other than `AWSTraceHeader`, or not a String (labels `another-name`, `a-number`); **(2026-10-20, SQS-46)** a malformed trace header (label `a-malformed-trace-header`; doze-aws keeps it, the format is not in the model) | model; memory for the format | `test_sqs.py::test_message_system_attributes` |
+| `NextToken` only with `MaxResults` | model | `test_sqs.py::test_list_queues_token_needs_max_results` |
+| 404 on the JSON protocol for `ReceiptHandleIsInvalid` and `ResourceNotFoundException` | model | `test_sqs.py::test_error_statuses` |
+| **(2026-10-20, SQS-46)** A read-only attribute in `SetQueueAttributes` or `CreateQueue` (labels `set-QueueArn`, `set-ApproximateNumberOfMessages`, `set-CreatedTimestamp`, `set-LastModifiedTimestamp`, `create-with-QueueArn`; doze-aws ignores it, the model is silent) | memory | `test_sqs.py::test_read_only_attributes` |
+| `KmsMasterKeyId` with `SqsManagedSseEnabled=true` (label `both`; the model: one option per queue; doze-aws stores both) | model, memory | `test_sqs.py::test_kms_key_with_sqs_managed_encryption` |
+| A paging token from another listing (label `token-from-another-listing`; not detected here, by `awspage`'s design; the model is silent) | memory | `test_sqs.py::test_list_queues_paging` |
+| **(2026-10-20, SQS-46)** `maxReceiveCount` 0, 1, 1,000 and 1,001 (labels `max-receive-count-<n>`; doze-aws holds it to 1 through 1,000, the model states neither bound) | memory | `test_sqs.py::test_redrive_max_receive_count_range` |
+| **(2026-10-20, SQS-46)** A standard queue named `*.fifo` (label `suffix-without-the-flag`) and a FIFO queue not named so (label `flag-without-the-suffix`); doze-aws refuses both, the model states neither | memory | `test_sqs.py::test_fifo_suffix_on_a_standard_queue` |
+| **(2026-10-20, SQS-53)** A Query `SendMessageBatch` whose entries are numbered 1 and 3 (label `a-gap-in-the-indices`: status, error type, and which bodies arrived; doze-aws sends both) | memory | `test_sqs.py::test_query_batch_with_a_gap` |
+| A running move task across a restart (SQS-46) | **no AWS counterpart** | none: there is no restart to make on AWS. The model allows `CANCELLED` or `FAILED` for it; doze-aws records `CANCELLED` (`TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove` holds it). A decision, not a claim. |
+| **Section 9.** A trigger whose queue hides for less than the function runs is refused on create and on update, equal accepted (labels `visibility-2-timeout-10`, `visibility-10-timeout-10`, `update-after-the-timeout-was-raised`) | doc (the rule); the code is the model's, the message memory | `test_lambda.py::test_a_trigger_whose_queue_hides_for_less_than_the_function_runs` |
+| **Section 9.** The mapping of a deleted function stops reading its queue (labels `the-queue`: waiting and in-flight counts 30 s after a send; `the-mapping`: what `GetEventSourceMapping` says; doze-aws keeps receiving and holding the message, LAM-1) | memory | `test_lambda.py::test_a_deleted_functions_mapping` |
+| **Section 9.** A FIFO queue is refused as an S3 notification destination; a standard queue with the same policy is the control (labels `standard-queue`, `fifo-queue`) | doc | `test_s3.py::test_notification_fifo_queue` |
+| **Section 9.** A FIFO queue cannot be subscribed to a standard topic (label `subscribe`; SNS-12: doze-aws accepts it and drops every delivery) | memory | `test_sns.py::test_a_fifo_queue_on_a_standard_topic` |
+
+After recording, each `memory` row either becomes `doc` or `model` (with what
+the recording shows) or is a difference to fix in the direction the recording
+names; `conformance/RECORDING.md` has the steps.
 
 ## 9. Owed to integration
 
-| What | With |
-|---|---|
-| A trigger whose queue hides messages for less time than the function may run is refused | Lambda |
-| A deleted function's poller stops; its messages are not received on its behalf | Lambda |
-| A FIFO queue as an S3 notification target | S3 |
-| A FIFO queue subscribed to a standard topic; a missing `sns.amazonaws.com` statement under enforce | SNS |
-| A queue and its DLQ in one template, through CloudFormation, SAM, CDK and Terraform | CloudFormation |
-| Redrive under load, and a restart mid-move | soak |
+Closed 2026-10-20 (the SQS leftovers package): every row whose other service
+already exists in this repository has a test across the stack, written red first
+(`integration_sqs_owed_test.go`, `cloudformation/service_queue_dlq_test.go`,
+`soak_sqs_test.go`). Where a test failed, the fix is in the owning package, and
+the direction is named from `doc` or `model` evidence only; where the evidence
+is `memory`, nothing was changed, the test is skipped with its reason, and the
+row's recording scenario is in section 8.
+
+| What | With | Test | Evidence and what it found |
+|---|---|---|---|
+| A trigger whose queue hides messages for less time than the function may run is refused | Lambda | `TestATriggerWhoseQueueHidesMessagesForLessThanTheFunctionRunsIsRefused` | **`doc`** ("Your function's timeout must be less than or equal to the queue's visibility timeout. Lambda validates this requirement when you create or update an event source mapping"); the Lambda *model* does not state it (LAM-5). The code `InvalidParameterValueException` 400 is the model's one fitting error; the message is memory and not asserted. **Failed (202 for a 30 s function on a 2 s queue): fixed in `lambda/extras.go` (`createMapping`, `updateMapping`, new `peercall.SQSVisibilityTimeout`). Direction before: more forgiving.** Equal is accepted; update is checked against the function's timeout as it is now; the queue being changed afterwards is not checked, as on AWS. Three e2e specs made refused mappings and were corrected. |
+| A deleted function's poller stops; its messages are not received on its behalf | Lambda | `TestADeletedFunctionsMappingDoesNotReadItsQueue` (skipped) | **`memory`** for the messages (the model says only that a mapping is deleted with `DeleteEventSourceMapping`: LAM-1). **Failed: the poller of a deleted function receives the message and holds it. Not changed; recording scenario `test_lambda.py::test_a_deleted_functions_mapping`.** |
+| A FIFO queue as an S3 notification target | S3 | `TestAFIFOQueueIsNotAnS3NotificationDestination` | **`doc`** (S3 developer guide: "Amazon SQS FIFO queues aren't supported", read for S3-5 and S3-26; the S3 model is silent). The code and text are memory, not asserted. **Failed (stored): fixed in `s3/handlers_bucket.go` `refuseFIFODestinations` (400 `InvalidArgument`). Direction before: more forgiving.** The rest of S3-5 (a destination that does not exist, the test event) stays with the S3 stage. Scenario `test_s3.py::test_notification_fifo_queue`. |
+| A FIFO queue subscribed to a standard topic | SNS | `TestAFIFOQueueCannotBeSubscribedToAStandardTopic` (skipped) | **`memory`** (SNS-12: "AWS refuses the subscription with InvalidParameter"; the model is silent). **Failed: accepted, every delivery dropped. Not changed; recording scenario `test_sns.py::test_a_fifo_queue_on_a_standard_topic`.** |
+| A missing `sns.amazonaws.com` statement under enforce | SNS, IAM | `TestEnforceSNSToSQSNeedsQueuePolicy` (already there), `TestEnforceAFIFOTopicIntoAFIFOQueueNeedsTheQueuePolicy` | Passes for both the standard queue and a FIFO topic into a FIFO queue (refused before the statement, delivered after, with the group id). |
+| A queue and its DLQ in one template, through CloudFormation | CloudFormation | `TestServiceAQueueAndItsDeadLetterQueueInOneStack` (the `CreateStack` call; the transpile-and-apply tests were already there) | Redrive policy and `maxReceiveCount`, the queue policy on the queue named by `Ref`, outputs, the DLQ's source list, `DeleteStack`. **Failed for the event trail only: it listed resources in template order, so the queue was in progress before its DLQ was done (SQS-57); fixed in `cloudformation/deploy_support.go` `synthesizeEvents`.** SAM, CDK and Terraform end in the same `CreateStack` call (SAM and CDK) or in the SDK calls the queue tests already hold (Terraform); none has a tool in this repository to run. |
+| Redrive under load, and a restart mid-move | soak | `TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove` | 3,000 messages, 500 a second, restart at 800 moved, a second task for the rest: none lost, at most 20 repeats (0 to 10 seen in four runs), both queues empty, 12 to 18 s. **Passed the first time it ran: no defect.** |
 
 ## 10. Acceptance criteria
 
@@ -505,8 +571,10 @@ On top of every box in the protocol.
       history is section 6a). Left open on purpose: the third independent audit
       (2026-10-17) found seven defects after the second round's fixes, all now
       closed (SQS-47 to SQS-53), and this box ticks only when a fourth look at
-      the final tree finds none. Still the owner's: Sqs-04's open Advanced
-      section pushes Create and Cancel below the fold, and the foundation D
+      the final tree finds none. **Sqs-04's open Advanced section no longer
+      pushes Create and Cancel below the fold (SQS-55, 2026-10-20), and the page
+      has no "Made here, kept here" card (SQS-56); the reader-line allow-list
+      entries are gone.** Still the owner's: the foundation D
       pages (wire page, Connect, map, fidelity dialog, cannot-reach banner) are
       unbuilt, so the 13 cross-cutting boards read 0 of 13.
 - [x] No statement on an SQS screen is in the "not yet backed" list in section 6.
@@ -514,8 +582,12 @@ On top of every box in the protocol.
 - [x] The reader check appears in both states and names the real function.
 - [x] `e2e/tests/sqs.spec.ts` covers every route under `/sqs` with the route
       gate on, and the accessibility sweep is clean on all four tabs and create.
-- [x] Conformance: scenarios for every row in section 8 exist (45 in `test_sqs.py` on 2026-10-12). Zero "answered
-      differently". The unverified count is written here: **139 responses**, all of them: nothing is recorded until there is an AWS account.
+- [x] Conformance: scenarios for every row in section 8 exist (45 in `test_sqs.py` on 2026-10-12; **50 on 2026-10-20**, with
+      the five SQS-46/53 scenarios, and four more in `test_lambda.py` (2), `test_s3.py` and `test_sns.py` for section 9), each row of section 8 naming its exact
+      file and function. Zero "answered differently". The unverified count is written here: **182 responses in `test_sqs.py`** (139 on 2026-10-12) **and 9 in the four
+      neighbour scenarios**, all of them: nothing is recorded until there is an AWS account. `conformance/RECORDING.md` is the one command.
+- [x] Section 9: every row whose other service exists in this repository has a test across the stack, red first, and where it failed the fix is in the owning
+      package with its direction named (SQS-57, 59, 60) or, for `memory`, left unchanged and queued (SQS-61, 62). The soak (3,000 messages, a restart mid-move) passes.
 - [x] Mutation baseline recorded here: **729 killed, 55 survived, 4 timed out, 77 not covered (93%)**, `testdata/mutation.json`, recorded 2026-10-12 against the code after the audit's fixes (SQS-31 to SQS-41) and the both-wire tests. Before that, 708 / 58 (2026-10-11), and 631 / 80 for the first stage-1 code. `internal/peercall`, which SQS-30 changed and which had no baseline, is recorded too (56 / 14). It was 631 / 80 for the first stage-1 code; the edges and behaviours found standing were tested (`sqs/boundaries_test.go`, `sqs/edges_test.go`) and it was recorded again. Why the 58 stand:
       - Mostly `CONDITIONALS_BOUNDARY` and `CONDITIONALS_NEGATION` on guards whose other side a request cannot reach (a value the handler has already range-checked, a bolt error branch, the wait before a move starts, the edge of the five-minute attempt-id window, which is memory).
       - `codec.go` and `responses.go`: the Query wire's decoder loops and XML writers, whose effect is an empty element nobody reads.

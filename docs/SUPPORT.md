@@ -1828,7 +1828,7 @@ response belongs to the request that returned.
 | CreateFunctionUrlConfig / GetFunctionUrlConfig / UpdateFunctionUrlConfig / DeleteFunctionUrlConfig | F | **served**: a plain HTTP request to the URL becomes the payload-format-2.0 event and the answer is decoded by AWS's rule (`statusCode` object as a response, anything else as a 200 JSON body). Two addresses route: `<endpoint>/_aws/lambda-url/<id>/…` and `https://<id>.lambda-url.us-east-1.on.aws/` by Host. `AuthType` `NONE` and `AWS_IAM` are both served without a signature check; `InvokeMode` is `BUFFERED`; a config on a qualified ARN addresses the function |
 | PutFunctionConcurrency / GetFunctionConcurrency / Delete | C | stored; no throttling locally |
 | TagResource / UntagResource / ListTags | F | |
-| CreateEventSourceMapping (SQS) | F | polls the queue, delivers batches (batch-size honored), delete-on-success, visibility-timeout retry on failure |
+| CreateEventSourceMapping (SQS) | F | polls the queue, delivers batches (batch-size honored), delete-on-success, visibility-timeout retry on failure; refused (`InvalidParameterValueException`) when the queue's visibility timeout is shorter than the function's timeout, on create and on update (equal is accepted), as AWS refuses it; a deleted function's mapping is left reading its queue (LAM-1, not established) |
 | Get/List/Update/DeleteEventSourceMapping | F | |
 | DynamoDB/Kinesis event source mappings | F | both are polled for real — one iterator per shard for Kinesis, refreshed on reshard |
 | AddPermission / RemovePermission / GetPolicy | F | the API behind `AWS::Lambda::Permission`; service and account principals, SourceArn/SourceAccount synthesized into ArnLike/StringEquals conditions. Under IAM `soft` and `enforce` the policy gates every request naming the function: an S3 notification, SNS delivery, EventBridge target or API Gateway integration calls as its service principal with `aws:SourceArn`, and does not invoke until a statement admits it, as on AWS |
@@ -2164,7 +2164,7 @@ page, and it is what the operation counts above are measured against.
 | GetBucketCors / PutBucketCors / DeleteBucketCors | F | config CRUD plus real preflight evaluation (wildcard origins, methods, headers, expose, max-age) and response decoration |
 | GetBucketLifecycle(Configuration) / PutBucketLifecycle(Configuration) / DeleteBucketLifecycle | F | Expiration, NoncurrentVersionExpiration and AbortIncompleteMultipartUpload enforced by a janitor; storage-class transitions accepted but never acted on (one storage class locally) |
 | GetBucketWebsite / PutBucketWebsite / DeleteBucketWebsite | F | index and error documents really serve, on directory requests and 404s |
-| GetBucketNotification(Configuration) / PutBucketNotification(Configuration) | F | delivers to SQS, SNS and Lambda with prefix/suffix filters |
+| GetBucketNotification(Configuration) / PutBucketNotification(Configuration) | F | delivers to SQS, SNS and Lambda with prefix/suffix filters; a FIFO queue is refused as a destination (`InvalidArgument`), as AWS refuses it; a destination that does not exist is still accepted (S3-5) |
 | GetObjectLockConfiguration / PutObjectLockConfiguration | F | |
 | Presigned URLs | F | SigV2 and SigV4 forms accepted, expiry enforced (the signature itself is not verified — this is a local emulator) |
 | GetBucketAcl / PutBucketAcl | C | as for objects |
