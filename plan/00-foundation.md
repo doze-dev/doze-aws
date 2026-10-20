@@ -646,7 +646,7 @@ no service-specific chrome, and the accessibility sweep is clean on them.
 
 | Piece | Board | Built from |
 |---|---|---|
-| The map, and the map at scale | Map, Map-Large | The wiring graph and its connected components. A Flows page existed and was deleted; this is `new`. The two boards name five node kinds; the graph has seven (tables and streams are nodes), so the boards are corrected when this is built. |
+| The map, and the map at scale | Map, Map-Large | The wiring graph and its connected components. A Flows page existed and was deleted; this is `new`. The two boards name five node kinds; the graph has seven (tables and streams are nodes), so the boards are corrected when this is built. **Built 2026-10-20** (`internal/console/map.go`): the boards are corrected, both match under `console:fidelity`, and hot is the D6 decision (a call to either end in the last minute from the recorder ring). |
 | "Differences from AWS" in the fidelity dialog | Fidelity | The section already in `SUPPORT.md`. |
 | The "cannot reach doze-aws" banner | Bad-Down | The console's own poll failing. Browser-side. |
 | Connect | Connect | Exists; restyled. |
