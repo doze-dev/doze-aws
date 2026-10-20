@@ -43,17 +43,20 @@ async function rawAwsJson(
 // text is present in the DOM (just display:none via x-show) so .textContent()
 // / hasText matching sees it without needing to click the row open.
 
-// The feed polls every 1.5s and a changed tick REPLACES the rows, so a click
-// racing a swap lands on a node that leaves the DOM before htmx acts on it.
-// Wait for one quiet tick — same hash across a full poll interval — before
-// interacting with a row.
+// The feed polls every 1.5 s. It is morphed in place, not replaced (a row node held across a
+// changed tick is still in the document: measured), so a click cannot land on a node a tick
+// removes. A quiet tick (the same hash across a poll interval) is still the calmest moment to
+// read a row, so it is waited for, but only for a few seconds: the instance is shared with every
+// other spec in a full run, whose calls keep the hash moving, and waiting for a quiet that never
+// comes failed the test (a SecretString redaction check, 15 s, in a loaded full run) for a
+// condition the test does not depend on.
 async function waitWireQuiet(page: import('@playwright/test').Page) {
   const feed = page.locator('#traffic-feed');
   await expect(async () => {
     const before = await feed.getAttribute('data-hash');
     await page.waitForTimeout(1700);
     expect(await feed.getAttribute('data-hash')).toBe(before);
-  }).toPass({ timeout: 15000 });
+  }).toPass({ timeout: 5000 }).catch(() => {});
 }
 
 function trafficRow(page: import('@playwright/test').Page, text: string) {

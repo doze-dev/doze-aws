@@ -13,6 +13,19 @@ import { ACCOUNT_ID, ORIGIN } from '../playwright.config';
 
 const SQS = `${ORIGIN}/`;
 
+/** A /_console/sqs/<name> link, to a queue that is not one of `own`, that is refused because the queue is gone:
+ *  the name is in the stack's listing no longer. A name this test made is never excused. */
+async function vanishedElsewhere(request: import('@playwright/test').APIRequestContext, link: string, own: string[]): Promise<boolean> {
+  const m = new URL(link).pathname.match(/^\/_console\/sqs\/([^/]+)$/);
+  if (!m) return false;
+  const name = decodeURIComponent(m[1]);
+  if (own.includes(name) || /^e2e-lk-/.test(name)) return false;
+  const again = await request.get(link);
+  if (again.status() !== 400) return false;
+  const list = await (await request.get(`${ORIGIN}/_console/sqs`)).text();
+  return !list.includes(`data-name="${name}"`);
+}
+
 async function sqsCall(request: import('@playwright/test').APIRequestContext, op: string, body: Record<string, unknown>) {
   const r = await request.post(SQS, {
     headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': `AmazonSQS.${op}` },
@@ -118,6 +131,12 @@ test.describe('every link on the SQS pages opens', () => {
         if (fetched.has(link)) continue;
         const r = await request.get(link, { maxRedirects: 5 });
         fetched.set(link, r.status());
+        // The queue list is the whole stack's, and the suite runs other specs beside this one
+        // that make and delete queues of their own: a link to a queue that is not one of this
+        // test's, and that has gone since the list was drawn, answers 400 QueueDoesNotExist and is
+        // not a broken link (the list lent the name, and the same page for it is fetched again
+        // below to prove it is gone and not mis-spelled).
+        if (r.status() === 400 && (await vanishedElsewhere(request, link, queues))) continue;
         if (r.status() >= 400) bad.push(`${r.status()} ${link}\n  found on ${target}`);
         // A page of SQS's own is crawled for more links, whether or not a tab led to it.
         if (r.status() === 200 && sqsPage(link) && !visited.has(link)) queue.push(link);
