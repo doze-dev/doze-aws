@@ -166,4 +166,3 @@ func TestEveryLinkToAQueueFromAnotherServiceOpens(t *testing.T) {
 		}
 	}
 }
-
