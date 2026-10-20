@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -129,17 +130,40 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 		Status: verb + "_IN_PROGRESS", Reason: "User Initiated",
 	}}
 
-	// Which resources apply actually touched, keyed by the name it reported.
+	// Which resources apply actually touched, keyed by the name it reported, and
+	// where in apply's own order it did so.
 	touched := map[string]string{}
+	appliedAt := map[string]int{}
 	if applyRep != nil {
-		for _, a := range applyRep.Actions {
+		for n, a := range applyRep.Actions {
 			if i := strings.Index(a.Resource, "/"); i >= 0 {
 				touched[a.Resource[i+1:]] = a.Op
+				if _, seen := appliedAt[a.Resource[i+1:]]; !seen {
+					appliedAt[a.Resource[i+1:]] = n
+				}
 			}
 		}
 	}
 
-	for _, r := range st.Resources {
+	// The trail is in the order the resources were made, not the order the
+	// template lists them: a queue's dead-letter queue is made first however the
+	// template is written (apply orders them, SQS-1), and the trail says so. A
+	// resource apply did nothing for (a queue policy, which rides on its queue)
+	// follows the ones it did, in template order.
+	unapplied := 0
+	if applyRep != nil {
+		unapplied = len(applyRep.Actions)
+	}
+	ordered := append([]stackResource(nil), st.Resources...)
+	rank := func(r stackResource) int {
+		if n, ok := appliedAt[r.PhysicalID]; ok {
+			return n
+		}
+		return unapplied
+	}
+	sort.SliceStable(ordered, func(i, j int) bool { return rank(ordered[i]) < rank(ordered[j]) })
+
+	for _, r := range ordered {
 		op := touched[r.PhysicalID]
 		status := verb + "_COMPLETE"
 		reason := ""
