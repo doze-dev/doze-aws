@@ -47,6 +47,74 @@ scheduled after the services. (The wire page's header row, lanes, "Needs a look"
 panel and inspector tabs (D-a), the first-run wire (D-b) and the "cannot reach"
 banner (D-e) were built on 2026-10-20: see the paragraph above.)
 
+## Status, 2026-10-20: the seven chrome boards, triaged line by line
+
+Anatomy, Create, Dark, Narrow, Palette, States and Teaching were compared line
+by line (`go tool task console:fidelity -- shell`; drivers in
+`e2e/fidelity/drivers/shell-chrome.ts`, allow-lists in `e2e/fidelity/allow/`).
+Every line the page lacked is one of: built, a harness fix (the page was not in
+the board's state, or the fixture lacked the data), an annotation (the board's
+own commentary), or a disagreement between two boards, which is listed with the
+question for the owner.
+
+| Board | Lacked before | Now | Built | Harness | Allowed (kind: n) | Still lacking (not this package's) |
+|---|---|---|---|---|---|---|
+| Anatomy | 30 of 71 | 0 | IAM pill "IAM soft · recording" | trigger enabled ("read by"); a refused call on the dock; the held table on its tab | annotation 17, superseded 6 | |
+| Create | 23 of 49 | 0 | the Create board's key bar; "The queue exists as long as the data directory does" | | decision 11, superseded 9 | |
+| Dark | 40 of 88 | 23 | IAM enforce pill (enforce instance) | theme kept across the reload (the runner overwrote it light); the calls the board lists, made for real (a function that throws, a denied read, a secret, a stack, a refused send) | annotation 9, data 1, superseded 1 | the wire page's own header, table and right-hand panel, and the rail's "The map" |
+| Narrow | 27 of 46 | 0 | the notice in the key bar; j k over messages; the short sentence; the dock's two forms | 1024 by 768, held messages, trigger enabled, a refused call | conflict 11, superseded 4, data 3 | |
+| Palette | 6 of 32 | 2 | the query typed at 16 px | the wire's PutObject and Query rows (a bucket, a table) | | "when" and "answer": the wire table's header |
+| States | 43 of 48 | 1 | | the toast on the board's queue; a refused and a denied call in the dock; the empty queue; the bucket confirm; a scan running past 300 ms | annotation 29, superseded 3, icon 1 | "it threw" (a Lambda or wire row; the S3 and Lambda pages have no dock yet) |
+| Teaching | 34 of 41 | 0 | line five under the field when the number fits ("Its timeout is 30 s ... so one run finishes before the message returns") | 60 typed, the trigger enabled | annotation 31 | |
+
+Decisions taken (the owner's, 2026-10-20, and what followed from them):
+
+- **The create bars are the Create board's**: ⌘⏎ create, tab next field, esc
+  cancel (nothing made). No ⌘K on the bar; the key still opens the palette. The
+  SQS create page used the Sqs-03 bar (tab, esc, ⌘K) and now uses this one.
+- **The palette's query is 16 px**, as the Palette board draws it (14 before).
+  16 is on the type ladder for that one input; `TestTypeScaleIsTheDesigns`
+  checks the Palette board still draws it.
+- **The dock's caption is "live"**, the pill every board draws, shut or open;
+  "quiet" is the wire rail's annotation (Wire-Empty), not the dock's. At 1100
+  and below the dock is shut to "N calls touched this queue · M refused" and
+  *show*, which is what **Narrow** draws; the Queue and Bad-DLQ boards'
+  literal, "calls that touched this queue", is what the dock says when it is
+  open. (Narrow says otherwise for the shut form, so Narrow is followed.)
+- **Narrow**: at 1100 and below the pane is a name switcher (D5), the pill is
+  "IAM soft" (the " · recording" is its own span, shown above 1100), the
+  sentence is "0 waiting · 2 in flight · hidden 60 s · dead letters after 3"
+  (the long sentence with the words written to go, `{in braces}`, hidden), the
+  dock is shut, j and k move over the messages and the bar says "j k message",
+  and the notice "Built for 1024 and wider. Phones are not supported, and the
+  console says so." is in the key bar at 1024 and below (it was a banner below
+  1023, in other words). Rendered and read at 1100, 1024, 900 and 768.
+- **The ghost row stays off.**
+- **D9 changes**: the IAM pill says "IAM soft · recording" above 1100 px, as
+  Anatomy draws it (D9 had dropped the suffix).
+
+Disagreements between boards, not decided (each is allow-listed with its
+board named, so none is hidden):
+
+1. **Narrow's inspector** (a held message opens in a 340 px panel on the right:
+   "Delete · it is done", "Let it go", the hidden-for callout) against Sqs-11
+   and Queue (Release and Delete on the row; a message expands in place), and
+   Anatomy's rule "selecting anything opens it on the right". Not built.
+2. **Narrow's "2 held by you"** against Sqs-11's "3 in flight" for the same
+   state. The page follows Sqs-11: the number is the queue's, and the console
+   cannot say that *it* holds messages other consumers hold.
+3. **Create's call panel** (the HTTP request, "Copy as curl", "Copy the body",
+   and "attributes left at AWS's default are sent anyway on this form") against
+   D4 (the aws CLI call, "Copy the command"). The sentence would be false for
+   this form, which sends only what is set.
+4. **Create, Narrow and Anatomy's wording** against Sqs-03/04, Sqs-11 and
+   Queue ("New queue" and "Create queue"; "Visibility timeout" and
+   "Visibility · s"; "0 visible" and "0 waiting"; "dead letters go to …-dlq" and
+   "dead letters to <queue> after 3"; "1 of 3" and "1× of 3"). The service's
+   board is followed.
+5. **Narrow draws no neighbours strip** and a solid "Send" beside "Delete"; the
+   page keeps the strip (Anatomy part 5) and no primary (D2).
+
 **How to read the rest of this file.** Sections 2.1 to 2.14 each describe "Page:"
 (what the console did on 2026-10-11) beside "Board:" (the design). The Page
 columns are the pre-rebuild console and read as current if you are not careful:
@@ -665,7 +733,9 @@ gate"). `min`, `max` and `pattern` stay for the spinners and for line four.
 **D9. The top bar's IAM pill and instance name.** *Recommendation:* the
 instance name on every page (a new `Options.Name`), and the mode on every
 page, always, in one wording ("IAM soft", "IAM enforce", "IAM off"); the
-"· recording" suffix on Anatomy is dropped.
+"· recording" suffix on Anatomy is dropped. *2026-10-20: reversed for the suffix.
+The design is followed: "IAM soft · recording" above 1100 px (Anatomy), "IAM soft"
+at 1100 and below (Narrow).*
 
 **D10. `?`.** *Recommendation:* remove it from Wire-Empty's key bar. No
 board draws what it shows.
@@ -690,6 +760,6 @@ Kms boards draw it, until its stage adopts `res_header`.*
 | `internal/console/templates/kit.html` `setting_field` | `min`/`max` turn a server refusal into a browser bubble |
 | `internal/console/templates/panes.html:286` | the ⓘ title reads "What of sqs is real here" (the service key, not its name) |
 | `internal/console/traffic.go` | `X-Amz-Function-Error` is not read; a failing function is a green 200 on the wire |
-| `internal/console/templates/layout.html` `.narrow-note` | text differs from the board's and shows from 1023 down, not at 1024 where Narrow draws it |
+| `internal/console/templates/layout.html` `.narrow-note` | fixed 2026-10-20: it is the key bar's `.keys-note`, in the board's words, at 1024 and below |
 | First-run wire | two empty messages are drawn, "Nothing has happened here yet." and "No calls yet." |
 | The palette | typing a name offers no create entry, only a phrase that matches a catalogue label ("create q") |
