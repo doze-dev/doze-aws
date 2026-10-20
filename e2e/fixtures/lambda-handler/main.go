@@ -57,10 +57,30 @@ func main() {
 		// is what states.spec.ts reads off the wire.
 		var asked struct {
 			Raise string `json:"raise"`
+			Sleep int    `json:"sleep"` // milliseconds to hold the invocation
+			// An SQS batch: a record whose body is {"sleep": ms} holds the
+			// invocation too. The fidelity harness (e2e/fidelity/harbour.ts)
+			// uses it to keep a queue's reader busy, so the messages sent after
+			// it stay waiting while an enabled mapping reads the queue.
+			Records []struct {
+				Body string `json:"body"`
+			} `json:"Records"`
 		}
 		if json.Unmarshal(event, &asked) == nil && asked.Raise != "" {
 			fail(client, base, id, asked.Raise)
 			continue
+		}
+		hold := asked.Sleep
+		for _, r := range asked.Records {
+			var b struct {
+				Sleep int `json:"sleep"`
+			}
+			if json.Unmarshal([]byte(r.Body), &b) == nil && b.Sleep > hold {
+				hold = b.Sleep
+			}
+		}
+		if hold > 0 {
+			time.Sleep(time.Duration(hold) * time.Millisecond)
 		}
 		out, _ := json.Marshal(invokeResult{Echoed: event, RequestID: id})
 		respond(client, base, id, out)

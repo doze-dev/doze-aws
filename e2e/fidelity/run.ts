@@ -108,15 +108,16 @@ async function main(): Promise<number> {
   let browser: Browser | undefined;
   const rows: Row[] = [];
   try {
-    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | 'wire' | ((i: Inst) => Promise<void>), name?: string): Promise<Inst> => {
+    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | 'wire' | ((i: Inst) => Promise<void>), name?: string, reader = false): Promise<Inst> => {
       const b = await boot({ port: await freePort(taken), id2: flags.id2, iamMode: enforceMode ? 'enforce' : undefined, tag, name });
       booted.push(b);
       const i = inst(b.server);
       if (typeof seed === 'function') await seed(i);
       else if (seed === 'wire') await seedWire(i, (s) => console.warn('  warning:', s));
-      else if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s));
+      else if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s), { reader });
       return i;
     };
+    let readers = 0;
     const main = await bootSeeded('main', false, true);
     console.log(`booted ${main.server.origin} (account ${main.server.account}, ${main.server.region}), seeded harbour`);
     let enforce: Promise<Inst> | undefined;
@@ -243,6 +244,9 @@ async function main(): Promise<number> {
           if (kind === 'fresh') return (fresh ??= bootSeeded('fresh', false, true));
           if (kind === 'map') return (map ??= bootSeeded('map', false, seedMap));
           if (kind === 'mapLarge') return (mapLarge ??= bootSeeded('map-large', false, seedMapLarge));
+          // Never cached: the hold on the reader lasts HOLD_MS from the seed, so
+          // each board that needs it boots its own, and drives inside the window.
+          if (kind === 'reader') return bootSeeded(`reader${++readers}`, false, true, undefined, true);
           throw new Error(`unknown instance ${kind}`);
         },
       };

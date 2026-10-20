@@ -51,8 +51,13 @@ export interface Ctx extends Inst {
    * throws, a firing alarm, and the calls made against them, with the ring
    * started over before them). The page must be pointed at it with
    * `page.goto(inst.url(...))`.
+   *
+   * `reader` is the harbour fixture with an ENABLED event source mapping to a
+   * real function that is busy with one message, so the queue has a reader and
+   * still has its messages waiting (harbour.ts). It is booted new on every
+   * call, and the reader is busy for HOLD_MS from then: drive inside that time.
    */
-  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire'): Promise<Inst>;
+  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire' | 'reader'): Promise<Inst>;
   /** Log a thing the report should carry beside the row (a note, not a failure). */
   note(text: string): void;
 }

@@ -23,5 +23,9 @@ way a function that threw does (the Runtime API's error endpoint), so the invoke
 is a 200 carrying `X-Amz-Function-Error`. `states.spec.ts` builds its own copy
 into `e2e/.tmp/lambda-fixture-states/` and reads that off the wire.
 
+An event `{"sleep": ms}`, or an SQS batch with a record whose body is that
+document, holds the invocation for that long; the fidelity harness
+(`e2e/fidelity/harbour.ts`) keeps a queue's reader busy with it.
+
 To build by hand: `go build -o /path/to/output/bootstrap .` from this
 directory.

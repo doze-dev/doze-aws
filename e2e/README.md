@@ -107,6 +107,15 @@ The other services' tables are empty on purpose: each is that service's stage
 to-do list. The cross-cutting boards (`Main`, `Anatomy`, `Wire-*`, ...) are in
 `drivers/shell.ts`.
 
+**A board whose state the main instance cannot be in** boots another
+(`c.instance(kind)` in `drivers/types.ts`): `enforce`, `empty`, `fresh`, and
+`reader`: the fixture with an *enabled* event source mapping to a real function.
+A queue that is being read has no messages waiting, so the reader is held inside
+one invocation (the first message it reads is `{"sleep": ms}`, which the fixture
+bootstrap in `fixtures/lambda-handler` honours) and the waiting messages are
+sent after. The hold lasts 25 s from the seed (`HOLD_MS`, under the function's 30 s
+timeout), so each board that needs a reader boots its own and drives inside it.
+
 **The structural check** is not a pixel diff. For every pair it asks whether
 each line of the board's visible text is somewhere in the page's visible text,
 and prints the lines the page lacks. For a service's boards the shell

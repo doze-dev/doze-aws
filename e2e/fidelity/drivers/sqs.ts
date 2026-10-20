@@ -200,16 +200,20 @@ export const drivers: DriverTable = {
     },
   },
 
+  // Both draw the queue's reader (the "In this stack" block, the warning under
+  // the settings), so both run on a copy with an enabled mapping.
   'Sqs-17-Config': {
     async drive(c) {
-      await c.page.goto(c.url(q(MAIN, 'config')));
+      const r = await c.instance('reader');
+      await c.page.goto(r.url(q(MAIN, 'config')));
     },
   },
 
   'Sqs-18-Config-Edit': {
     async drive(c) {
+      const r = await c.instance('reader');
       const p = c.page;
-      await p.goto(c.url(q(MAIN, 'config')));
+      await p.goto(r.url(q(MAIN, 'config')));
       await p.getByRole('button', { name: 'Edit settings' }).click();
       await p.fill('#sqs-config input[name=visibility]', '20');
       await p.locator('#sqs-config input[name=visibility]').blur();
@@ -263,8 +267,10 @@ export const drivers: DriverTable = {
     async drive(c) {
       // The board opens the order that has been received twice (04812: "received
       // 2 of 3"). The fixture has it at one receive, so one more is made, on a
-      // copy of the fixture that no other board reads the counts of.
-      const f = await c.instance('fresh');
+      // copy of the fixture that no other board reads the counts of. The board
+      // also draws the queue's reader ("read by"): the copy has an enabled
+      // mapping whose reader is busy, so the three messages are still waiting.
+      const f = await c.instance('reader');
       await f.sqs('ReceiveMessage', { QueueUrl: f.queueUrl(MAIN), MaxNumberOfMessages: 10, VisibilityTimeout: 0 });
       await c.page.goto(f.url(q(MAIN)));
       await c.page.locator('.msg:has-text("HRB-2026-04812") .rowopen').click();
