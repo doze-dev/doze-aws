@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -51,15 +53,37 @@ const (
 	whyRefusedHere = "AWS would accept this. doze-aws refuses it because of a limit of its own."
 	whyDenied      = "A policy decided this, not the input: the request was well formed. The fix is the policy. Access log →"
 	whyFailed      = "This is doze-aws failing rather than refusing. A 5xx here is a bug in the emulator, not in the call, and is worth reporting."
+
+	// A2: what a Refused here and a Not built explanation links. The ledger row is
+	// the fidelity dialog's, opened at the operation; the document is the
+	// repository's. The call each case makes is SQS CreateQueue.
+	rowLink      = " The ledger row for CreateQueue →"
+	rowHref      = "/_console/sqs?fidelity=CreateQueue"
+	docDeclined  = " Why it is declined: docs/not-built.md →"
+	docDeferred  = " What it would take: docs/not-built.md →"
+	docUnstated  = " What is not built, and why: docs/not-built.md →"
+	hrefDeclined = "https://github.com/doze-dev/doze-aws/blob/main/docs/not-built.md#declined"
+	hrefDeferred = "https://github.com/doze-dev/doze-aws/blob/main/docs/not-built.md#not-yet"
+	hrefUnstated = "https://github.com/doze-dev/doze-aws/blob/main/docs/not-built.md"
 )
+
+// linksOf is every explanation link in html, as "href text".
+func linksOf(html string) []string {
+	var out []string
+	for _, m := range regexp.MustCompile(`<a class="why-link"[^>]* href="([^"]*)"[^>]*>([^<]*)</a>`).FindAllStringSubmatch(html, -1) {
+		out = append(out, m[1]+" "+m[2])
+	}
+	return out
+}
 
 func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 	cases := []struct {
 		kind    string
 		a       answer
-		inline  string // the console action's inline failure, whole
-		drawer  string // the wire inspector's panel, whole
-		drawerH string // the inspector's chip words
+		inline  string   // the console action's inline failure, whole
+		drawer  string   // the wire inspector's panel, whole
+		drawerH string   // the inspector's chip words
+		links   []string // the explanation's links, "href text", in the inspector and on the page alike
 	}{
 		{
 			kind:    "refused",
@@ -86,34 +110,38 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 		{
 			kind:    "a limit of doze-aws's own",
 			a:       answer{err: &awshttp.APIError{Code: "LimitExceededException", Status: 400, Message: "too many queues for a local stack", Local: true}},
-			inline:  "Refused here LimitExceededException too many queues for a local stack " + whyRefusedHere,
-			drawer:  "LimitExceededException too many queues for a local stack " + whyRefusedHere,
+			inline:  "Refused here LimitExceededException too many queues for a local stack " + whyRefusedHere + rowLink,
+			drawer:  "LimitExceededException too many queues for a local stack " + whyRefusedHere + rowLink,
 			drawerH: "Refused here",
+			links:   []string{rowHref + rowLink},
 		},
 		{
 			kind: "not built, declined",
 			a:    answer{err: awshttp.NotBuilt(awshttp.Declined, "ListQueueTags", "tags are not kept")},
 			inline: "Not built NotImplemented ListQueueTags is not built in doze-aws: tags are not kept " +
-				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request.",
+				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request." + rowLink + docDeclined,
 			drawer: "NotImplemented ListQueueTags is not built in doze-aws: tags are not kept " +
-				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request.",
+				"doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request." + rowLink + docDeclined,
 			drawerH: "Not built",
+			links:   []string{rowHref + rowLink, hrefDeclined + docDeclined},
 		},
 		{
 			kind: "not built, deferred",
 			a:    answer{err: awshttp.NotBuilt(awshttp.Deferred, "ListQueueTags", "not yet")},
 			inline: "Not built NotImplemented ListQueueTags is not built in doze-aws: not yet " +
-				"doze-aws has not built this operation yet. Nothing is wrong with the request.",
+				"doze-aws has not built this operation yet. Nothing is wrong with the request." + rowLink + docDeferred,
 			drawer: "NotImplemented ListQueueTags is not built in doze-aws: not yet " +
-				"doze-aws has not built this operation yet. Nothing is wrong with the request.",
+				"doze-aws has not built this operation yet. Nothing is wrong with the request." + rowLink + docDeferred,
 			drawerH: "Not built",
+			links:   []string{rowHref + rowLink, hrefDeferred + docDeferred},
 		},
 		{
 			kind:    "an older stub table's answer",
 			a:       answer{err: (&awshttp.APIError{Code: "ValidationError", Status: 400, Message: "ListStackSets is not implemented"}).Stub()},
-			inline:  "Not built ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request.",
-			drawer:  "ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request.",
+			inline:  "Not built ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request." + rowLink + docUnstated,
+			drawer:  "ValidationError ListStackSets is not implemented doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request." + rowLink + docUnstated,
 			drawerH: "Not built",
+			links:   []string{rowHref + rowLink, hrefUnstated + docUnstated},
 		},
 		{
 			kind:    "doze-aws failing",
@@ -141,6 +169,9 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 			if got := flatText(panel); got != tc.drawer {
 				t.Errorf("the inspector says\n  %q\nwant\n  %q", got, tc.drawer)
 			}
+			if got := linksOf(panel); !slices.Equal(got, tc.links) {
+				t.Errorf("the inspector links\n  %q\nwant\n  %q", got, tc.links)
+			}
 
 			// The page: the console's own action, refused by the same service.
 			// (The console reaches the service by the same stamped answer.)
@@ -154,8 +185,12 @@ func TestTheWhyLineIsThatKindsOwn(t *testing.T) {
 				t.Fatal(err)
 			}
 			frag := req(t, c2, "POST", "/_console/sqs/create", url.Values{"name": {"orders"}, "dlq_mode": {"none"}}).Body.String()
-			if got := flatText(section(t, frag, `<div class="err `)); got != tc.inline {
+			failure := section(t, frag, `<div class="err `)
+			if got := flatText(failure); got != tc.inline {
 				t.Errorf("the page says\n  %q\nwant\n  %q", got, tc.inline)
+			}
+			if got := linksOf(failure); !slices.Equal(got, tc.links) {
+				t.Errorf("the page links\n  %q\nwant\n  %q", got, tc.links)
 			}
 		})
 	}

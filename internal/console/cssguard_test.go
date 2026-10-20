@@ -26,6 +26,7 @@ func TestTemplateClassesAreStyled(t *testing.T) {
 		"sqs-peek":    "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"sqs-compose": "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"rowck":       "selection hook — the ddb select-all checkbox finds page rows by it",
+		"fid-opn":     "anchor hook — one operation in the fidelity dialog's table (id op-<section>-<Operation>, data-op); shell.js dozeLedgerRow finds it to mark and scroll to its row, and the text is the cell's own",
 		"lp-page":     "counting hook — a list row that is a page of the service (IAM's access log), which the switcher's \"1 of 4\" does not count",
 	}
 

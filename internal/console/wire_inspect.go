@@ -47,7 +47,8 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	failure := e.Failure()
 	state := callState(e.Status, failure, factsOfEntry(e))
-	copyV := stateCopyFor(state, detailOf(state, factsOfEntry(e), e.Resource))
+	detail := detailOf(state, factsOfEntry(e), e.Resource)
+	copyV := stateCopyFor(state, detail)
 	ref := resourceURL(e.Service, e.Resource)
 	data := map[string]any{
 		"E": e, "Req": req, "Resp": resp,
@@ -69,6 +70,9 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 		"Ledger":    ledgerFor(e.Service, actionLabel(e.Action)),
 		"Caused":    c.caused(e.Seq),
 	}
+	// What a Refused here or Not built explanation links: the operation's row in
+	// the ledger and, for a not-built one, docs/not-built.md (ledger_link.go).
+	data["WhyLinks"] = map[string]any{"State": state, "Detail": detail, "Svc": e.Service, "Op": actionLabel(e.Action)}
 	if failure != nil {
 		data["CopyError"] = strings.TrimSpace(strings.Trim(failure.Code+": "+failure.Message, ": "))
 	}

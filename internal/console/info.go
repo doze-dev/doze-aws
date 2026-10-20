@@ -19,6 +19,8 @@ package console
 
 import (
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/docs"
 )
@@ -29,9 +31,65 @@ type infoSection struct {
 	Key string
 	// Title is shown above the table when a service has more than one.
 	Title string
-	Rows  []docs.Row
+	Rows  []infoRow
 	// Diffs is the ledger's "Differences from AWS", read with the rows.
 	Diffs []docs.Difference
+}
+
+// infoRow is one ledger row as the dialog draws it: the row itself and its
+// operation cell cut into the operations it names. Each operation is an anchor
+// (id op-<section>-<Operation>, data-op the operation) that a refusal's link
+// opens the dialog at: shell.js (dozeLedgerRow) marks and scrolls to its row.
+type infoRow struct {
+	docs.Row
+	Parts []opPart
+}
+
+// opPart is a piece of an operation cell: an operation (Op set) or the
+// separators and words between operations.
+type opPart struct {
+	Text, Op string
+}
+
+var (
+	opName       = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
+	verbFragment = map[string]bool{"Put": true, "Get": true, "Update": true, "List": true, "Delete": true, "Create": true}
+)
+
+// splitOps cuts a ledger operation cell ("SendMessage / SendMessageBatch",
+// "Put/Get/DeleteFunctionEventInvokeConfig", "Mobile push (Platform
+// applications)") into its operations and what lies between them. A piece is an
+// operation only when it is a whole operation name and not a bare verb, the same
+// test the ledger's reader makes (docs.Rows), so a phrase is never an anchor.
+func splitOps(cell string) []opPart {
+	var out []opPart
+	flush := func(tok string) {
+		name := strings.TrimSpace(tok)
+		switch {
+		case tok == "":
+		case opName.MatchString(name) && !verbFragment[name]:
+			lead := tok[:strings.Index(tok, name)]
+			if lead != "" {
+				out = append(out, opPart{Text: lead})
+			}
+			out = append(out, opPart{Text: name, Op: name})
+			if trail := tok[len(lead)+len(name):]; trail != "" {
+				out = append(out, opPart{Text: trail})
+			}
+		default:
+			out = append(out, opPart{Text: tok})
+		}
+	}
+	start := 0
+	for i, r := range cell {
+		if r == '/' || r == ',' {
+			flush(cell[start:i])
+			out = append(out, opPart{Text: string(r)})
+			start = i + 1
+		}
+	}
+	flush(cell[start:])
+	return out
 }
 
 // infoSvc maps a console service key onto the ledger sections it covers.
@@ -60,7 +118,9 @@ func infoSections(svc string) []infoSection {
 	out := make([]infoSection, 0, len(secs))
 	for _, s := range secs {
 		// The emulator's own calls (DozePeek) come last, with a dash for a tier.
-		s.Rows = append(docs.Rows(s.Key), docs.Extensions(s.Key)...)
+		for _, row := range append(docs.Rows(s.Key), docs.Extensions(s.Key)...) {
+			s.Rows = append(s.Rows, infoRow{Row: row, Parts: splitOps(row.Ops)})
+		}
 		s.Diffs = docs.Differences(s.Key)
 		out = append(out, s)
 	}

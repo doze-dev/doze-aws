@@ -208,10 +208,17 @@
   </div>
   {{if .Message}}<p class="err-msg">{{.Message}}</p>{{end}}
   {{if or .Code (ne .State "refused")}}
-  <p class="err-why">{{$c.Why}}{{if $c.LinkPath}} <a href="{{prefix}}{{$c.LinkPath}}">{{$c.LinkText}} →</a>{{end}}</p>
+  <p class="err-why">{{$c.Why}}{{if $c.LinkPath}} <a href="{{prefix}}{{$c.LinkPath}}">{{$c.LinkText}} →</a>{{end}}{{template "why_links" dict "State" .State "Detail" .Detail "Svc" .Svc "Op" .Op}}</p>
   {{end}}
 </div>
 {{end}}
+
+{{/* why_links: what a "Refused here" and a "Not built" explanation points at.
+     The operation's row in the fidelity dialog (shell.js opens the page's own
+     dialog at that row; followed, the link opens the service's page and then
+     its dialog there), and, for a not-built operation, docs/not-built.md. Every
+     other state draws nothing. */}}
+{{define "why_links"}}{{$row := ledgerRef .State .Detail .Svc .Op}}{{$doc := notBuiltRef .State .Detail}}{{if or $row $doc}} <span class="why-links">{{with $row}}<a class="why-link" hx-boost="false" href="{{prefix}}{{.Path}}" data-fidelity-svc="{{.Svc}}" data-fidelity-op="{{.Op}}">{{.Text}}</a>{{end}}{{with $doc}} <a class="why-link" hx-boost="false" href="{{.Href}}" target="_blank" rel="noopener">{{.Text}}</a>{{end}}</span>{{end}}{{end}}
 
 {{/* tag_rows: repeatable tag key/value inputs for a CREATE form, where there
      is no resource to POST against yet — so unlike tag_editor (which mutates an
@@ -290,8 +297,15 @@
      height is its content's, to the board's 760. Where the button sits is D12:
      beside the name in a resource's header (kit res_header), and in the list
      pane's header when nothing is open. */}}
+{{/* fid_state is the state every fidelity dialog is opened by: info is whether it
+     is open, and open() answers an "open-fidelity" event (from the header's ⓘ
+     with no detail, or from a refusal's link with the service and the operation
+     whose row to show). A dialog for another service ignores the event. The row is
+     found, marked and scrolled to by shell.js (dozeLedgerRow) once the dialog's
+     body is there. */}}
+{{define "fid_state"}}{info:false, svc:$el.dataset.fidSvc, open(e){ var d=(e&&e.detail)||{}; if(d.svc&&d.svc!==this.svc) return; this.info=true; if(d.op) this.$nextTick(()=>window.dozeLedgerRow(this.$el,d.op)); }}{{end}}
 {{define "info_button"}}
-<span x-data="{info:false}">
+<span x-data="{{template "fid_state" .}}" data-fid-svc="{{.Svc}}" @open-fidelity.window="open($event)">
   <button type="button" class="info-btn" title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" aria-label="What of {{svcLabel .Svc}} is real here" @click="info=true">{{icon "info"}}</button>
   {{template "info_overlay" .}}
 </span>
@@ -301,7 +315,7 @@
      outside the heading, so the heading's name is the resource's and not the
      dialog's) to open. info_dialog is the dialog that answers it. */}}
 {{define "info_open"}}<button type="button" class="info-btn" x-data title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" aria-label="What of {{svcLabel .Svc}} is real here" @click="$dispatch('open-fidelity')">{{icon "info"}}</button>{{end}}
-{{define "info_dialog"}}<div x-data="{info:false}" @open-fidelity.window="info=true">{{template "info_overlay" .}}</div>{{end}}
+{{define "info_dialog"}}<div x-data="{{template "fid_state" .}}" data-fid-svc="{{.Svc}}" @open-fidelity.window="open($event)">{{template "info_overlay" .}}</div>{{end}}
 
 {{define "info_overlay"}}
   <div class="overlay q-center" role="dialog" aria-modal="true" aria-label="{{svcLabel .Svc}} fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
@@ -331,6 +345,7 @@
 {{if .Empty}}<p class="mini-note">No ledger for this service.</p>{{end}}
 {{$many := gt (len .Sections) 1}}
 {{range .Sections}}
+{{$key := .Key}}
 {{if $many}}<h3 class="info-sec">{{.Title}}</h3>{{end}}
 <div class="fid-card"><table class="fid-table">
   <thead><tr><th class="fid-c-t">Tier</th><th class="fid-c-o">Operations</th><th>Notes</th></tr></thead>
@@ -338,7 +353,7 @@
   {{range .Rows}}
     <tr>
       <td><span class="pill {{if eq .Tier "F"}}ok{{else if eq .Tier "C"}}warn{{end}}" title="{{.TierLabel}}">{{.Tier}}</span></td>
-      <td class="fid-op">{{.Ops}}</td>
+      <td class="fid-op">{{range .Parts}}{{if .Op}}<span class="fid-opn" id="op-{{$key}}-{{.Op}}" data-op="{{.Op}}">{{.Text}}</span>{{else}}{{.Text}}{{end}}{{end}}</td>
       <td class="fid-note">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
     </tr>
   {{end}}

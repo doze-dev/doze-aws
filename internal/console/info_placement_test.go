@@ -55,7 +55,7 @@ func TestTheInfoButtonIsBesideTheNameOnceAResourceIsOpen(t *testing.T) {
 	if strings.Contains(title, "what is real here") {
 		t.Errorf("the dialog is inside the heading:\n%s", title)
 	}
-	if !strings.Contains(page, `@open-fidelity.window="info=true"`) {
+	if !strings.Contains(page, `@open-fidelity.window="open($event)"`) {
 		t.Errorf("no dialog answers the header's button")
 	}
 }

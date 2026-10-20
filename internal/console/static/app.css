@@ -674,6 +674,10 @@ tr:hover .row-actions { opacity: 1; }
 .err-msg { margin: 4px 0 0; color: var(--foreground); }
 .err-why { margin: 6px 0 0; font-size: 12px; color: var(--muted-foreground); }
 .err-why a { color: inherit; text-underline-offset: 2px; }
+/* The links under a "Refused here" or "Not built" explanation (ledger row, docs/not-built.md):
+   a line of their own, underlined, so they read as links in the muted note. */
+.why-links { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px; }
+.why-link { color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; }
 /* Refused is purple and Denied is amber (plan decision D3). A refusal is
    doze-aws working: the request broke a rule and the rule is named. A denial is
    a policy deciding, which is a thing you change. Neither is red; red is for
@@ -2181,6 +2185,10 @@ a.lo-card:hover { border-color: var(--accent); }
 .fid-table .pill { height: 18px; }
 .fid-op { font-family: var(--mono); font-size: var(--text-sm); line-height: 18px; overflow-wrap: anywhere; }
 .fid-note { font-size: var(--text-sm); line-height: 18px; color: var(--muted-foreground); }
+/* The row a refusal's link opened the dialog at (shell.js dozeLedgerRow): marked as a
+   keyboard cursor row is, so the mark is not the colour alone. */
+.fid-table tr.fid-hit td { background: var(--sel); }
+.fid-table tr.fid-hit td:first-child { box-shadow: inset 2px 0 0 var(--foreground); }
 .fid-diff { display: flex; flex-direction: column; gap: 6px; }
 .fid-h2 { margin: 0; font-size: var(--text-md); line-height: 20px; font-weight: 600; }
 .fid-callout { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); padding: 10px 12px; }

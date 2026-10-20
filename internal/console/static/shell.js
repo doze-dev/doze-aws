@@ -2246,3 +2246,72 @@
     host.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
   });
 })();
+
+// ---------- the ledger row a refusal points at ----------
+// "Refused here" and "Not built" explain themselves with a link to the
+// operation's row in the fidelity dialog (templates: why_links). The link is an
+// ordinary <a href="/{svc}?fidelity=Op" data-fidelity-svc data-fidelity-op>:
+//   - on a page that has the service's dialog (a service's own page, and the
+//     wire's inspector for a call to it) a click asks it to open at that row;
+//   - anywhere else it is followed, and the service's page opens its dialog at
+//     the row when it loads (?fidelity=, then dropped from the address).
+// A row is found by its anchor (.fid-opn[data-op], written by info_panel),
+// marked (.fid-hit, aria-current) and scrolled to. The dialog's body is fetched
+// when it first shows, so the row is looked for until the body has it.
+(function () {
+  var watch = null;
+  window.dozeLedgerRow = function (root, op) {
+    var body = root && root.querySelector ? root.querySelector(".info-body") : null;
+    if (!body || !op) return;
+    if (watch) { watch.disconnect(); watch = null; }
+    function mark() {
+      var anchors = body.querySelectorAll(".fid-opn");
+      var row = null;
+      for (var i = 0; i < anchors.length; i++) {
+        if (anchors[i].getAttribute("data-op") === op) { row = anchors[i].closest("tr"); break; }
+      }
+      if (!row) return false;
+      body.querySelectorAll("tr.fid-hit").forEach(function (r) { r.classList.remove("fid-hit"); r.removeAttribute("aria-current"); });
+      row.classList.add("fid-hit");
+      row.setAttribute("aria-current", "true");
+      row.scrollIntoView({ block: "center" });
+      return true;
+    }
+    if (mark()) return;
+    watch = new MutationObserver(function () {
+      if (mark()) { watch.disconnect(); watch = null; }
+    });
+    watch.observe(body, { childList: true, subtree: true });
+    // The body is fetched once, and a service with no ledger never fills it.
+    setTimeout(function () { if (watch) { watch.disconnect(); watch = null; } }, 10000);
+  };
+
+  function ask(svc, op) {
+    window.dispatchEvent(new CustomEvent("open-fidelity", { detail: { svc: svc, op: op } }));
+  }
+  // In the capture phase, because htmx boosts a link where it stands and would
+  // fetch the service's page before a handler further out saw the click.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[data-fidelity-svc]") : null;
+    if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var svc = a.getAttribute("data-fidelity-svc"), op = a.getAttribute("data-fidelity-op") || "";
+    // Not on this page: follow the link (a whole page load, hx-boost="false", so
+    // that the page it opens has its dialog and fromAddress runs).
+    if (!document.querySelector('[data-fid-svc="' + svc + '"]')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ask(svc, op);
+  }, true);
+  // Followed to a service's page: open its dialog at the row once the page has
+  // loaded (Alpine, started before this script runs, has bound the dialogs by
+  // then), and take ?fidelity= off the address so a reload is not a second ask.
+  function fromAddress() {
+    var q = new URLSearchParams(location.search), op = q.get("fidelity");
+    if (op === null) return;
+    q.delete("fidelity");
+    try { history.replaceState(history.state, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash); } catch (err) {}
+    ask("", op);
+  }
+  if (document.readyState === "complete") fromAddress();
+  else window.addEventListener("load", fromAddress);
+})();

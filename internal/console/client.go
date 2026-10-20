@@ -182,6 +182,11 @@ type apiErr struct {
 	errType string
 	// facts are the provenance headers (see TrafficEntry).
 	facts wireFacts
+	// svc is the console key of the service the failed request went to and op the
+	// operation it named, when the request says (a JSON target or a Query
+	// Action; a path-routed service does not). They are what a "Refused here" or
+	// "Not built" explanation links the ledger row of (ledger_link.go).
+	svc, op string
 }
 
 // resourceNotFound is a missing resource the console found for itself, in the
@@ -231,7 +236,8 @@ func (b *backend) do(req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header)}
+		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header),
+			svc: labelFor(b.id, req), op: operationOf(req)}
 	}
 	if graphMutation(req) {
 		b.bustGraph()

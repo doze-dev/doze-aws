@@ -180,7 +180,7 @@
   <div class="td-callout td-{{.State}}">
     {{if .Failure.Code}}<span class="m b">{{.Failure.Code}}</span>{{end}}
     {{if .Failure.Message}}<span>{{.Failure.Message}}</span>{{end}}
-    {{if ne .State "refused"}}<span class="note">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}</span>{{end}}
+    {{if ne .State "refused"}}<span class="note">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}{{template "why_links" .WhyLinks}}</span>{{end}}
   </div>
   <div class="td-s">
     <div class="wire-cap">What it was sent</div>
@@ -199,7 +199,7 @@
   <div class="td-actions"><button type="button" class="btn" data-copy="{{.E.Curl}}" data-copy-curl>Copy as curl</button><button type="button" class="btn btn-outline" data-copy="{{.CopyError}}">Copy the error</button></div>
 </div>
 {{else}}
-{{if ne .State "served"}}<p class="note td-why-line">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}</p>{{end}}
+{{if ne .State "served"}}<p class="note td-why-line">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}{{template "why_links" .WhyLinks}}</p>{{end}}
 <div class="td-tabs" role="tablist">
   <button type="button" role="tab" :class="tab==='request' && 'on'" :aria-selected="tab==='request'" @click="tab='request'">Request</button>
   <button type="button" role="tab" :class="tab==='response' && 'on'" :aria-selected="tab==='response'" @click="tab='response'">Response</button>
@@ -254,11 +254,11 @@
      table itself is the fidelity dialog's (info_panel), loaded the same way. */}}
 {{define "td_ledger"}}
 {{with .Ledger}}
-<div class="td-s" x-data="{info:false}">
+<div class="td-s" x-data="{{template "fid_state" .}}" data-fid-svc="{{.Svc}}" @open-fidelity.window="open($event)">
   <div class="wire-cap">The same operation, in the ledger</div>
   <div class="wire-well td-led">
     <div class="td-ledh"><span class="m b">{{.Op}}</span> <span class="pill {{if eq .Tier "F"}}ok{{end}}">{{.Tier}} · {{.TierLabel}}</span></div>
-    <span class="note">{{.Note}} <button type="button" class="linkish" @click="info=true">The {{.Label}} ledger</button></span>
+    <span class="note">{{.Note}} <button type="button" class="linkish" data-op="{{.Op}}" @click="open({detail:{op:$el.dataset.op}})">The {{.Label}} ledger</button></span>
   </div>
   {{template "info_overlay" dict "Svc" .Svc "Prefix" $.Prefix}}
 </div>

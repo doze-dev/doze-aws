@@ -331,6 +331,10 @@ type failReason struct {
 	// Detail is the stamp's one further fact (see stateCopyFor): "declined"
 	// or "deferred" for a notbuilt state, so the sentence under it can say which.
 	Detail string
+	// Svc and Op are the service (console key) and operation the failed call
+	// named, when the call says; the links under a "Refused here" or "Not built"
+	// explanation are made from them (ledger_link.go).
+	Svc, Op string
 }
 
 // failView decodes an error into the same shape the wire's inspector uses. An
@@ -340,9 +344,9 @@ func failView(err error) failReason {
 	var ae *apiErr
 	if errors.As(err, &ae) {
 		if r := parseRefusal(ae.status, ae.body, ae.errType); r != nil {
-			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r, ae.facts), Detail: detailOf(callState(ae.status, r, ae.facts), ae.facts, "")}
+			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r, ae.facts), Detail: detailOf(callState(ae.status, r, ae.facts), ae.facts, ""), Svc: ae.svc, Op: ae.op}
 		}
-		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil, ae.facts), Detail: detailOf(callState(ae.status, nil, ae.facts), ae.facts, "")}
+		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil, ae.facts), Detail: detailOf(callState(ae.status, nil, ae.facts), ae.facts, ""), Svc: ae.svc, Op: ae.op}
 	}
 	return failReason{Message: err.Error(), State: "refused"}
 }
@@ -353,6 +357,11 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		// stateCopy is the words for a failure state, once, so the wire's
 		// drawer and a form's inline error say the same thing.
 		"stateCopy": func(state, detail string) stateView { return stateCopyFor(state, detail) },
+		// ledgerRef and notBuiltRef are the links under a "Refused here" and a
+		// "Not built" explanation: the operation's row in the fidelity dialog, and
+		// docs/not-built.md. Nil (so {{with}} draws nothing) for every other state.
+		"ledgerRef":   ledgerRefFor,
+		"notBuiltRef": notBuiltRefFor,
 		// splitPath cuts "/aws/lambda/orders" into its directory and leaf, so
 		// a list can let the shared part shrink and keep the part that
 		// tells the entries apart.
