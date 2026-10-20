@@ -2525,6 +2525,69 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .what-panel { margin-bottom: 12px; }
 .what-k { font-size: 13px; }
 
+/* ---------- The map (boards Map and Map-Large; map.go) ----------
+   The wiring graph as flows. Drawn while it fits: a box is a link, a wire is an
+   SVG path under it, a label is text over it. At scale a flow is a card. Colour
+   is the shell's tokens, so the dark theme needs nothing of its own. A dark
+   wire (the foreground) is one a call named an end of in the last minute. */
+.map-page { border-left: 0; }
+.map-acts { align-items: center; }
+.map-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.map-scale { margin: 0 0 0 auto; }
+.map-b { display: flex; flex-direction: column; gap: 10px; }
+.map-hotpill { background: var(--okbg); border-color: transparent; }
+.map-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.map-seg a { display: flex; align-items: center; height: 24px; padding: 0 9px; font-size: 12px; font-weight: 400; color: var(--muted-foreground); border-right: 1px solid var(--border); }
+.map-seg a:last-child { border-right: 0; }
+.map-seg a.on { background: var(--foreground); color: var(--card); }
+.map-seg a:focus-visible, .map-box:focus-visible, .map-card:focus-visible, .map-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.map-find .input { width: 220px; height: 28px; font-size: 12px; }
+.map-note { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+.map-note a { text-decoration: underline; text-decoration-color: var(--input); text-underline-offset: 2px; }
+.map-wrap { overflow: auto; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 4px 10px; }
+.map-flow { padding: 4px 16px 10px; width: max-content; min-width: 100%; box-sizing: border-box; }
+.map-flow + .map-flow { border-top: 1px solid var(--border); padding-top: 12px; }
+.map-flow-h { margin: 6px 0 0; font-size: 12px; line-height: 18px; font-weight: 400; color: var(--muted-foreground); }
+.map-flow-h a { text-decoration: underline; text-decoration-color: var(--input); text-underline-offset: 2px; }
+.map-hot { margin-left: 6px; padding: 1px 5px; font-size: 10px; line-height: 1; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--success); border: 1px solid var(--success); border-radius: 3px; }
+.map-canvas { position: relative; width: var(--w); height: var(--h); }
+.map-wires { position: absolute; left: 0; top: 0; overflow: visible; }
+.map-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.map-wire { fill: none; stroke: var(--muted-foreground); stroke-width: 2; }
+.map-wire.hot { stroke: var(--foreground); }
+.map-wire.off { stroke-dasharray: 5 4; }
+.map-head { fill: var(--muted-foreground); }
+.map-head.hot { fill: var(--foreground); }
+.map-label { position: absolute; left: var(--x); top: var(--y); font-family: var(--mono); font-size: 11px; line-height: 12px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; }
+.map-label.hot { color: var(--foreground); }
+.map-box { position: absolute; left: var(--x); top: var(--y); width: 260px; height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
+.map-box:hover { border-color: var(--ring); }
+.map-box .aws-ic { width: 20px; height: 20px; }
+.map-name { font-family: var(--mono); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.map-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.map-card, .map-fold { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
+.map-card.hot { box-shadow: inset 3px 0 0 var(--success); }
+.map-card:hover { border-color: var(--ring); }
+.map-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-count { font-size: 12px; color: var(--muted-foreground); }
+.map-lines { display: flex; flex-direction: column; gap: 4px; font-size: 12px; min-width: 0; }
+.map-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-line.follows { color: var(--muted-foreground); }
+.map-more { font-family: var(--sans); font-size: 12px; color: var(--muted-foreground); }
+.map-unwired { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.map-cap { font-size: 10px; line-height: 16px; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--muted-foreground); }
+.map-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+a.map-chip { color: var(--foreground); }
+.map-chip .aws-ic { width: 14px; height: 14px; border-radius: 3px; }
+.map-chip:hover { border-color: var(--ring); }
+.map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-bottom: 8px; font-size: 12px; color: var(--muted-foreground); }
+.map-key .mono { font-size: 12px; }
+.map-empty { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.map-empty p + p { max-width: 56ch; }
+.map-gone { margin: 0; }
+@media (max-width: 1280px) { .map-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .map-scale { margin-left: 0; flex-basis: 100%; } }
+
 /* ---------- SQS, to the design's boards ----------
    The body of the SQS pages (sqs.html, sqs_create), drawn the way the boards
    draw it: cards with a 12/14 pad, tables as rows on a grid with a quiet header

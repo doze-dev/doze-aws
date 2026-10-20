@@ -78,6 +78,7 @@ var catalog = []svcEntry{
 // thing a new user needs.
 var surfaces = []svcEntry{
 	{Key: "traffic", Label: "The wire", Noun: "surface"},
+	{Key: "map", Label: "The map", Noun: "surface"},
 	{Key: "connect", Label: "Connect", Noun: "surface"},
 }
 

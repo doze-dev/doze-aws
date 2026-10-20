@@ -1,0 +1,109 @@
+{{define "map"}}{{template "shell_top" .}}
+{{/* The map (boards Map and Map-Large; map.go). The wiring graph as flows: drawn
+     while it fits, one card a flow once it does not. The "new page" tag the
+     boards carry is their own note, not the page's. */}}
+  <section class="detail map-page">
+    <div class="det-h">
+      <div class="det-title" role="heading" aria-level="1">The map
+        <div class="acts map-acts">
+        {{if .Large}}
+          <div class="map-seg" role="group" aria-label="Which flows">
+            <a href="{{.AllURL}}"{{if not .HotOnly}} class="on" aria-current="true"{{end}}>All flows</a><a href="{{.HotURL}}"{{if .HotOnly}} class="on" aria-current="true"{{end}}>Hot only</a>
+          </div>
+          <form class="map-find" role="search" method="get" action="{{.Prefix}}/map">
+            {{if .HotOnly}}<input type="hidden" name="hot" value="1">{{end}}
+            <input class="input mono" type="search" name="q" value="{{.Q}}" placeholder="Find a resource" aria-label="Find a resource" spellcheck="false" autocomplete="off">
+          </form>
+        {{else if .One}}
+          <a class="btn btn-outline btn-sm" href="{{.Back}}">{{icon "chevron-left"}} All flows</a>
+          <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span>
+        {{else}}
+          <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span>{{if .UnwiredAll}}<span class="pill mono">{{.Unwired}}</span>{{end}}
+        {{end}}
+        </div>
+      </div>
+      {{if .Large}}
+      <div class="map-meta">
+        <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span><span class="pill mono">{{.Unwired}}</span>
+        {{if .HotFlows}}<span class="pill ok mono map-hotpill" title="A call named a resource in each of these flows in the last minute."><span class="live"></span>{{.HotLine}}</span>{{end}}
+        <span class="det-sub map-scale">Past {{.Max}} resources the page stops drawing wires. A flow is one card; open it to see its wires.</span>
+      </div>
+      {{else}}
+      <div class="det-sub">Every resource that is wired to another, and the wire between them. A dark wire carried traffic recently.{{if not .Capture}} Traffic capture is off in this topology, so no wire can be dark.{{end}}</div>
+      {{end}}
+    </div>
+    <div class="det-b map-b" data-keys="{{.Keys}}">
+
+      {{if .Gone}}<div class="q-callout warn map-gone" role="status"><b>That flow is not on the map any more.</b> The wiring it was made of has changed. These are the flows there are.</div>{{end}}
+
+      {{if .Empty}}
+        <div class="empty map-empty"><span class="ic-lg">{{icon "map"}}</span>
+          <p><b>Nothing is wired yet.</b></p>
+          <p>A resource appears here once it is wired to another: an S3 notification, an SNS subscription, an EventBridge rule target, an event source mapping or a dead-letter queue.</p>
+        </div>
+      {{else if .One}}
+        {{template "map_flow" dict "P" .Prefix "F" .One "Solo" true}}
+      {{else if .Large}}
+        {{if .Searching}}<p class="map-note"><span>{{.Matches}}{{if .Q}} “{{.Q}}”{{end}}.</span> <a href="{{.AllURL}}">Clear</a></p>{{end}}
+        {{if .Cards}}
+        <div class="map-grid">
+          {{range .Cards}}
+          <a class="map-card{{if .Hot}} hot{{end}}" href="{{.URL}}">
+            <span class="map-title">{{.Title}}</span>
+            <span class="map-count">{{.Count}}{{if .Hot}} · hot{{end}}</span>
+            <span class="map-lines mono">{{range .Lines}}<span class="map-line{{if .Follows}} follows{{end}}">{{if .Follows}}→ {{end}}{{.Word}} {{.Name}}</span>{{end}}{{if .More}}<span class="map-more">+ {{.More}} more</span>{{end}}</span>
+          </a>
+          {{end}}
+          {{with .Fold}}
+          <div class="map-fold">
+            <span class="map-title">{{.Title}}</span>
+            <span class="map-count">{{.Span}}</span>
+            <div><a class="btn btn-outline btn-sm" href="{{.URL}}">Show them</a></div>
+          </div>
+          {{end}}
+        </div>
+        {{else}}
+        <div class="empty map-empty flat"><p>{{if .HotOnly}}No flow had a call in the last minute.{{if not .Capture}} Traffic capture is off in this topology, so none can.{{end}}{{else}}No flow has a resource called “{{.Q}}”.{{end}}</p></div>
+        {{end}}
+      {{else}}
+        <div class="map-wrap" role="region" aria-label="The wires" tabindex="0">
+          {{range .Drawn}}{{template "map_flow" dict "P" $.Prefix "F" .}}{{end}}
+        </div>
+      {{end}}
+
+      {{if .Chips}}
+      <div class="map-unwired">
+        <span class="map-cap">Wired to nothing · {{len .Chips}}</span>
+        <div class="map-chips">{{range .Chips}}<a class="pill mono map-chip" href="{{$.Prefix}}{{.URL}}">{{awsIcon .Svc}}&nbsp;{{.Name}}</a>{{end}}</div>
+      </div>
+      {{end}}
+
+      <div class="map-legend">
+        <span class="map-cap">Wires</span>
+        {{range .Kinds}}<span class="map-key"><span class="mono">{{.Kind}}</span> {{.Meaning}}</span>{{end}}
+      </div>
+    </div>
+  </section>
+  <svg class="map-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs>
+    <marker id="map-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L7 4L1 7z" class="map-head"/></marker>
+    <marker id="map-arrow-hot" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L7 4L1 7z" class="map-head hot"/></marker>
+  </defs></svg>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* One flow, drawn: its name, the boxes (links) over the wires (SVG), each
+     wire's label, and the wires as sentences for a reader who cannot see the
+     lines. dict: P (prefix), F (mapDrawn), Solo (the flow's own page). */}}
+{{define "map_flow"}}{{$d := .F.Drawing}}
+<section class="map-flow" aria-labelledby="mf-{{.F.Num}}">
+  <h2 class="map-flow-h" id="mf-{{.F.Num}}">{{if not .Solo}}<a href="{{.F.URL}}">{{end}}Flow {{.F.Num}} · from {{.F.Title}}{{if not .Solo}}</a>{{end}}{{if .F.Hot}} <span class="map-hot">hot</span>{{end}}</h2>
+  <div class="map-canvas" style="--w:{{$d.W}}px;--h:{{$d.H}}px">
+    <svg class="map-wires" width="{{$d.W}}" height="{{$d.H}}" viewBox="0 0 {{$d.W}} {{$d.H}}" aria-hidden="true" focusable="false">
+      {{range $d.Wires}}<path class="map-wire{{if .Hot}} hot{{end}}{{if .Off}} off{{end}}" d="{{.Path}}" marker-end="url(#map-arrow{{if .Hot}}-hot{{end}})"/>{{end}}
+    </svg>
+    {{range $d.Wires}}<span class="map-label{{if .Hot}} hot{{end}}" style="--x:{{.LX}}px;--y:{{.LY}}px">{{.Label}}</span>{{end}}
+    {{range $d.Boxes}}<a class="map-box" href="{{$.P}}{{.URL}}" title="{{.Word}} {{.Label}}{{with .Sub}} · {{.}}{{end}}" style="--x:{{.X}}px;--y:{{.Y}}px">{{awsIcon .Svc}}<span class="map-name">{{.Label}}</span></a>{{end}}
+  </div>
+  {{if $d.Omitted}}<p class="map-note">{{$d.Omitted}} more resources in this flow are not drawn.</p>{{end}}
+  <ul class="sr-only" aria-label="The wires in flow {{.F.Num}}">{{range $d.Spoken}}<li>{{.}}</li>{{end}}</ul>
+</section>
+{{end}}

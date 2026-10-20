@@ -49,6 +49,7 @@ func (c *Console) routes() {
 		r.Get("/traffic/entry", c.trafficEntry)  // inspector drawer
 		r.Get("/traffic/for", c.trafficFor)      // one resource's calls (the kit's wire dock)
 		r.Post("/traffic/clear", c.trafficClear) // empty the ring
+		r.Get("/map", c.mapPage)                 // the wiring graph, as flows
 		r.Get("/connect", c.connect)
 		r.Post("/connect/verify", c.connectVerify)
 		r.Get("/deck", c.deck) // the stack at a glance

@@ -220,6 +220,7 @@ return p.join(" ");};</script>
            under Observe, which is where you look at what happened, not where you
            learn how to point an SDK at it. */}}
       {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity" "Plain" true}}
+      {{template "ri" dict "P" .Prefix "URL" "/map" "On" (eq .Page "map") "Name" "The map" "Glyph" "map" "Plain" true}}
       {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal" "Plain" true}}
       <div class="rgroup">Storage and data</div>
       {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3" "Ct" (index $.Counts "s3") "Dot" (index $.Warn "s3")}}

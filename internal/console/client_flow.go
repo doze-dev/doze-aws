@@ -25,8 +25,13 @@ type FlowNode struct {
 type FlowEdge struct {
 	From string
 	To   string
-	Kind string // notify | sub | target | esm | redrive
-	Hot  bool   // carried traffic recently (best-effort: has depth/invocations)
+	Kind string // notify | sub | target | esm | redrive | dlq | dest
+	// Whether a wire is hot is not a property of the graph: it depends on the
+	// wire's ring, which the five-second cache of this graph must not freeze.
+	// The map asks for it when it draws (map.go, mapTouched). An edge into a
+	// queue with depth used to be called hot here; that is a backlog, and
+	// nothing read it.
+	//
 	// Off is an event source mapping that is Disabled: the wiring is there and
 	// nothing is read through it, so no page may draw the source as read.
 	Off bool
@@ -86,10 +91,8 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 		add("s3", bk.Name, "bucket")
 	}
 	queues, _ := b.ListQueues(ctx)
-	qDepth := map[string]int{}
 	for _, q := range queues {
 		add("sqs", q.Name, plural(q.Available, "msg"))
-		qDepth[q.Name] = q.Available
 	}
 	topics, _ := b.ListTopics(ctx)
 	for _, t := range topics {
@@ -197,13 +200,6 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 		}
 	}
 
-	// mark hotness: an edge into a queue with depth, or from a topic/rule, reads as active
-	for i := range edges {
-		to := nodes[edges[i].To]
-		if to != nil && to.Svc == "sqs" && qDepth[to.Name] > 0 {
-			edges[i].Hot = true
-		}
-	}
 	return collectGraph(nodes, edges)
 }
 

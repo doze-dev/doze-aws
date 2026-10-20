@@ -67,6 +67,7 @@ GET /logs
 GET /logs/create
 GET /logs/group
 GET /logs/tail
+GET /map
 GET /s3
 GET /s3/create
 GET /s3/{bucket}

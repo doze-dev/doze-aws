@@ -1071,7 +1071,7 @@
   function focusFilter() {
     var sw = switcherPane();
     if (sw) { setSwitcher(sw, true, true); return true; }
-    var f = document.querySelector(".listpane .filter input");
+    var f = document.querySelector(".listpane .filter input") || document.querySelector("#workspace .map-find input[name=q]");
     // The wire has no list pane: its filter is the service select above the rows.
     // (select.js hides the native select behind a button with the same label.)
     if (!f && wireOn()) {
