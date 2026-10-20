@@ -47,7 +47,7 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	failure := e.Failure()
 	state := callState(e.Status, failure, factsOfEntry(e))
-	copyV := stateCopyFor(state, e.NotBuilt)
+	copyV := stateCopyFor(state, detailOf(state, factsOfEntry(e), e.Resource))
 	ref := resourceURL(e.Service, e.Resource)
 	data := map[string]any{
 		"E": e, "Req": req, "Resp": resp,
@@ -104,7 +104,7 @@ func (c *Console) caused(seq int64) []causedView {
 		out = append(out, causedView{
 			Seq: k.Seq, Service: k.Service, Label: actionLabel(k.Action), Resource: k.Resource,
 			Millis: millisCell(k), Via: viaWords(k), Detail: strings.TrimSpace(k.Detail),
-			State: st, Answer: answerOf(k.Status, st, stateCopyFor(st, k.NotBuilt).Label),
+			State: st, Answer: answerOf(k.Status, st, stateCopyFor(st, "").Label),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Seq < out[j].Seq })

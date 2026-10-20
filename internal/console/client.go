@@ -147,7 +147,7 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			// A service the stack was started without is a choice about this
 			// stack, not the emulator breaking, so it is stamped as one of
 			// doze-aws's own limits rather than read as a 5xx fault.
-			Header:  http.Header{"Content-Type": []string{"application/json"}, awshttp.LocalLimitHeader: []string{"service-not-running"}},
+			Header:  http.Header{"Content-Type": []string{"application/json"}, awshttp.LocalLimitHeader: []string{serviceNotRunning}},
 			Body:    io.NopCloser(strings.NewReader(`{"__type":"ServiceUnavailable","message":"the ` + svc + ` service is not running"}`)),
 			Request: req,
 		}, nil

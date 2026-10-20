@@ -328,9 +328,9 @@ type failReason struct {
 	Code    string
 	Message string
 	State   string // served | refused | refusedhere | denied | notbuilt | error | threw — same vocabulary as the wire (an action that fails is never "threw": that is a served call)
-	// NotBuilt carries "declined" or "deferred" for a notbuilt state, so the
-	// sentence under it can say which.
-	NotBuilt string
+	// Detail is the stamp's one further fact (see stateCopyFor): "declined"
+	// or "deferred" for a notbuilt state, so the sentence under it can say which.
+	Detail string
 }
 
 // failView decodes an error into the same shape the wire's inspector uses. An
@@ -340,9 +340,9 @@ func failView(err error) failReason {
 	var ae *apiErr
 	if errors.As(err, &ae) {
 		if r := parseRefusal(ae.status, ae.body, ae.errType); r != nil {
-			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r, ae.facts), NotBuilt: ae.facts.NotBuilt}
+			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r, ae.facts), Detail: detailOf(callState(ae.status, r, ae.facts), ae.facts, "")}
 		}
-		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil, ae.facts), NotBuilt: ae.facts.NotBuilt}
+		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil, ae.facts), Detail: detailOf(callState(ae.status, nil, ae.facts), ae.facts, "")}
 	}
 	return failReason{Message: err.Error(), State: "refused"}
 }
@@ -352,7 +352,7 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"prefix": func() string { return prefix },
 		// stateCopy is the words for a failure state, once, so the wire's
 		// drawer and a form's inline error say the same thing.
-		"stateCopy": func(state, notBuilt string) stateView { return stateCopyFor(state, notBuilt) },
+		"stateCopy": func(state, detail string) stateView { return stateCopyFor(state, detail) },
 		// splitPath cuts "/aws/lambda/orders" into its directory and leaf, so
 		// a list can let the shared part shrink and keep the part that
 		// tells the entries apart.

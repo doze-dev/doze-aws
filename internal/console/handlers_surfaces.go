@@ -405,7 +405,7 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 	state := callState(e.Status, ref, factsOfEntry(e))
 	word := ""
 	if state != "served" {
-		word = stateCopyFor(state, e.NotBuilt).Label
+		word = stateCopyFor(state, "").Label
 	}
 	return trafficRow{
 		Time:    clockMillis(e.At),
@@ -493,6 +493,24 @@ func callState(status int, ref *Refusal, f wireFacts) string {
 	return "served"
 }
 
+// serviceNotRunning is the value of X-Doze-Local-Limit the console's own
+// transport stamps on its 503 for a service the stack does not run.
+const serviceNotRunning = "service-not-running"
+
+// detailOf is the fact stateCopyFor takes for a state, read from the stamps
+// (and, for a function error, the resource the call named).
+func detailOf(state string, f wireFacts, resource string) string {
+	switch state {
+	case "notbuilt":
+		return f.NotBuilt
+	case "refusedhere":
+		return f.Local
+	case "threw":
+		return resource
+	}
+	return ""
+}
+
 // stateView is the words for a failure state, written once. Label is the word
 // as well as the colour (the state must read without it); Why is the sentence
 // under it; Link, when set, is where the fix lives.
@@ -503,11 +521,17 @@ type stateView struct {
 	LinkText string
 }
 
-func stateCopyFor(state, notBuilt string) stateView {
+// stateCopyFor is the words for a state. detail is the one fact the state's
+// stamp carries beyond the state itself: "declined" or "deferred" for a not
+// built operation (X-Doze-Not-Built), the stamp's value for a local limit
+// (X-Doze-Local-Limit: "service-not-running" is the console's own answer for a
+// service the stack was started without), and the function's name for one that
+// threw. An empty detail gives the general sentence.
+func stateCopyFor(state, detail string) stateView {
 	switch state {
 	case "notbuilt":
 		why := "doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request."
-		switch notBuilt {
+		switch detail {
 		case "declined":
 			why = "doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request."
 		case "deferred":
@@ -522,9 +546,17 @@ func stateCopyFor(state, notBuilt string) stateView {
 		return stateView{Label: "Failed",
 			Why: "This is doze-aws failing rather than refusing. A 5xx here is a bug in the emulator, not in the call, and is worth reporting."}
 	case "threw":
+		who := "your function"
+		if detail != "" {
+			who = "the function " + detail
+		}
 		return stateView{Label: "It threw",
-			Why: "The call was served and your function raised. Lambda answers 200 and flags the error in X-Amz-Function-Error; the body says what it threw. Nothing here is a bug in doze-aws."}
+			Why: "The call was served and " + who + " raised. Lambda answers 200 and flags the error in X-Amz-Function-Error; the body says what it threw. Nothing here is a bug in doze-aws."}
 	case "refusedhere":
+		if detail == serviceNotRunning {
+			return stateView{Label: "Refused here",
+				Why: "This stack was started without this service, so nothing answers for it. Start it with the service enabled; the request is not what to change."}
+		}
 		return stateView{Label: "Refused here",
 			Why: "AWS would accept this. doze-aws refuses it because of a limit of its own."}
 	}

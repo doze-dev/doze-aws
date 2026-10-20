@@ -200,7 +200,7 @@
      and a line about where the fix lives — because a request refused by
      doze-aws reads the same whether your code made it or this page did. */}}
 {{define "fail_inline"}}
-{{$c := stateCopy .State .NotBuilt}}
+{{$c := stateCopy .State .Detail}}
 <div class="err err-{{.State}}" role="alert" tabindex="-1">
   <div class="err-h">
     {{$c.Label}}
