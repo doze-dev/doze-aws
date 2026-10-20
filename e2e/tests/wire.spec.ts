@@ -131,10 +131,10 @@ test.describe('the inspector', () => {
     await expect(d.locator('.td-led .m.b')).toHaveText('SendMessage');
     await expect(d.locator('.td-led .pill')).toHaveText('F · functional');
     await d.getByRole('button', { name: 'The SQS ledger' }).click();
-    const dialog = page.getByRole('dialog', { name: 'service fidelity' });
+    const dialog = page.getByRole('dialog', { name: 'SQS fidelity' });
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('.info-body')).toContainText('SendMessage');
-    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.locator('.dialog-f').getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toBeHidden();
 
     // No tabs: the reason is the whole of the answer.

@@ -25,8 +25,8 @@
       },
       "internal/console/static": {
         "bytes": {
-          "measured": 956967,
-          "ceiling": 976896
+          "measured": 980510,
+          "ceiling": 1000448
         },
         "files": 44
       },
