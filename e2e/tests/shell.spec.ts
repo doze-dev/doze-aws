@@ -127,8 +127,17 @@ test.describe('top bar', () => {
   test('the IAM mode is on every page, in one wording', async ({ page }) => {
     for (const path of ['', 'traffic', 'sqs', 's3', 'iam', 'connect', 'sqs/create', 'no-such-page']) {
       await page.goto(path);
-      await expect(page.locator('.topbar .pill.iam'), path || '(home)').toHaveText(/^IAM (soft|enforce|off)$/);
+      // Anatomy draws "IAM soft · recording" (soft mode is the one that records what it would have refused).
+      await expect(page.locator('.topbar .pill.iam'), path || '(home)').toHaveText(/^IAM (soft · recording|enforce|off)$/, { useInnerText: true });
     }
+  });
+
+  test('the IAM pill is "IAM soft" at 1100px and below, as Narrow draws it', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.goto('sqs');
+    await expect(page.locator('.topbar .pill.iam')).toHaveText(/^IAM (soft|enforce|off)$/, { useInnerText: true });
+    await page.setViewportSize({ width: 1101, height: 800 });
+    await expect(page.locator('.topbar .pill.iam')).toHaveText(/^IAM (soft · recording|enforce|off)$/, { useInnerText: true });
   });
 
   test('the theme switch is a compact control at the right end', async ({ page }) => {
@@ -773,15 +782,62 @@ test.describe('the confirm component', () => {
 });
 
 test.describe('a narrow window', () => {
-  // Below 1024px the console says it is not built to fit; at desk width it says
-  // nothing. Phones are declared unsupported.
-  test('is told so below 1024px and not above', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
+  // The Narrow board draws the notice in the key bar, at its right, at 1024:
+  // "Built for 1024 and wider. Phones are not supported, and the console says
+  // so." So it is there at 1024 and below, and not above.
+  test('is told so, in the key bar, at 1024px and below and not above', async ({ page }) => {
+    const note = page.locator('#keybar .keys-note');
+    await page.setViewportSize({ width: 1100, height: 800 });
     await page.goto('sqs');
-    await expect(page.locator('.narrow-note')).toBeHidden();
-    await page.setViewportSize({ width: 900, height: 700 });
-    await expect(page.locator('.narrow-note')).toBeVisible();
-    await expect(page.locator('.narrow-note')).toContainText('1024');
+    await expect(note).toBeHidden();
+    await page.setViewportSize({ width: 1025, height: 800 });
+    await expect(note).toBeHidden();
+    for (const w of [1024, 900, 768]) {
+      await page.setViewportSize({ width: w, height: 800 });
+      await expect(note).toBeVisible();
+      await expect(note).toHaveText('Built for 1024 and wider. Phones are not supported, and the console says so.');
+      // It sits at the bar's right and does not push the bar past the window.
+      // (The keys that would not fit are dropped whole, on the frame after the resize.)
+      await expect
+        .poll(async () => {
+          const box = (await note.boundingBox())!;
+          return box.x + box.width;
+        })
+        .toBeLessThanOrEqual(w);
+    }
+    // And it survives the bar being redrawn by a boosted page change.
+    await page.locator('.rail a[href$="/s3"]').click();
+    await page.waitForURL(/\/s3$/);
+    await expect(page.locator('#keybar')).toHaveCount(1);
+    await expect(note).toBeVisible();
+  });
+
+  // Narrow's key bar is "j k message": with the list pane a switcher, the keys
+  // move over the messages. Above 1100 they are the queue's, as the Queue board draws.
+  test('has j and k move over messages at 1100px and below, and the bar says so', async ({ page, request, uniqueName }) => {
+    const q = await createQueue(request, uniqueName('e2e-narrow-keys'));
+    for (let i = 0; i < 3; i++) await postForm(request, `sqs/${q}/send`, { body: `{"n":${i}}` });
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await page.goto(`sqs/${q}`);
+    await expect(page.locator('.msgs > .msg')).toHaveCount(3);
+    await expect.poll(() => readBar(page)).toEqual([{ caps: ['j', 'k'], label: 'message' }]);
+    await page.keyboard.press('j');
+    await expect(page.locator('.msgs > .msg.cursor')).toHaveCount(1);
+    await expect(page.locator('.msgs > .msg').nth(0)).toHaveClass(/cursor/);
+    await page.keyboard.press('j');
+    await expect(page.locator('.msgs > .msg').nth(1)).toHaveClass(/cursor/);
+    await page.keyboard.press('k');
+    await expect(page.locator('.msgs > .msg').nth(0)).toHaveClass(/cursor/);
+    // The switcher did not open: j and k were the messages'.
+    await expect(page.locator('.listpane.lp-open')).toHaveCount(0);
+    // Widening the window gives the queue's bar back, live.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect.poll(() => readBar(page)).toEqual([
+      { caps: ['j', 'k'], label: 'queue' },
+      { caps: ['⌘⏎'], label: 'send' },
+      { caps: ['/'], label: 'filter' },
+      { caps: ['⌘K'], label: 'jump or act' },
+    ]);
   });
 });
 
@@ -869,12 +925,15 @@ const DRIVERS: Record<string, Drive> = {
     await page.keyboard.press('Escape');
     await page.waitForURL(new RegExp(`/${env.svc}$`));
   },
-  'create:⌘K': async (page) => {
-    await page.keyboard.press(PALETTE_KEY);
-    await expect(page.locator('#palette')).toBeVisible();
+  // The create bar is the Create board's, on every service: ⌘⏎, tab, esc (no ⌘K).
+  'create:⌘⏎': async (page, env) => {
+    const name = env.made;
+    await page.locator('input[name=name]').fill(name);
+    await page.keyboard.press(SUBMIT_KEY);
+    await page.waitForURL(new RegExp(`/${env.svc}/${name}`));
   },
 
-  // ---- a create page with the Create board's bar (every service but SQS) ----
+  // ---- a create page of another service, with the same bar ----
   'make:⌘⏎': async (page, env) => {
     // From the field, and from nowhere in particular: the page is for making one thing.
     const name = env.made;
@@ -892,10 +951,6 @@ const DRIVERS: Record<string, Drive> = {
     await page.locator('input[name=name]').fill('never-made');
     await page.keyboard.press('Escape');
     await page.waitForURL(new RegExp(`/${env.svc}$`));
-  },
-  'make:⌘K': async (page) => {
-    await page.keyboard.press(PALETTE_KEY);
-    await expect(page.locator('#palette')).toBeVisible();
   },
 
   // ---- the wire, with calls on it ----
@@ -1020,7 +1075,12 @@ Object.assign(DRIVERS, {
     await page.keyboard.press('Escape');
     await expect(page.locator('#sqs-config form.cfg-form')).toBeHidden();
     await page.getByRole('button', { name: 'Edit settings' }).click();
+    // Wait for the form to be there before focusing into it: a focus() on a form
+    // Alpine has not shown yet does nothing, and the Escape that follows found
+    // its Cancel button not yet shown (this failed about one run in six).
+    await expect(page.locator('#sqs-config form.cfg-form')).toBeVisible();
     await page.locator('#sqs-config input[name=visibility]').focus();
+    await expect(page.locator('#sqs-config input[name=visibility]')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page.locator('#sqs-config form.cfg-form')).toBeHidden();
   },
@@ -1061,9 +1121,9 @@ const KINDS: Record<string, { url: string; caps: string[]; svc?: string; fresh?:
   cfgedit: { url: 'sqs/{queue}?tab=config', caps: ['tab', 'esc', '⌘K'], setup: async (page) => { await page.getByRole('button', { name: 'Edit settings' }).click(); await expect(page.locator('#sqs-config form.cfg-form')).toBeVisible(); } },
   // Sqs-19
   tags: { url: 'sqs/{queue}?tab=tags', caps: ['tab', '⌘K'] },
-  // Sqs-03-Create draws tab, esc, ⌘K; the Create board draws ⌘⏎ create first.
-  create: { url: 'sqs/create', caps: ['tab', 'esc', '⌘K'] },
-  make: { url: 's3/create', caps: ['⌘⏎', 'tab', 'esc', '⌘K'], svc: 's3' },
+  // The Create board's bar on every create page: ⌘⏎ create, tab, esc. No ⌘K (owner, 2026-10-20).
+  create: { url: 'sqs/create', caps: ['⌘⏎', 'tab', 'esc'] },
+  make: { url: 's3/create', caps: ['⌘⏎', 'tab', 'esc'], svc: 's3' },
   wire: { url: 'traffic', caps: ['j', 'k', '⏎', '/', '⌘K'] },
   inspect: { url: 'traffic', caps: ['j', 'k', 'c', '→', 'esc'] },
 };
@@ -1086,21 +1146,16 @@ test.describe('the key bar', () => {
       { caps: ['c'], label: 'new queue' },
       { caps: ['⌘K'], label: 'jump or act' },
     ]);
-    // Sqs-03-Create's bar...
-    await page.goto('sqs/create');
-    expect(await readBar(page)).toEqual([
-      { caps: ['tab'], label: 'next field' },
-      { caps: ['esc'], label: 'cancel' },
-      { caps: ['⌘K'], label: 'jump or act' },
-    ]);
-    // ...and the Create board's, on every other service's create page.
-    await page.goto('s3/create');
-    expect(await readBar(page)).toEqual([
+    // The Create board's bar, on every create page (and no ⌘K: the board has none).
+    const create = [
       { caps: ['⌘⏎'], label: 'create' },
       { caps: ['tab'], label: 'next field' },
       { caps: ['esc'], label: 'cancel, nothing made' },
-      { caps: ['⌘K'], label: 'jump or act' },
-    ]);
+    ];
+    await page.goto('sqs/create');
+    expect(await readBar(page)).toEqual(create);
+    await page.goto('s3/create');
+    expect(await readBar(page)).toEqual(create);
   });
 
   test("each state of a queue's page names the keys its board draws, in the board's words", async ({ page, request, uniqueName }) => {
@@ -1136,7 +1191,7 @@ test.describe('the key bar', () => {
     await page.locator('.listpane .new-link').click();
     await page.waitForURL(/\/sqs\/create$/);
     await expect(page.locator('#keybar')).toHaveCount(1);
-    await expect.poll(() => capsOf(page)).toEqual(['tab', 'esc', '⌘K']);
+    await expect.poll(() => capsOf(page)).toEqual(['⌘⏎', 'tab', 'esc']);
     await page.keyboard.press('Escape');
     await page.waitForURL(/\/sqs$/);
     await expect.poll(() => capsOf(page)).toEqual(['j', 'k', '⏎', '/', 'c', '⌘K']);

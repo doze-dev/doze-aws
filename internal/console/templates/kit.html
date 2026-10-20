@@ -44,6 +44,11 @@
                 and Tail (what is said after the link). Everything is a fact
                 the page already has. Skip true leaves a clause out (and its
                 separator), for a fact a resource may not have.
+                Board Narrow draws the sentence shorter at 1100 px and below
+                ("hidden 60 s", no "kept 4 days", "dead letters after 3"). The
+                sentence is written long; Wide true is a clause (and its
+                separator) that goes at that width, LinkWide a link that goes,
+                and words written {in braces} in Text go (narrow.go).
        Facts    [] of dict K, V, and optionally ID (a live slot id), Link, Sub,
                 Num (right-aligned digits)
        Chips    [] of dict Label, Value (copyable). Boards draw none under the
@@ -61,7 +66,7 @@
 {{template "info_dialog" dict "Svc" .Svc "Prefix" .Prefix}}
 {{if .Chips}}<div class="chips">{{range .Chips}}{{template "copychip" dict "Label" .Label "Value" .Value}}{{end}}</div>{{end}}
 {{if .Sentence}}<div class="sentence">
-  {{$first := true}}{{range $c := .Sentence}}{{if not $c.Skip}}{{if not $first}}<span class="sep">·</span>{{end}}{{$first = false}}<span class="s-clause {{$c.Class}}">{{if $c.NID}}<span id="{{$c.NID}}">{{$c.N}}</span> {{end}}{{$c.Text}}</span>{{if $c.Link}}<a class="s-link" href="{{$c.Link}}">{{$c.LinkText}}</a>{{with $c.Tail}}<span class="s-clause s-mut">{{.}}</span>{{end}}{{end}}{{end}}{{end}}
+  {{$first := true}}{{range $c := .Sentence}}{{if not $c.Skip}}{{if not $first}}<span class="sep{{if $c.Wide}} s-wide{{end}}">·</span>{{end}}{{$first = false}}<span class="s-clause{{if $c.Class}} {{$c.Class}}{{end}}{{if $c.Wide}} s-wide{{end}}">{{if $c.NID}}<span id="{{$c.NID}}">{{$c.N}}</span> {{end}}{{narrowWords $c.Text}}</span>{{if $c.Link}}<a class="s-link{{if $c.LinkWide}} s-wide{{end}}" href="{{$c.Link}}">{{$c.LinkText}}</a>{{with $c.Tail}}<span class="s-clause s-mut">{{.}}</span>{{end}}{{end}}{{end}}{{end}}
 </div>
 {{else if .Facts}}<div class="factstrip">
   {{range .Facts}}<div class="fact"><div class="fx-k">{{.K}}</div><div class="fx-v{{if .Num}} num{{end}}"{{if .ID}} id="{{.ID}}"{{end}}>{{if .Link}}<a href="{{.Link}}">{{.V}}</a>{{else if or .V .Num}}{{.V}}{{else}}—{{end}}{{if .Sub}} <span class="dim">{{.Sub}}</span>{{end}}</div></div>{{end}}

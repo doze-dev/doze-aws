@@ -263,21 +263,17 @@
      Create board's "Made here, kept here", true of everything the console makes
      (docs/cli.md: a ./template.yaml beside where you start doze-aws is applied
      at boot). */}}
-{{define "cli_panel"}}{{template "cli_panel_of" (dict "Cmd" . "Card" true)}}{{end}}
+{{define "cli_panel"}}{{template "cli_panel_of" dict "T" . "Made" "What you make here"}}{{end}}
 
-{{/* The same panel for a page whose own boards draw no "Made here, kept here"
-     card (the SQS create boards, Sqs-03 to Sqs-05): the Create board's sentence
-     about the data directory and a template stays, as a plain note under the
-     call, said of the thing the page makes (Note). */}}
-{{define "cli_panel_plain"}}{{template "cli_panel_of" (dict "Cmd" .Cmd "Note" .Note)}}{{end}}
-
+{{/* cli_panel_of is the panel with the thing made named. The Create board says
+     "The queue exists as long as the data directory does", so the SQS create
+     page names it; every other page keeps "What you make here". */}}
 {{define "cli_panel_of"}}
-<div class="cli cli-panel" role="group" aria-label="The call this makes" x-data="cliPreview({{printf "%q" .Cmd}}, true)">
+<div class="cli cli-panel" role="group" aria-label="The call this makes" x-data="cliPreview({{printf "%q" .T}}, true)">
   <div class="cli-head"><span class="cli-cap">The call this makes</span><span class="cli-sub">It changes as you fill the form. This is the aws CLI call the form maps to.</span></div>
   <div class="cli-out"><pre x-text="cmd"></pre></div>
   <div class="cli-acts"><button type="button" class="btn btn-outline btn-sm" @click="copyCmd()">Copy the command</button></div>
-  {{if .Card}}<div class="cli-note"><b>Made here, kept here</b><span>What you make here exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.</span></div>
-  {{else}}<span class="q-note cli-kept">{{.Note}}</span>{{end}}
+  <div class="cli-note"><b>Made here, kept here</b><span>{{.Made}} exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.</span></div>
 </div>
 {{end}}
 

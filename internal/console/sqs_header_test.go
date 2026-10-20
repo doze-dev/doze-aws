@@ -42,7 +42,7 @@ func TestTheQueueHeaderIsTheBoardsSentence(t *testing.T) {
 			t.Errorf("the header's sentence:\n  got  %s\n  want %s", sentence, want)
 		}
 	}
-	if !regexp.MustCompile(`<a class="s-link" href="[^"]*/sqs/orders-dlq">orders-dlq</a>`).MatchString(head) {
+	if !regexp.MustCompile(`<a class="s-link s-wide" href="[^"]*/sqs/orders-dlq">orders-dlq</a>`).MatchString(head) {
 		t.Errorf("the dead-letter queue is not a link in the sentence:\n%s", head)
 	}
 	if strings.Contains(head, "factstrip") || strings.Contains(head, "VISIBILITY TIMEOUT") {

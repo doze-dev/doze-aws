@@ -120,20 +120,17 @@ func TestThePaletteSaysWhatEachCreateMakes(t *testing.T) {
 	}
 }
 
-// Sqs-03 draws the keys tab, esc, ⌘K. The Create board draws ⌘⏎ create, tab,
-// esc; ⌘K stays at the end, the one key every page answers to.
-const (
-	sqsCreateKeys   = "tab=next field|esc=cancel|⌘K=jump or act"
-	otherCreateKeys = "⌘⏎=create|tab=next field|esc=cancel, nothing made|⌘K=jump or act"
-)
+// Every create page's bar is the Create board's, exactly: ⌘⏎ create, tab next
+// field, esc cancel (nothing made). It does not name ⌘K: the board does not, and
+// the owner decided (2026-10-20) that the bar does what the board draws. ⌘K still
+// opens the palette on these pages; the bar just does not say so. (Sqs-03 and the
+// other create boards draw "⌘K jump or act" here; the Create board wins.)
+const createKeys = "⌘⏎=create|tab=next field|esc=cancel, nothing made"
 
 func TestCreatePagesDeclareTheKeysTheirBoardsDraw(t *testing.T) {
 	h := newConsole(t)
 	for _, p := range createPages {
-		want := otherCreateKeys
-		if p.svc == "sqs" {
-			want = sqsCreateKeys
-		}
+		want := createKeys
 		got := declaredKeys(req(t, h, "GET", "/_console"+p.path, nil).Body.String())
 		if len(got) == 0 || got[len(got)-1] != want {
 			t.Errorf("%s declares %q, want last %q", p.path, got, want)
@@ -161,6 +158,14 @@ func TestTheSQSCreateFormShowsTheCallItMakes(t *testing.T) {
 	if n := strings.Count(page, `class="cli cli-panel"`); n != 1 {
 		t.Errorf("%d previews, want 1", n)
 	}
+	// The Create board's note names the thing made: "The queue exists as long as
+	// the data directory does." The other create pages keep the general words.
+	if !strings.Contains(page, "The queue exists as long as the data directory does. To have it every time doze-aws starts, put it in a template.yaml next to where you start it.") {
+		t.Errorf("the SQS create panel does not say the queue exists as long as the data directory does")
+	}
+	if s3 := req(t, h, "GET", "/_console/s3/create", nil).Body.String(); !strings.Contains(s3, "What you make here exists as long as the data directory does.") {
+		t.Errorf("the S3 create panel lost its general wording")
+	}
 }
 
 // Every create page whose form has a preview says so in the panel's words, and
@@ -176,9 +181,6 @@ func TestTheCallPanelOpensOnACreatePage(t *testing.T) {
 		}
 		n++
 		for _, want := range []string{"The call this makes", "Copy the command", "Made here, kept here"} {
-			if p.svc == "sqs" && want == "Made here, kept here" {
-				continue // Sqs-03 to Sqs-05 draw none: TestTheSQSCreatePageHasNoMadeHereKeptHereCard
-			}
 			if !strings.Contains(page, want) {
 				t.Errorf("%s: the panel lacks %q", p.path, want)
 			}

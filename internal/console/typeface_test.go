@@ -147,6 +147,19 @@ func TestTypeScaleIsTheDesigns(t *testing.T) {
 	for _, m := range regexp.MustCompile(`font-size:\s*(\d+px)`).FindAllStringSubmatch(design, -1) {
 		designSizes[m[1]] = true
 	}
+	// One step is on a board and not in con.css: the palette's query box. The
+	// Palette board draws it at 16 (inline, font-size: 16px), where con.css's
+	// controls are 13; the owner decided (2026-10-20) that the page follows the
+	// board, so 16px is on the ladder for that one input and for the reason
+	// named here. A board that stops drawing it takes the step off the ladder.
+	boardOnly := map[string]string{"16px": "Palette.dc.html"}
+	for sz, board := range boardOnly {
+		src := readAll(t, "../../plan/design/boards/"+board)
+		if !strings.Contains(src, "font-size: "+sz) {
+			t.Errorf("the ladder holds %s for %s, which no longer draws it", sz, board)
+		}
+		designSizes[sz] = true
+	}
 	for sz := range typeLadder {
 		if !designSizes[sz] {
 			t.Errorf("the console ladder holds %s, which con.css never sets", sz)
@@ -175,6 +188,15 @@ func TestTypeScaleIsTheDesigns(t *testing.T) {
 	}
 	if strings.Contains(body["letter-spacing"], "-") {
 		t.Errorf("body letter-spacing is %q; the design does not track body text", body["letter-spacing"])
+	}
+}
+
+// The palette's query is typed at 16, as the Palette board draws it (the page
+// had 14).
+func TestThePaletteQueryIsSixteenPixels(t *testing.T) {
+	app := cssComments.ReplaceAllString(readAll(t, "static/app.css"), " ")
+	if got := ruleBody2(t, app, ".pal-input input")["font-size"]; got != "16px" {
+		t.Errorf(".pal-input input font-size is %q; the Palette board draws the query at 16px", got)
 	}
 }
 

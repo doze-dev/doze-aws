@@ -48,7 +48,7 @@
 
 {{define "sqs_queue"}}{{template "shell_top" .}}
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Queue)}}
-  <section class="detail wired" data-keys="{{sqsKeys .Tab}}">
+  <section class="detail wired" data-keys="{{sqsKeys .Tab}}" data-keys-narrow="{{sqsNarrowKeys .Tab}}">
     {{/* data-confirm-verb: the confirm's button is the verb and its object,
          "Delete queue" (board Sqs-16); the header's Delete is the one confirm
          asked from inside this block. */}}
@@ -72,9 +72,9 @@
         "Sentence" (list
           (dict "N" .Available "NID" (printf "sum-sqs-%s-visible" (slug .Queue)) "Text" "waiting" "Class" "s-b")
           (dict "N" .InFlight "NID" (printf "sum-sqs-%s-inflight" (slug .Queue)) "Text" "in flight")
-          (dict "Skip" .IsDLQ "Text" (printf "hidden for %s on receive" .Config.VisShort) "Class" "s-mut")
-          (dict "Text" (printf "kept %s" .Config.RetShort) "Class" "s-mut")
-          (dict "Skip" (not .Config.DLQ) "Text" "dead letters to" "Class" "s-mut" "Link" (printf "%s/sqs/%s" .Prefix (pathesc .Config.DLQ)) "LinkText" .Config.DLQ "Tail" (and .Config.MaxReceive (printf "after %s" .Config.MaxReceive)))))}}
+          (dict "Skip" .IsDLQ "Text" (printf "hidden{ for} %s{ on receive}" .Config.VisShort) "Class" "s-mut")
+          (dict "Text" (printf "kept %s" .Config.RetShort) "Class" "s-mut" "Wide" true)
+          (dict "Skip" (not .Config.DLQ) "Text" "dead letters{ to}" "Class" "s-mut" "LinkWide" true "Link" (printf "%s/sqs/%s" .Prefix (pathesc .Config.DLQ)) "LinkText" .Config.DLQ "Tail" (and .Config.MaxReceive (printf "after %s" .Config.MaxReceive)))))}}
       {{/* The strip sits between the sentence and the tabs, as Queue draws it. */}}
       {{template "neighbours" dict "Prefix" .Prefix "Conn" .Conn "Self" .Queue "This" "queue" "None" "no Lambda trigger reads this queue — wire one to close the loop"}}
       {{/* Text tabs, as every board draws them: no icons. The first carries the
@@ -321,6 +321,21 @@
            x-show="short.length" x-init="read()" @input.window="read()" @change.window="read()">
         <b>Shorter than the reader's timeout</b>
         <template x-for="r in short" :key="r.n"><span class="q-note"><a class="mono" :href="r.u" x-text="r.n"></a> may run for <span class="mono" x-text="s(r.t)"></span>. A message received at the start comes back after <span x-text="s(v)"></span> and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be <span x-text="s(6*r.t)"></span>. doze-aws does not check this when the trigger is created.</span></template>
+      </div>
+      {{/* ...and when it fits, the Teaching board draws the same line five as the
+           quiet green callout under the field: "Its timeout is 30 s and a
+           received message stays hidden 60 s, so one run finishes before the
+           message returns." Not an alarm, so it is not the warning's colour; it
+           is there so the number typed is checked against the neighbour whether
+           or not it is wrong. */}}
+      <div class="q-callout ok cfg-neighbour-ok" role="status" x-cloak
+           x-data="{fit:[], v:0, many:false, s(v){const n=parseInt(v,10); if(isNaN(n)) return ''; const u=(q,w)=>q+' '+w+(q===1?'':'s'); return n>0&&n%86400===0?u(n/86400,'day'):n>0&&n%3600===0?u(n/3600,'hour'):n+' s'}, read(){ const f=$el.closest('form').elements, v=Number(f['visibility'].value), out=[], all=[];
+             try { all.push(...JSON.parse($el.dataset.readers)); } catch(e){}
+             if(f['visibility'].value!=='' && !isNaN(v)) for (const r of all) if (r.t <= v) out.push(r);
+             this.fit=out; this.v=v; this.many=all.length>1; }}"
+           data-readers='[{{range $i, $r := .Readers}}{{if $i}},{{end}}{"n":"{{$r.Name}}","t":{{$r.Timeout}},"u":"{{$r.URL}}"}{{end}}]'
+           x-show="fit.length" x-init="read()" @input.window="read()" @change.window="read()">
+        <template x-for="r in fit" :key="r.n"><span class="q-note"><template x-if="many"><a class="mono" :href="r.u" x-text="r.n + ': '"></a></template>Its timeout is <span class="mono" x-text="s(r.t)"></span> and a received message stays hidden <span class="mono" x-text="s(v)"></span>, so one run finishes before the message returns.</span></template>
       </div>{{end}}
       <div class="q-stack q-tight" x-data="{v:'{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}', d:'keep', has:{{if .Config.DLQ}}true{{else}}false{{end}}, on(){ return this.d==='none' ? false : this.d==='keep' ? this.has : true }}">
       <div class="q-fields q-21">

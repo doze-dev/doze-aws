@@ -734,12 +734,20 @@ test.describe('the header and the wire dock', () => {
     await toggle.click();
     await expect(dock.locator('.rw-row').first()).toBeVisible();
     await expect(dock.getByRole('button', { name: 'hide' })).toBeVisible();
+    // Shut, it says what Narrow draws ("3 calls touched this queue"); open, the rows are the count and
+    // the header is the Queue and Bad-DLQ boards' literal, "calls that touched this queue".
+    await expect(dock.locator('.rw-cap')).toBeVisible();
+    await expect(dock.locator('.rw-cap')).toHaveText('calls that touched this queue');
+    await expect(dock.locator('.rw-sum')).toBeHidden();
     // A live refresh does not close it again: the pane remembers.
     await send({ MessageBody: 'c' });
-    await expect(dock.locator('.rw-sum')).toHaveText('4 calls touched this queue · 1 refused', { timeout: 10_000 });
+    await expect(dock.locator('.rw-row')).toHaveCount(4, { timeout: 10_000 });
     await expect(dock.locator('.rw-row').first()).toBeVisible();
     await dock.getByRole('button', { name: 'hide' }).click();
     await expect(dock.locator('.rw-row').first()).toBeHidden();
+    // Shut again, the count has moved with the call that was made.
+    await expect(dock.locator('.rw-sum')).toHaveText('4 calls touched this queue · 1 refused');
+    await expect(dock.locator('.rw-cap')).toBeHidden();
   });
 
   test('the neighbours strip and the tabs are the boards\'', async ({ page, request, uniqueName }) => {
@@ -1060,8 +1068,13 @@ test.describe('configuration tab', () => {
     await page.goto(`sqs/${queue}?tab=config`);
     await page.getByRole('button', { name: 'Edit settings' }).click();
     const callout = page.locator('.cfg-neighbour');
-    await expect(callout).toBeHidden(); // 600 s covers 30 s: quiet when it fits
+    const fits = page.locator('.cfg-neighbour-ok');
+    // 600 s covers 30 s: no warning, and the Teaching board's quiet green line five.
+    await expect(callout).toBeHidden();
+    await expect(fits).toBeVisible();
+    await expect(fits).toHaveText('Its timeout is 30 s and a received message stays hidden 600 s, so one run finishes before the message returns.');
     await page.locator('input[name=visibility]').fill('20');
+    await expect(fits).toBeHidden();
     await expect(callout).toBeVisible();
     await expect(callout).toContainText("Shorter than the reader's timeout");
     await expect(callout).toContainText(fn);
@@ -1070,6 +1083,7 @@ test.describe('configuration tab', () => {
     await expect(callout).toContainText('which here would be 180 s');
     await page.locator('input[name=visibility]').fill('300');
     await expect(callout).toBeHidden();
+    await expect(fits).toHaveText('Its timeout is 30 s and a received message stays hidden 300 s, so one run finishes before the message returns.');
   });
 
   test('the After receives field says what its number means', async ({ page, request, uniqueName }) => {

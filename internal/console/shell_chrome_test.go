@@ -109,15 +109,17 @@ func TestTheTopBarShowsTheRegionItWasStartedWith(t *testing.T) {
 	}
 }
 
-var pill = regexp.MustCompile(`<span class="pill iam[^"]*"[^>]*>([^<]*)</span>`)
+var pill = regexp.MustCompile(`<span class="pill iam[^"]*"[^>]*><span>(IAM [a-z]+(?:<span class="iam-rec">[^<]*</span>)?)</span></span>`)
 
-// The IAM mode is on every page, always, in one wording: "IAM soft",
-// "IAM enforce", "IAM off". The board's "· recording" suffix is dropped.
+// The IAM mode is on every page, always, in one wording: "IAM soft · recording"
+// (Anatomy draws it so at 1440; soft mode is the one that records what it would
+// have refused), "IAM enforce", "IAM off". Narrow draws "IAM soft" at 1100 and
+// below: the " · recording" is its own span, which the stylesheet hides there.
 func TestTheIAMModePillIsOnEveryPageInOneWording(t *testing.T) {
 	for _, tc := range []struct {
 		mode iam.Mode
 		want string
-	}{{iam.ModeSoft, "IAM soft"}, {iam.ModeEnforce, "IAM enforce"}, {iam.ModeOff, "IAM off"}} {
+	}{{iam.ModeSoft, `IAM soft<span class="iam-rec"> · recording</span>`}, {iam.ModeEnforce, "IAM enforce"}, {iam.ModeOff, "IAM off"}} {
 		t.Run(string(tc.mode), func(t *testing.T) {
 			c, _, _ := chromeConsole(t, tc.mode, awsident.Default())
 			for _, path := range []string{"/_console/", "/_console/traffic", "/_console/sqs", "/_console/s3", "/_console/iam",

@@ -165,7 +165,7 @@ func TestTypeScaleIsClosed(t *testing.T) {
 			continue
 		}
 		if !typeLadder[v] {
-			t.Errorf("font-size: %s is off the scale (10/11/12/13/14/18)", v)
+			t.Errorf("font-size: %s is off the scale (10/11/12/13/14/16/18)", v)
 		}
 	}
 
@@ -188,7 +188,7 @@ func TestTypeScaleIsClosed(t *testing.T) {
 // 500 and 600 for Sans, 400, 500 and 700 for Mono (a 600 on Mono resolves to 700).
 var (
 	typeLadder = map[string]bool{"10px": true, "11px": true, "12px": true, "13px": true,
-		"14px": true, "18px": true}
+		"14px": true, "16px": true /* the palette's query, only: Palette.dc.html */, "18px": true}
 	typeWeights = map[string]bool{"400": true, "500": true, "600": true, "700": true,
 		"400 500": true /* the Arial stand-in's regular face, which covers both */}
 )

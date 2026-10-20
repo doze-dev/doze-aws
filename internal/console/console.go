@@ -413,6 +413,9 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"add":       func(a, b int) int { return a + b },
 		"addOne":    func(n int64) int64 { return n + 1 },
 		"ssmGroups": ssmGroups,
+		// narrowWords draws a sentence's clause with the words a narrow window
+		// drops (written {like this}) as spans the stylesheet hides there.
+		"narrowWords": narrowWords,
 		// patternPreview flattens an event pattern to a scannable one-liner:
 		// {"source":["shop.orders"]} → source=[shop.orders]
 		"patternPreview": patternPreview,
@@ -428,12 +431,10 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"plural":     pluralFor,
 		"listKeys":   listKeys,
 		"createKeys": func() string { return createKeys },
-		// SQS's create page is drawn by its own boards (Sqs-03, Sqs-04): its bar
-		// is theirs, without the ⌘⏎ the generic Create board adds.
-		"sqsCreateKeys": func() string { return sqsCreateKeys },
 		// The queue page's sets, per tab and per state (keys.go), and a list
 		// pane's with nothing in it.
 		"sqsKeys":        sqsKeys,
+		"sqsNarrowKeys":  sqsNarrowKeys,
 		"sqsComposeKeys": func() string { return sqsComposeKeys },
 		"sqsEditKeys":    func() string { return sqsEditKeys },
 		"emptyListKeys":  emptyListKeys,

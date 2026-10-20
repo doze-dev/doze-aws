@@ -434,7 +434,7 @@ func TestConnectionsView(t *testing.T) {
 	// the boards draw it ("dead letters to <queue> after 5"), where the queue is
 	// a link. The strip beside it is "read by", which a DLQ is not.
 	orders := req(t, h, "GET", "/_console/sqs/orders", nil).Body.String()
-	if !strings.Contains(orders, `<span class="s-clause s-mut">dead letters to</span><a class="s-link" href="/_console/sqs/dead-letter">dead-letter</a><span class="s-clause s-mut">after 5</span>`) {
+	if !strings.Contains(orders, `<span class="s-clause s-mut">dead letters<span class="s-wide"> to</span></span><a class="s-link s-wide" href="/_console/sqs/dead-letter">dead-letter</a><span class="s-clause s-mut">after 5</span>`) {
 		t.Fatalf("orders page missing its DLQ clause:\n%s", orders)
 	}
 	// The dead-letter page is fed by orders (the reverse edge), the edge kind

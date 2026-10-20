@@ -991,8 +991,8 @@
   // key a bar names, and listpane_keys_test.go checks every name in a template
   // against the keys of this table, so keep one key to a line.
   var KEYBAR = {
-    "j": function () { return wireOn() ? wireMove(1) : moveCursor(1); },
-    "k": function () { return wireOn() ? wireMove(-1) : moveCursor(-1); },
+    "j": function () { return wireOn() ? wireMove(1) : msgMode() ? msgMove(1) : moveCursor(1); },
+    "k": function () { return wireOn() ? wireMove(-1) : msgMode() ? msgMove(-1) : moveCursor(-1); },
     "⏎": function () { return wireOn() ? wireOpen() : (openCursorRow() || enterSubmit()); },
     "/": function () { return focusFilter(); },
     "c": function () { return wireInspecting() ? wireCopyCurl() : clickNew(); },
@@ -1022,6 +1022,27 @@
     cursor = Math.min(rows.length - 1, Math.max(0, cursor + d));
     rows.forEach(function (r, i) { r.classList.toggle("cursor", i === cursor); });
     rows[cursor].scrollIntoView({ block: "nearest" });
+    return true;
+  }
+
+  // ---------- j and k over messages (1100px and below) ----------
+  // Board Narrow's key bar is "j k message": with no list column to move over,
+  // the keys move over the messages the page shows (a queue's peek rows, or what
+  // the console holds on its Consume tab). Only where the page has such rows, and
+  // the bar says "message" only then (declaredKeys); queues are reached from the
+  // switcher, which "/" opens on its filter.
+  var msgCursor = -1;
+  function msgRows() {
+    if (!NARROW.matches) return [];
+    return Array.prototype.slice.call(document.querySelectorAll("#workspace .msgs > .msg, #workspace .rcv-list > .rcv-row")).filter(isShown);
+  }
+  function msgMode() { return msgRows().length > 0; }
+  function msgMove(d) {
+    var rows = msgRows();
+    if (!rows.length) return false;
+    msgCursor = Math.min(rows.length - 1, Math.max(0, msgCursor + d));
+    rows.forEach(function (r, i) { r.classList.toggle("cursor", i === msgCursor); });
+    rows[msgCursor].scrollIntoView({ block: "nearest" });
     return true;
   }
 
@@ -1276,7 +1297,13 @@
   function declaredKeys() {
     if (overlayOpen()) return KEYS_OVERLAY;
     var els = document.querySelectorAll("#workspace [data-keys]");
-    for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) return els[i].getAttribute("data-keys") || KEYS_FLOOR;
+    for (var i = els.length - 1; i >= 0; i--) if (isShown(els[i])) {
+      // A page may say what its bar is at 1100 and below (data-keys-narrow), and
+      // does so only while it has the rows that set moves over.
+      var narrow = els[i].getAttribute("data-keys-narrow");
+      if (narrow && msgMode()) return narrow;
+      return els[i].getAttribute("data-keys") || KEYS_FLOOR;
+    }
     return KEYS_FLOOR;
   }
   function parseKeys(spec) {
@@ -1301,6 +1328,8 @@
     var spec = down ? "down:" + hhmmss(lastHeard) : declaredKeys();
     if (bar.getAttribute("data-spec") === spec) return;
     bar.setAttribute("data-spec", spec);
+    // The notice at the bar's right (layout.html) is not a key: it stays.
+    var note = bar.querySelector(".keys-note");
     bar.textContent = "";
     if (down) {
       bar.appendChild(document.createTextNode("last heard "));
@@ -1320,6 +1349,18 @@
       span.appendChild(document.createTextNode(it.label));
       bar.appendChild(span);
     });
+    if (note) bar.appendChild(note);
+    fitKeyBar();
+  }
+  // When the keys and the notice do not fit one line, the last key goes, whole,
+  // until they do. The first keys are the page's own; the palette key is last
+  // and is the one the notice costs.
+  function fitKeyBar() {
+    var bar = document.getElementById("keybar");
+    if (!bar) return;
+    var keys = Array.prototype.slice.call(bar.children).filter(function (c) { return c.tagName === "SPAN"; });
+    keys.forEach(function (c) { c.hidden = false; });
+    for (var i = keys.length - 1; i > 0 && bar.scrollWidth > bar.clientWidth; i--) keys[i].hidden = true;
   }
   var keyBarQueued = false;
   function syncKeyBar() {
@@ -1350,7 +1391,12 @@
     syncKeyBar();
   }
   document.addEventListener("DOMContentLoaded", watchKeyBar);
-  document.addEventListener("htmx:after:swap", syncKeyBar);
+  document.addEventListener("htmx:after:swap", function () { msgCursor = -1; syncKeyBar(); });
+  // The bar is a different one either side of 1100 (data-keys-narrow), and a
+  // window narrower than the keys it names loses the last ones, whole, rather
+  // than clipping a word (fitKeyBar).
+  if (NARROW.addEventListener) NARROW.addEventListener("change", function () { msgCursor = -1; syncKeyBar(); });
+  window.addEventListener("resize", function () { requestAnimationFrame(fitKeyBar); });
 
   // The Create board's ghost row: the thing being made, in the list while its
   // name is typed. Any input with data-ghost feeds the store the row reads.

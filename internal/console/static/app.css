@@ -864,7 +864,7 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 /* Narrow draws "Jump or act…" at 300 (Narrow.dc.html, drawn at 1024). */
 @media (max-width: 1100px) {
   /* ... and the rest of that top bar: no instance name, the endpoint as ":4566". */
-  .brand .inst, .pill .ep-host { display: none; }
+  .brand .inst, .pill .ep-host, .pill .iam-rec { display: none; }
   .tb-palette { flex-basis: 300px; }
   .tb-palette .tb-jump { display: none; }
   .tb-palette .tb-jump-short { display: block; flex: 1; }
@@ -882,7 +882,8 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 .pal-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .pal-input .ic { flex: none; color: var(--muted-foreground); }
 .pal-q { flex: 1; min-width: 0; display: flex; }
-.pal-input input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 14px; color: var(--foreground); }
+/* The query is typed at 16 (the Palette board's inline font-size: 16px; every other control is 13). */
+.pal-input input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 16px; color: var(--foreground); }
 .pal-input input:focus-visible { box-shadow: none; } /* the dialog is the focus; the board draws no ring on its query */
 .pal-count { flex: none; font-size: 12px; color: var(--muted-foreground); }
 .pal-list { max-height: 360px; overflow-y: auto; padding: 6px 0 4px; }
@@ -1230,6 +1231,9 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .listpane .li:hover { background: var(--muted); }
 .listpane .li.on { background: var(--muted); font-weight: 600; }
 .listpane .li.cursor { outline: 1.5px solid var(--ring); outline-offset: -1.5px; border-radius: var(--radius); }
+/* A message under j and k at 1100px and below: Narrow draws the selected row
+   with a 2px ink foot on its left edge and the selection fill. */
+.msgs > .msg.cursor > .msg-h, .rcv-list > .rcv-row.cursor { background: var(--sel); box-shadow: inset 2px 0 0 var(--foreground); }
 .listpane .li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .listpane .li .sb { flex: 0 0 auto; font-family: var(--mono); font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 /* A count that needs a look: amber and bold (the DLQ's 3). Any service's list
@@ -1266,6 +1270,9 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
    links in prose. */
 .sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-family: var(--mono); font-size: var(--text-sm); line-height: 20px; }
 .sentence .s-clause { white-space: nowrap; }
+/* Board Narrow draws the sentence shorter at 1100 and below: the words, clauses
+   and links written to go (kit.html res_header, narrow.go) go. */
+@media (max-width: 1100px) { .sentence .s-wide { display: none; } }
 .sentence .sep { color: var(--muted-foreground); font-family: var(--sans); }
 .sentence .s-b { font-weight: 600; }
 .sentence .s-mut { color: var(--muted-foreground); }
@@ -1874,6 +1881,11 @@ a.lo-card:hover { border-color: var(--accent); }
   .detail.wire-open .res-wire .rw-list, .detail.wire-open .res-wire .mini-note { display: block; }
   .detail.wire-open .rw-show { display: none; }
   .detail.wire-open .rw-hide { display: inline; }
+  /* Shut, the dock says what Narrow draws ("3 calls touched this queue · 1
+     refused"). Open, the rows are the count, and the header is the one the
+     Queue and Bad-DLQ boards draw: "calls that touched this queue". */
+  .detail.wire-open .rw-cap { display: inline; }
+  .detail.wire-open .rw-sum { display: none; }
 }
 .info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
@@ -2410,12 +2422,16 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .eb-detail, [id$="-detail"] { position: relative; }
 .dz-close { position: absolute; top: 6px; right: 6px; z-index: 1; }
 
-/* Below 1024px the console is not designed to fit; say so rather than pretend.
-   Phones are declared unsupported (the design's Narrow board). */
-.narrow-note { display: none; }
-@media (max-width: 1023px) {
-  .narrow-note { display: block; margin: 8px 16px 0; padding: 8px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); color: var(--muted-foreground); }
+/* At 1024px and below the console says it is not designed to fit, rather than
+   pretend; phones are declared unsupported. The Narrow board draws it so: in the
+   key bar, at its right, at 1024 wide, in these words. (It was a banner above the
+   panes below 1023, in other words.) shell.js keeps it when it redraws the bar. */
+.keys-note { display: none; margin: 0 0 0 auto; font: inherit; flex: none; }
+@media (max-width: 1024px) {
+  /* The notice always shows whole: the keys give way to it (shell.js fitKeyBar). */
+  .keys-note { display: block; }
 }
+.keys > span[hidden] { display: none; }
 
 /* The life of one message, and the FIFO sentences: plain steps, not a diagram. */
 .life-h { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-caps); color: var(--muted-foreground); margin-bottom: 6px; }
@@ -2456,16 +2472,7 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (min-width: 1180px) { .cfg-cols { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); } }
 .cfg-side .sec-title:first-child { margin-top: 0; }
-.cfg-neighbour { margin: 0 16px 10px; }
-.what-row { padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
-.what-row:first-of-type { border-top: 0; }
-.what-v { color: var(--muted-foreground); }
-
-/* Configuration: the settings, and beside them what they mean for this stack. */
-.cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (min-width: 1180px) { .cfg-cols { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); } }
-.cfg-side .sec-title:first-child { margin-top: 0; }
-.cfg-neighbour { margin: 0 16px 10px; }
+.cfg-neighbour, .cfg-neighbour-ok { margin: 0 16px 10px; }
 .what-row { padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
 .what-row:first-of-type { border-top: 0; }
 .what-v { color: var(--muted-foreground); }
@@ -2715,7 +2722,7 @@ a.map-chip { color: var(--foreground); }
 .q-fields .field, .q-create .field, #sqs-config .field { gap: 4px; }
 .q-fields .field label, .q-create .field label, .sqs-compose .field label, #sqs-config .field label { font-weight: 400; color: var(--muted-foreground); }
 .q-create .hint, #sqs-config .hint { line-height: 18px; }
-#sqs-config .cfg-neighbour { margin: 0; }
+#sqs-config .cfg-neighbour, #sqs-config .cfg-neighbour-ok { margin: 0; }
 .q-more > summary { cursor: pointer; padding: 4px 0; }
 .q-more[open] > summary { margin-bottom: 8px; }
 .what-panel .what-row { display: flex; flex-direction: column; gap: 4px; padding: 0; border: 0; }

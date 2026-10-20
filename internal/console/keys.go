@@ -21,17 +21,15 @@ import "strings"
 // keyPalette is the one key every page answers to.
 const keyPalette = "⌘K=jump or act"
 
-// sqsCreateKeys is the SQS create page's set (boards Sqs-03-Create and
-// Sqs-04-Create-FIFO). Escape leaves the form: the page carries data-esc-back
-// beside it.
-const sqsCreateKeys = "tab=next field|esc=cancel|" + keyPalette
-
-// createKeys is every other create page's set, as the Create board draws it:
-// ⌘⏎ makes the thing, tab moves on, esc leaves with nothing made. ⌘K stays at
-// the end, the one key every page answers to (the board is silent on it).
+// createKeys is every create page's set, exactly as the Create board draws it:
+// ⌘⏎ makes the thing, tab moves on, esc leaves with nothing made. It does not
+// name ⌘K. The owner decided (2026-10-20) that the bar does what the Create
+// board draws, and the board has no ⌘K; the key still opens the palette here,
+// the bar just does not say so. (Sqs-03 and the other services' create boards
+// draw "⌘K jump or act" on this bar; the Create board wins.)
 // ⌘⏎ is bound on every create page (shell.js submitCreate), not only on a form
-// that holds an editor.
-const createKeys = "⌘⏎=create|tab=next field|esc=cancel, nothing made|" + keyPalette
+// that holds an editor, and Escape leaves it (data-esc-back beside the keys).
+const createKeys = "⌘⏎=create|tab=next field|esc=cancel, nothing made"
 
 // pluralFor is the heading of a service's list pane. A key the catalogue does
 // not know gets the key back, which is at least not blank.
@@ -92,6 +90,18 @@ func sqsKeys(tab string) string {
 		return sqsTagsKeys
 	}
 	return sqsMessagesKeys
+}
+
+// sqsNarrowKeys is a queue tab's bar at 1100 px and below, where board Narrow
+// draws "j k message": the pane is a switcher, so the keys move over the
+// messages the tab shows (shell.js msgMove). shell.js uses it only while the tab
+// has message rows; a tab with none has no such set.
+func sqsNarrowKeys(tab string) string {
+	switch tab {
+	case "", "messages", "consume":
+		return "j k=message"
+	}
+	return ""
 }
 
 // emptyListKeys is the set of a list pane with nothing in it (board

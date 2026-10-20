@@ -232,7 +232,7 @@ return p.join(" ");};</script>
            service once (iamModeCached), because the mode is fixed when the
            stack starts. Purple, as the boards draw it: it is a fact about
            what the stack will do to a call, the colour refusals use. */}}
-      <span class="pill iam {{.IAMMode}}" title="{{if eq .IAMMode "enforce"}}IAM is enforced: a call the policies do not allow is refused.{{else if eq .IAMMode "off"}}IAM is off: nothing is evaluated.{{else}}IAM is in soft mode: every call is checked and recorded, none refused.{{end}}">IAM {{.IAMMode}}</span>
+      <span class="pill iam {{.IAMMode}}" title="{{if eq .IAMMode "enforce"}}IAM is enforced: a call the policies do not allow is refused.{{else if eq .IAMMode "off"}}IAM is off: nothing is evaluated.{{else}}IAM is in soft mode: every call is checked and recorded, none refused.{{end}}"><span>IAM {{.IAMMode}}{{if eq .IAMMode "soft"}}<span class="iam-rec"> · recording</span>{{end}}</span></span>
       <div class="appearance" id="appearance" role="group" aria-label="Appearance">
         <button type="button" data-mode="light" title="Light" aria-label="Light">{{icon "sun"}}</button>
         <button type="button" data-mode="system" title="Match system" aria-label="Match system">{{icon "monitor"}}</button>
@@ -317,7 +317,6 @@ return p.join(" ");};</script>
          one. It rides in #workspace, not on <html>, because a boosted navigation
          swaps this element and nothing else: shell.js reads it after every swap. */}}
     <main id="workspace" class="workspace" data-rail-default="{{.RailDefault}}" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
-      <div class="narrow-note" role="note">The console is built for a window 1024&nbsp;px wide or more, and phones are not supported. Everything still works here, but it will not fit well.</div>
       {{if .Flash}}
       <div class="flash anim" id="flashbar">
         {{icon "check"}} <span>{{.Flash}}</span>
@@ -338,7 +337,7 @@ return p.join(" ");};</script>
        visible data-keys (keys.go) after every swap, and draws only keys that
        script binds. What is written here is the floor, the one key every page
        answers to, for the instant before the script runs. */}}
-  <footer class="keys" id="keybar" aria-label="Keyboard shortcuts"><span><span class="k">⌘K</span>jump or act</span></footer>
+  <footer class="keys" id="keybar" aria-label="Keyboard shortcuts"><span><span class="k">⌘K</span>jump or act</span><p class="keys-note" role="note">Built for 1024 and wider. Phones are not supported, and the console says so.</p></footer>
 
   <!-- command palette (vanilla — survives every swap since it's outside #workspace) -->
   <div class="overlay palette-overlay" id="palette" role="dialog" aria-modal="true" aria-label="Jump or act" hidden>

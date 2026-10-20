@@ -135,6 +135,42 @@ func TestTheHeaderDrawsTheFactsAsASentenceOrAStrip(t *testing.T) {
 	})
 }
 
+// Board Narrow draws the sentence shorter at 1100 px and below: "0 waiting ·
+// 2 in flight · hidden 60 s · dead letters after 3". The long sentence is the
+// one in the markup; the words the short one drops are their own spans
+// (class s-wide, which the stylesheet hides at 1100 and below), so the text
+// reads whole at any width a stylesheet is not applied (and in every test and
+// every screen reader that reads the long one), and a clause that is dropped
+// whole takes its separator with it.
+func TestTheSentenceDropsItsWideWordsAtNarrowWidths(t *testing.T) {
+	out := kitRender(t, "res_header", headerData(map[string]any{"Sentence": []any{
+		map[string]any{"N": 0, "NID": "w", "Text": "waiting"},
+		map[string]any{"Text": "hidden{ for} 60 s{ on receive}", "Class": "s-mut"},
+		map[string]any{"Text": "kept 4 days", "Wide": true},
+		map[string]any{"Text": "dead letters{ to}", "Class": "s-mut", "Link": "/_console/sqs/dlq", "LinkText": "dlq", "LinkWide": true, "Tail": "after 3"},
+	}}))
+	for _, want := range []string{
+		`hidden<span class="s-wide"> for</span> 60 s<span class="s-wide"> on receive</span>`,
+		`<span class="sep s-wide">·</span><span class="s-clause s-wide">kept 4 days</span>`,
+		`dead letters<span class="s-wide"> to</span></span><a class="s-link s-wide" href="/_console/sqs/dlq">dlq</a><span class="s-clause s-mut">after 3</span>`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the sentence lacks %q:\n%s", want, out)
+		}
+	}
+	plain := strings.Join(strings.Fields(regexp.MustCompile(`<[^>]*>`).ReplaceAllString(out, " ")), " ")
+	// The tags are spaces here, which is why this reads with spaces the page does not have.
+	for _, want := range []string{"0 waiting", "hidden for 60 s on receive", "kept 4 days", "dead letters to dlq after 3"} {
+		if !strings.Contains(strings.ReplaceAll(plain, " ", ""), strings.ReplaceAll(want, " ", "")) {
+			t.Errorf("the long sentence lost %q:\n%s", want, plain)
+		}
+	}
+	// A clause with nothing to drop is what it always was.
+	if !strings.Contains(out, `<span class="sep">·</span><span class="s-clause s-mut">hidden`) {
+		t.Errorf("a clause that keeps everything changed its markup:\n%s", out)
+	}
+}
+
 // The identifiers are not in the header unless a service asks for them: no
 // board draws a chip row under the name.
 func TestTheHeaderDrawsNoChipsUnlessAskedTo(t *testing.T) {
