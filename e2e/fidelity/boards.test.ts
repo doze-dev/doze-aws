@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { allBoards, boardName, boardsFor, coverage, resolveTarget, serviceOf, SERVICES, SHELL } from './boards';
+import { allBoards, BOARDS_PATH, boardName, boardsDirProblem, boardsFor, coverage, resolveTarget, serviceOf, SERVICES, SHELL } from './boards';
 import { DRIVERS } from './drivers';
 import type { DriverTable } from './drivers/types';
 import { parseArgs, variantOf } from './run';
@@ -85,24 +85,60 @@ describe('coverage: a board with no driver is a failing row, never a silent one'
   });
 });
 
+describe('missing boards are a loud failure, never a pass', () => {
+  test('a directory that does not exist', () => {
+    expect(boardsDirProblem(undefined)).toContain('plan/design/boards/ does not exist');
+  });
+
+  test('a directory with no board in it', () => {
+    expect(boardsDirProblem(['con.css', 'canvas.json'])).toContain('holds no *.dc.html file');
+    expect(boardsDirProblem([])).toContain('holds no *.dc.html file');
+  });
+
+  test('boards with no stylesheet', () => {
+    expect(boardsDirProblem(['Main.dc.html'])).toContain('con.css is missing');
+  });
+
+  test('boards and their stylesheet are fine', () => {
+    expect(boardsDirProblem(['Main.dc.html', 'con.css'])).toBeNull();
+  });
+
+  test('a service with no board is an error, not an empty run that passes', () => {
+    const t = resolveTarget('kms', ['Main.dc.html', 'con.css']);
+    expect(typeof t).toBe('string');
+    expect(t as string).toContain('kms has no boards in plan/design/boards/');
+  });
+
+  test('the boards are read from plan/design/boards and the runner has no other path', () => {
+    expect(BOARDS_PATH).toBe('plan/design/boards');
+    const src = readFileSync(join(import.meta.dir, 'run.ts'), 'utf8');
+    expect(src).toContain('BOARDS_PATH');
+    // No environment override, no second directory: the path above is the only
+    // place the runner looks.
+    expect(src).not.toMatch(/process\.env\.[A-Z_]*(BOARD|DESIGN)/);
+    expect(src).not.toContain('console-design');
+  });
+});
+
 describe('the real tables against the real boards', () => {
   const dir = join(import.meta.dir, '..', '..', 'plan', 'design', 'boards');
-  let real: string[] = [];
-  try {
-    real = readdirSync(dir);
-  } catch {
-    /* no design checkout */
-  }
-  const have = real.length > 0;
+  const real = existsSync(dir) ? readdirSync(dir) : undefined;
+  // The boards are part of the repository. Where they are not there the
+  // tests below do not skip: this one fails, and says why.
+  test('the checkout has its boards', () => {
+    expect(boardsDirProblem(real)).toBeNull();
+  });
+  // Past this point the boards exist, or the test above has already failed.
+  const all = real ?? [];
 
-  test.skipIf(!have)('SQS has an entry for every one of its 19 boards, and none for a board that is gone', () => {
-    const boards = boardsFor('sqs', real);
+  test('SQS has an entry for every one of its 19 boards, and none for a board that is gone', () => {
+    const boards = boardsFor('sqs', all);
     expect(boards.length).toBe(19);
     expect(coverage(boards, DRIVERS.sqs!)).toEqual({ undriven: [], orphaned: [] });
   });
 
-  test.skipIf(!have)('the shell table covers the cross-cutting boards, with the one document board (Grounding) as an explicit skip', () => {
-    const boards = boardsFor(SHELL, real);
+  test('the shell table covers the cross-cutting boards, with the one document board (Grounding) as an explicit skip', () => {
+    const boards = boardsFor(SHELL, all);
     expect(coverage(boards, DRIVERS.shell!)).toEqual({ undriven: [], orphaned: [] });
     for (const name of ['Grounding']) {
       const d = DRIVERS.shell![name];
@@ -110,14 +146,14 @@ describe('the real tables against the real boards', () => {
     }
   });
 
-  test.skipIf(!have)('every other service has an empty table, so every one of its boards fails with no driver', () => {
+  test('every other service has an empty table, so every one of its boards fails with no driver', () => {
     for (const s of SERVICES) {
       if (s.key === 'sqs') continue;
       // KMS's stage has not started, but its Fidelity board is the shell's
       // dialog (foundation D-c), and is driven with it.
       const driven = s.key === 'kms' ? ['Kms-19-Fidelity'] : [];
       expect(Object.keys(DRIVERS[s.key]!)).toEqual(driven);
-      const boards = boardsFor(s.key, real);
+      const boards = boardsFor(s.key, all);
       expect(boards.length).toBeGreaterThan(0);
       expect(coverage(boards, DRIVERS[s.key]!).undriven).toEqual(boards.filter((b) => !driven.includes(b)));
     }

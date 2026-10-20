@@ -98,6 +98,14 @@ the same), drives the real page into the board's state, and writes
   with the board lines the page lacks marked;
 - `results.json`.
 
+**The boards live in `plan/design/boards/` in this repository and nowhere else**
+(decided 2026-10-16; there is no environment variable and no second path). A
+checkout where that directory is missing, holds no `*.dc.html`, or lacks
+`con.css`, a service with no board, all exit 2 with a message that says which
+(`FAIL: no design boards: …`); `bun test fidelity` fails the same way
+(`the checkout has its boards`). A board is corrected by editing its file there,
+in a commit.
+
 **The list of boards is the directory listing**, never a table. Each service has
 `fidelity/drivers/<service>.ts`: one entry per board, `{ drive(ctx) }` to put
 the page into the board's state or `{ skip: reason }` where there is nothing to

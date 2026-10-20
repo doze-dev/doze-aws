@@ -20,7 +20,7 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { allBoards, boardsFor, coverage, isSkip, resolveTarget, SHELL } from './boards';
+import { allBoards, BOARDS_PATH, boardsDirProblem, boardsFor, coverage, isSkip, resolveTarget, SHELL } from './boards';
 import type { Ctx, Driver, Inst } from './drivers/types';
 import { DRIVERS } from './drivers';
 import { seedHarbour } from './harbour';
@@ -30,7 +30,7 @@ import { counts, failing, kindTally, renderReport, type Row } from './report';
 import { boot, build, E2E_DIR, freePort, ID2, inst, REPO_DIR, TMP_DIR, type Booted } from './server';
 import { checkText } from './text';
 
-const BOARDS_DIR = join(REPO_DIR, 'plan', 'design', 'boards');
+const BOARDS_DIR = join(REPO_DIR, ...BOARDS_PATH.split('/'));
 const ALLOW_DIR = join(import.meta.dir, 'allow');
 
 /** What the board draws that the page draws differently by design (the AWS
@@ -73,11 +73,15 @@ async function main(): Promise<number> {
     return 2;
   }
   const { target: arg, flags } = parsed;
-  if (!existsSync(BOARDS_DIR)) {
-    console.error(`no design boards at ${BOARDS_DIR}`);
+  // The boards are read from plan/design/boards in this repository and from
+  // nowhere else. A missing or empty directory is a failure with a message that
+  // says so, never a run that compares nothing and passes.
+  const files = existsSync(BOARDS_DIR) ? readdirSync(BOARDS_DIR) : undefined;
+  const problem = boardsDirProblem(files);
+  if (problem || !files) {
+    console.error(`FAIL: ${problem}`);
     return 2;
   }
-  const files = readdirSync(BOARDS_DIR);
   const t = resolveTarget(arg, files);
   if (typeof t === 'string') {
     console.error(t);

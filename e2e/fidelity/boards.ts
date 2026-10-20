@@ -44,6 +44,33 @@ export const SHELL = 'shell';
 
 export const BOARD_SUFFIX = '.dc.html';
 
+/** Where the boards live, relative to the repository root. The one place; the
+ *  runner reads nothing else, and a checkout without it fails loudly. */
+export const BOARDS_PATH = 'plan/design/boards';
+
+/** The stylesheet every board links. A directory of boards without it renders
+ *  unstyled, which a comparison would read as a page that differs. */
+export const BOARDS_STYLESHEET = 'con.css';
+
+/**
+ * What is wrong with a boards directory, or null. `files` is undefined when the
+ * directory does not exist. Pure, so the failure is testable without a missing
+ * checkout.
+ */
+export function boardsDirProblem(files: string[] | undefined): string | null {
+  const where = `${BOARDS_PATH}/`;
+  if (files === undefined) {
+    return `no design boards: ${where} does not exist. The boards are committed in the repository at ${where} and are read from nowhere else; this checkout is incomplete.`;
+  }
+  if (allBoards(files).length === 0) {
+    return `no design boards: ${where} holds no *${BOARD_SUFFIX} file. The boards are the specification the pages are compared with; with none there is nothing to compare, and that is a failure, not a pass.`;
+  }
+  if (!files.includes(BOARDS_STYLESHEET)) {
+    return `${where}${BOARDS_STYLESHEET} is missing: the boards link it, and without it every board renders unstyled.`;
+  }
+  return null;
+}
+
 /** `Sqs-01-None.dc.html` -> `Sqs-01-None`; anything else -> null. */
 export function boardName(file: string): string | null {
   return file.endsWith(BOARD_SUFFIX) ? file.slice(0, -BOARD_SUFFIX.length) : null;
@@ -84,10 +111,15 @@ export function resolveTarget(arg: string, files: string[]): Target | string {
   const a = arg.trim();
   const keys = [...SERVICES.map((s) => s.key), SHELL];
   const key = keys.find((k) => k === a.toLowerCase());
-  if (key) return { label: key, service: key, boards: boardsFor(key, files) };
+  if (key) {
+    const boards = boardsFor(key, files);
+    // A service the design draws no board for would "pass" with nothing compared.
+    if (boards.length === 0) return `${key} has no boards in ${BOARDS_PATH}/, so there is nothing to compare its pages with. That is a failure, not a pass.`;
+    return { label: key, service: key, boards };
+  }
   const board = allBoards(files).find((n) => n.toLowerCase() === a.toLowerCase());
   if (board) return { label: board, service: serviceOf(board), boards: [board] };
-  return `no service or board called "${arg}". Services: ${keys.join(', ')}. A board is a file name in plan/design/boards without ${BOARD_SUFFIX}.`;
+  return `no service or board called "${arg}". Services: ${keys.join(', ')}. A board is a file name in ${BOARDS_PATH} without ${BOARD_SUFFIX}.`;
 }
 
 export interface Coverage {

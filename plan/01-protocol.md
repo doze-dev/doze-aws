@@ -121,9 +121,9 @@ exceptions, and only these:
   page keeps the icon. Nothing else about a board's chrome is exempt.
 - **A board that is wrong about a fact is corrected, then built.** Wrong
   against the model (262 144 for a limit of 1 048 576), or asserting an AWS
-  refusal that is `memory`: the design's working copy is edited, the change
-  is listed in the service document, and the page is built to the corrected
-  board. The design is not copied with its error, and it is not silently
+  refusal that is `memory`: the board is edited in `plan/design/boards/` (the
+  only place boards live), the change is listed in the service document, and the
+  page is built to the corrected board. The design is not copied with its error, and it is not silently
   ignored.
 
 A board that needs a behaviour that does not exist yet (a "Redriving, 2 moved

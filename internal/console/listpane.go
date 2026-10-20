@@ -4,9 +4,10 @@ import "net/http"
 
 // listPaneData is what a service's list pane reads, by the service's console
 // key: its List (and, for the two that draw more beside it, their extras). It
-// is the one place that says where each service's list comes from, so a page
-// that draws the pane without being that service's own page (a create page, a
-// page for a resource that is not there) cannot draw a different one.
+// is what a page draws the pane from when it is not that service's own page and
+// has no listing of its own to reuse (a page for a resource that is not there).
+// The create pages read the same lists in createPage and tolerate a failed
+// listing; this one reports it.
 //
 // ok is false when the service could not be listed. A pane built from a failed
 // listing would say "no queues", which is a claim; the caller leaves the pane
