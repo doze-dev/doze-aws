@@ -1,0 +1,31 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: annotation (the board's own commentary: a numbered callout, a "rule" panel, a card describing a card),
+# data (a sample number or label no fixture reproduces), icon (a glyph the page draws as an SVG),
+# superseded (the board words it differently from the service's own board, which the page follows;
+# the two boards disagree and neither has been corrected), conflict (the board draws a thing the page
+# draws another way, and the owner has not chosen), decision (a written decision).
+# A missing sentence is never listed here to make a board pass: every line says what it is.
+0 visible # superseded: Queue.dc.html, the service's own board (which the page follows), words the sentence "N waiting ... dead letters to <queue> after 3" with the queue named whole
+dead letters go to # superseded: Queue.dc.html, the service's own board (which the page follows), words the sentence "N waiting ... dead letters to <queue> after 3" with the queue named whole
+…-dlq # superseded: Queue.dc.html, the service's own board (which the page follows), words the sentence "N waiting ... dead letters to <queue> after 3" with the queue named whole
+5 # annotation: a numbered callout on one of the eight parts; the page numbers none of them
+6 # annotation: a numbered callout on one of the eight parts; the page numbers none of them
+BODY # superseded: Sqs-11-Consume-Held, the service's own board for the held table, draws its header "Held by you. ..." and the count "1× of 3"
+1 of 3 # superseded: Sqs-11-Consume-Held, the service's own board for the held table, draws its header "Held by you. ..." and the count "1× of 3"
+7 # annotation: a numbered callout on one of the eight parts; the page numbers none of them
+Send a message… { "orderId": "…" } # superseded: Queue.dc.html draws the composer as a card ("Send a message ⌘⏎ ... lands in the list above"), not an input with a placeholder
+8 # annotation: a numbered callout on one of the eight parts; the page numbers none of them
+THE RULE # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Seventeen services, one page # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Every resource page has these eight parts, in this order, and nothing else at the top level. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Rail. Full names on the wire, marks only inside a service. The room goes to the work. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+List. Every resource of this kind, with the one number that matters. A number that needs a look is coloured. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Name and one action. The thing you most often do is the only solid button. Delete sits beside it as an outline in red, and always confirms. (Decided 2026-10-16: not under ···.) # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Facts. A sentence, one line read left to right, where a resource has a few facts; a strip of labelled boxes where it has many. Each service's boards say which. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Neighbours. What feeds it and what reads it, each a link. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Tabs. The first is always what is inside it. Five at most. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Try it. A composer at the foot of the content: do the thing by hand, with the same fields the API has. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+The wire, underneath. The calls that touched this resource, live. You never leave the page to see what your code did to it. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+Selecting anything opens it on the right. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
+A message, an item, an object, a call. It replaces this panel, in place. Nothing opens at the foot of the page or in a drawer over the content. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows

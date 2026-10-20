@@ -1,0 +1,19 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: annotation (the board's own commentary: a numbered callout, a "rule" panel, a card describing a card),
+# data (a sample number or label no fixture reproduces), icon (a glyph the page draws as an SVG),
+# superseded (the board words it differently from the service's own board, which the page follows;
+# the two boards disagree and neither has been corrected), conflict (the board draws a thing the page
+# draws another way, and the owner has not chosen), decision (a written decision).
+# A missing sentence is never listed here to make a board pass: every line says what it is.
+6 # data: a sample rail count on the board ("Parameters 9", "Logs 6"); the fixture's counts are its own
+Parameters # superseded: the rail says "Parameter Store" on Main, on every service board and on the page (the service's name in AWS); Dark abbreviates it
+The grounds are neutral, never tinted. The services keep their own colours, and the four answers get lighter inks. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+APPEARANCE # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+light # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+dark # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+follow the system # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+Following the system is the default and costs no script: it is the absence of a setting. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+WHAT A THEME NEVER CHANGES # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+Each answer keeps its word. The colour is the second signal, never the only one. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+Sixteen marks, the same in both themes. They are the only chroma in the chrome. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar

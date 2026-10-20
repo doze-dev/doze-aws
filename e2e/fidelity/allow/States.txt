@@ -1,0 +1,41 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: annotation (the board's own commentary: a numbered callout, a "rule" panel, a card describing a card),
+# data (a sample number or label no fixture reproduces), icon (a glyph the page draws as an SVG),
+# superseded (the board words it differently from the service's own board, which the page follows;
+# the two boards disagree and neither has been corrected), conflict (the board draws a thing the page
+# draws another way, and the owner has not chosen), decision (a written decision).
+# A missing sentence is never listed here to make a board pass: every line says what it is.
+THE RULE # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+One way to say each thing # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+The same six moments happen on every service. Each gets one treatment, used everywhere, so nobody has to learn a page. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+It worked # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+toast # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Bottom right. Long enough to read, and the next one replaces it. It stays 7 seconds (10 for an error) and is held while the pointer or focus is on it. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+× # icon: the toast's close control, which the page draws as an SVG
+Success is a toast. A failure never is. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+It did not work # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+inline, beside the control # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Never a toast: an error has to be read, and it belongs next to what caused it. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Visibility timeout # superseded: Sqs-17-Config and Sqs-18-Config-Edit, the boards for this field, label it "Visibility · s"
+The code and the sentence the service answered with, placed beside the control that caused it. The form keeps what was typed. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Four answers, four colours # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+everywhere a call is shown # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Each has a word as well as a colour, so it reads without one. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+It worked. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+AWS would say no too. Your request is wrong; fix the caller. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+A policy said no. Only with --iam-mode enforce. In soft mode the call goes through and is only recorded. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Something broke. Your function, or doze-aws. The body says which. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+A refusal is never red. Red is for things that are broken, and a refusal is doze-aws working. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+It cannot be undone # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+confirm # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Only for what destroys data. It names the thing, says what is lost, and the button is the verb. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Delete harbour-receipts? # superseded: S3-12-Confirms, the S3 confirm board the page follows, words the bucket confirm "Delete bucket “<name>”? It must be empty. ..."
+The bucket is removed from this machine. Nothing is sent to AWS. # superseded: S3-12-Confirms, the S3 confirm board the page follows, words the bucket confirm "Delete bucket “<name>”? It must be empty. ..."
+There is nothing here # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+Says what would put something here, and offers the one way to do it by hand. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+It is taking a while # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+after 300 ms # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+A thin bar runs across the top of the page once a request has taken longer than 300 ms. Today that is a DynamoDB scan and an SQS redrive. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+the page underneath stays as it was # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation
+No blank page, no spinner over the content. # annotation: the States board's commentary on its six cards (the rule, each card's title, tag and description); the page shows the states, not the explanation

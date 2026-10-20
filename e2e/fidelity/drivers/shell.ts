@@ -8,7 +8,8 @@
 // Boards with nothing to drive say so, with a reason, as `skip`.
 
 import type { Ctx, DriverTable } from './types';
-import { DLQ, FIFO, LOYALTY, MAIN } from '../harbour';
+import { FIFO } from '../harbour';
+import { drivers as chrome } from './shell-chrome';
 
 const wire = (c: Ctx) => c.page.goto(c.url(''));
 
@@ -37,13 +38,8 @@ const orderRow = (c: Ctx) =>
     .first();
 
 export const drivers: DriverTable = {
-  // The annotated queue page: the eight parts of a resource page.
-  Anatomy: {
-    async drive(c) {
-      await c.page.goto(c.url(`sqs/${MAIN}`));
-    },
-    note: 'The board is an annotated queue page (numbered parts and a "rule" panel); the page is a queue page.',
-  },
+  // Anatomy, Create, Dark, Narrow, Palette, States and Teaching: shell-chrome.ts.
+  ...chrome,
 
   // The wire: the console's home.
   Main: {
@@ -52,87 +48,6 @@ export const drivers: DriverTable = {
     },
   },
 
-  Create: {
-    async drive(c) {
-      await c.page.goto(c.url('sqs/create'));
-      await c.page.fill('input[name=name]', 'harbour-returns');
-    },
-    note: 'The board is a minimal create form with a "call this makes" panel; the page is the SQS create page, which has more.',
-  },
-
-  // The wire in the dark theme.
-  Dark: {
-    async drive(c) {
-      await c.page.goto(c.url(''));
-      await c.page.evaluate(() => localStorage.setItem('theme', 'dark'));
-      await c.page.reload();
-      await c.settle(800);
-    },
-    note: 'Dark is driven by setting the theme in localStorage and reloading; the board is a dark rendering of the wire.',
-  },
-
-  // Below 1024 px the console says it is not built for that width.
-  Narrow: {
-    async drive(c) {
-      await c.page.setViewportSize({ width: 700, height: 900 });
-      await c.page.goto(c.url(`sqs/${MAIN}`));
-    },
-    note: 'The page is rendered at 700 by 900, a narrow window; the board draws a phone frame inside a 1440 by 900 canvas.',
-  },
-
-  Palette: {
-    async drive(c) {
-      await wire(c);
-      await c.page.locator('#palette-open').click();
-      await c.page.fill('#pal-q', 'checkout');
-      await c.settle(400);
-    },
-  },
-
-  // Six moments, each with one treatment. The page has each; one frame cannot
-  // hold them all, so several pictures are taken and their texts joined.
-  States: {
-    async drive(c) {
-      const p = c.page;
-      // It worked: a toast. A send from the composer on the quiet queue.
-      await p.goto(c.url(`sqs/${LOYALTY}`));
-      await p.locator('.dock-bar').click();
-      await c.settle(300);
-      await c.setEditor('textarea[name=body][data-editor]', '{ "orderId": "HRB-2026-04814" }');
-      await p.locator('.sqs-compose').getByRole('button', { name: /^Send/ }).click();
-      await c.settle(600);
-      await c.capture();
-      // It did not work: a refusal beside the control that caused it.
-      await p.goto(c.url(`sqs/${MAIN}?tab=config`));
-      await p.getByRole('button', { name: 'Edit settings' }).click();
-      await p.fill('#sqs-config input[name=visibility]', '90000');
-      await p.getByRole('button', { name: 'Save settings' }).click();
-      await c.settle(700);
-      await c.capture('refusal');
-      // It cannot be undone: a confirm.
-      await p.goto(c.url(`sqs/${LOYALTY}`));
-      await p.getByRole('button', { name: 'Purge' }).click();
-      await c.capture('confirm');
-      await p.keyboard.press('Escape');
-      // There is nothing here: an empty list.
-      await p.goto(c.url('sqs/' + DLQ));
-      await c.settle(300);
-    },
-    note: 'Toast, inline refusal and confirm are captured as separate pictures (page-States-refusal.png, -confirm.png); the "taking a while" bar and the four answer chips are not driven.',
-  },
-
-  // One setting, taken apart: the five teaching lines, on the form field they describe.
-  Teaching: {
-    async drive(c) {
-      const p = c.page;
-      await p.goto(c.url(`sqs/${MAIN}?tab=config`));
-      await p.getByRole('button', { name: 'Edit settings' }).click();
-      await p.fill('#sqs-config input[name=visibility]', '30');
-      await p.locator('#sqs-config input[name=visibility]').blur();
-    },
-  },
-
-  // Connect, after the check has run: the board draws "Connected" and the ARN.
   Connect: {
     async drive(c) {
       await c.page.goto(c.url('connect'));
