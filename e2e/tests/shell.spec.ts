@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
+import * as net from 'node:net';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
@@ -9,12 +10,28 @@ import { ACCOUNT_ID, BASE_URL, ORIGIN } from '../playwright.config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** A port nothing is listening on, asked of the OS. */
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address() as net.AddressInfo;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
 /** A second doze-aws with nothing in it, for a page that is about having
- *  nothing. It is the binary the suite already built, on the next-but-six port
- *  of the run's own, with a data directory of its own. */
+ *  nothing. It is the binary the suite already built, on a port of its own,
+ *  with a data directory of its own. The port used to be the run's own plus 7,
+ *  the same for every caller: two tests of this file asking at once (they run in
+ *  parallel) shared a port and a data directory, the second one's start removed
+ *  the first one's data and failed to bind, and the first test's page was
+ *  refused (ERR_CONNECTION_REFUSED on :15369, seen in a full run). */
 async function freshInstance(): Promise<{ url: string; stop: () => Promise<void> }> {
   const base = Number(new URL(ORIGIN).port);
-  const port = base + 7;
+  const port = await freePort();
   const dir = path.resolve(__dirname, `../.tmp/data-fresh-${port}`);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
