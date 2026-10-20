@@ -20,7 +20,7 @@ import (
 )
 
 // wirePulse is the stretch "a minute" means in the header's "live · 26 a
-// minute": the same window the rail's dots and the deck's rate always used.
+// minute": the same window the rail's dots use.
 const wirePulse = time.Minute
 
 // needsTTL is how long the product's half of "Needs a look" (dead-letter

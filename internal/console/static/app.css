@@ -2975,7 +2975,7 @@ a.wire-callout:hover { text-decoration: underline; }
   .wire { grid-template-columns: minmax(0, 1fr) 300px; }
   .wire.open { grid-template-columns: minmax(0, 1fr) 400px; }
   .wire-tbl { --c: 88px 150px minmax(0, 1fr) 100px 48px; }
-  .wire.open .wire-tbl { --c: 80px 130px minmax(0, 1fr) 88px 44px; }
+  .wire.open .wire-tbl { --c: 92px 124px minmax(0, 1fr) 88px 44px; }
   .tr-head, .tr-row { column-gap: 8px; }
   .lane, .tr-lane-h { display: none; }
   /* The refusal's sentence is on the inspector and its word is in the chip; at
