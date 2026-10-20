@@ -523,13 +523,14 @@ func isPrintable(b []byte) bool {
 
 // ---- mutations ----
 
-func (b *backend) CreateStream(ctx context.Context, name string, shards int) error {
-	if shards < 1 {
-		shards = 1
+// CreateStream sends the shard count as given; nil sends none. The console used
+// to raise anything under 1 to 1, which hid a refusal the service makes.
+func (b *backend) CreateStream(ctx context.Context, name string, shards *int) error {
+	body := map[string]any{"StreamName": name}
+	if shards != nil {
+		body["ShardCount"] = *shards
 	}
-	_, err := b.kinesis(ctx, "CreateStream", map[string]any{
-		"StreamName": name, "ShardCount": shards,
-	})
+	_, err := b.kinesis(ctx, "CreateStream", body)
 	return err
 }
 

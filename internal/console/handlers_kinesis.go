@@ -9,6 +9,7 @@ package console
 // table stops being true the moment anything real is written to it.
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -393,7 +394,19 @@ func (c *Console) kinesisPolicy(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) kinesisCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
-	shards, _ := strconv.Atoi(r.FormValue("shards"))
+	// The number goes to the service as typed: 0 is a shard count the model
+	// refuses (range from 1), and turning it into 1 here made a stream the
+	// person did not ask for. A blank field sends nothing, and what the service
+	// does about a missing count is its own answer to show.
+	var shards *int
+	if s := strings.TrimSpace(r.FormValue("shards")); s != "" {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			c.fail(w, fmt.Errorf("the shard count must be a whole number, not %q", s))
+			return
+		}
+		shards = &n
+	}
 	if err := c.be.CreateStream(r.Context(), name, shards); err != nil {
 		c.fail(w, err)
 		return
