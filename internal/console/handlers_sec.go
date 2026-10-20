@@ -45,10 +45,18 @@ func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	data := c.kmsKeyView(r, key)
+	data["Title"] = "KMS"
+	c.render(w, r, "kms_key", data)
+}
+
+// kmsKeyView is everything the key's detail reads. The page and every fragment
+// that redraws it call it (A15): the fragment used to leave out the key list,
+// so the re-encrypt form's destination menu was empty after any action.
+func (c *Console) kmsKeyView(r *http.Request, key *Key) map[string]any {
 	keys, _ := c.be.ListKeys(r.Context())
 	pol, _ := c.be.KeyPolicy(r.Context(), key.ID)
-	c.render(w, r, "kms_key", map[string]any{"Key": key, "List": keys, "Title": "KMS",
-		"KeyPolicy": pol, "SeenActions": c.seenActions(r)})
+	return map[string]any{"Key": key, "List": keys, "KeyPolicy": pol, "SeenActions": c.seenActions(r)}
 }
 
 func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +65,7 @@ func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	pol, _ := c.be.KeyPolicy(r.Context(), key.ID)
-	c.partial(w, "kms_key_detail", map[string]any{"Key": key, "KeyPolicy": pol})
+	c.partial(w, "kms_key_detail", c.kmsKeyView(r, key))
 }
 
 func (c *Console) kmsToggleEnabled(w http.ResponseWriter, r *http.Request) {

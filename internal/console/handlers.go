@@ -598,19 +598,12 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		isDLQ = true
 	}
 	data["IsDLQ"] = isDLQ
-	data["ARN"] = c.be.QueueARN(name)
-	// The copyable queue URL, built from the host this page was asked through —
-	// the same rule SQS itself uses to mint one, so the chip and the API agree.
-	//
-	// This used to prefer AWS_ENDPOINT_URL_SQS, for a fronting router that
-	// served the service under a path prefix (http://aws.demo.doze/sqs). Nothing
-	// publishes that any more: doze's AWS ingress is "exactly one hop: host →
-	// backend, no path dispatch", and the X-Forwarded-Prefix half of the same
-	// mechanism had no producer left either. The account came from a literal,
-	// which stopped being right the moment it became configurable.
-	data["URL"] = "http://" + endpointHost(r) + "/" + c.be.id.Account() + "/" + name
-	data["Config"] = sqsConfigOf(attrs)
-	data["Readers"] = c.sqsReaders(r.Context(), conn, attrs["VisibilityTimeout"])
+	// The Configuration tab's data is one function's, whether the page draws it
+	// or a save redraws it (A15): a fragment built from its own subset drew an
+	// empty ARN chip after a save.
+	for k, v := range c.sqsConfigView(r, name, attrs, conn) {
+		data[k] = v
+	}
 	data["Conn"] = conn
 	data["Tab"] = tabOf(r, "messages")
 	data["Max"], data["Wait"], data["Visibility"] = 10, 0, -1 // the receive form's own defaults
@@ -1048,11 +1041,26 @@ func (c *Console) sqsConfigPartial(w http.ResponseWriter, r *http.Request, name 
 	}
 	queues, _ := c.be.ListQueues(r.Context())
 	conn := c.be.Neighbors(r.Context(), "sqs", name)
-	c.partial(w, "sqs_config", map[string]any{
-		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs), "AllQueues": queues,
-		"Prefix": c.prefix, "Perms": sqsPermissionsOf(qattrs["Policy"]),
-		"Readers": c.sqsReaders(r.Context(), conn, qattrs["VisibilityTimeout"]),
-	})
+	data := c.sqsConfigView(r, name, qattrs, conn)
+	data["AllQueues"] = queues
+	data["Prefix"] = c.prefix
+	c.partial(w, "sqs_config", data)
+}
+
+// sqsConfigView is everything the Configuration tab reads about one queue. The
+// page and every fragment that redraws the tab call it, so a save cannot draw
+// less than a reload does.
+func (c *Console) sqsConfigView(r *http.Request, name string, attrs map[string]string, conn Neighborhood) map[string]any {
+	return map[string]any{
+		"Queue": name, "Attrs": attrs, "Config": sqsConfigOf(attrs),
+		"Perms":   sqsPermissionsOf(attrs["Policy"]),
+		"Readers": c.sqsReaders(r.Context(), conn, attrs["VisibilityTimeout"]),
+		"ARN":     c.be.QueueARN(name),
+		// The copyable queue URL, built from the host this page was asked
+		// through: the same rule SQS itself uses to mint one, so the chip and
+		// the API agree.
+		"URL": "http://" + endpointHost(r) + "/" + c.be.id.Account() + "/" + name,
+	}
 }
 
 // ---- small helpers ----
