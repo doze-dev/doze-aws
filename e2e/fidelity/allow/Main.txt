@@ -1,0 +1,20 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell, icon, doc, decision, data (a sample value no fixture can
+# reproduce), annotation (the board's own note). A missing sentence is never
+# listed here to make a board pass.
+#
+# The wire boards are drawn at one afternoon's numbers. The fixture
+# (e2e/fidelity/wire.ts) makes the same calls, and the page prints what was
+# measured and counted; a latency is never the board's.
+live · 234 a minute # data: the board's rate; the page says how many calls started in the last minute, which is the fixture's dozen
+2.1 # data: a measured latency (the board's SendMessage); the page prints this run's
+48.0 # data: a measured latency (the board's Invoke); the page prints this run's
+0.4 # data: a measured latency (the board's PutItem and Decrypt); the page prints this run's
+1.2 # data: a measured latency (the board's PutObject); the page prints this run's
+0.3 # data: a measured latency (the board's cascaded SendMessage); the page prints this run's
+0.2 # data: a measured latency (the board's GetSecretValue); the page prints this run's
+38.2 # data: a measured latency (the board's UpdateStack); the page prints this run's
+212 # data: the board's window holds 212 calls and its slowest took 212 ms; the page counts and measures this run's
+212 ms · invoke # data: the board's slowest call; the page names this run's slowest
+harbour-depot-dispatch.fifo # decision: AWS does not deliver a bucket's notifications to a FIFO queue (it refuses to configure one), so the fixture notifies a standard queue, harbour-depot-dispatch; plan/03-shell-fidelity.md section 4

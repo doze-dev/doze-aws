@@ -1,0 +1,8 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell, icon, doc, decision, data (a sample value no fixture can
+# reproduce), annotation (the board's own note). A missing sentence is never
+# listed here to make a board pass.
+<clock> · 0.1 ms · request id 2d7a…91c4 # data: the call's own latency and the request id this run answered with (the board shortens it); the page prints both in full
+"queueurl": "…/harbour-checkout-orders", # data: the board elides the queue URL's origin to fit the line; the page shows the request as it was sent, with the whole URL
+delay, message attributes, fifo group and deduplication id, content-based deduplication. the sqs ledger # doc: the board's summary of the SQS ledger's SendMessage row; the page prints the row as docs/SUPPORT.md has it, which says more

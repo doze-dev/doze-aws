@@ -12,15 +12,29 @@ import { DLQ, FIFO, LOYALTY, MAIN } from '../harbour';
 
 const wire = (c: Ctx) => c.page.goto(c.url(''));
 
-/** The wire, with the traffic harbour's seed made. */
-async function wireWithRefusal(c: Ctx) {
-  // A refused call. The boards' own example (a MessageGroupId sent to a
-  // standard queue) is not a refusal any more: standard queues take a group id
-  // (fair queues), so the call that is refused here is a FIFO send without one.
-  await c.sqs('SendMessage', { QueueUrl: c.queueUrl(FIFO), MessageBody: JSON.stringify({ orderId: 'HRB-2026-04810' }) });
-  await wire(c);
-  await c.settle(800);
+/**
+ * The wire as the boards draw it: the harbour shop and the afternoon of calls
+ * (e2e/fidelity/wire.ts), on an instance of its own so the calls the other
+ * boards make do not appear on it. The boards' own refusal (a
+ * MessageDeduplicationId on a standard queue) is the one the fixture makes.
+ */
+async function wireAfternoon(c: Ctx) {
+  const w = await c.instance('wire');
+  await c.page.goto(w.url(''));
+  // The page is live and the rows arrive on its first poll; the long poll that
+  // waited twenty seconds was awaited by the fixture, so it is already there.
+  await c.page.waitForSelector('.tr-row');
+  await c.settle(600);
+  return w;
 }
+
+/** The row of a call made to MAIN that the queue's mapping read: the SendMessage that has a child. */
+const orderRow = (c: Ctx) =>
+  c.page
+    .locator('.tr-row:not(.tr-child)', { hasText: 'SendMessage' })
+    .filter({ hasText: MAIN })
+    .filter({ has: c.page.locator('.st.served') })
+    .first();
 
 export const drivers: DriverTable = {
   // The annotated queue page: the eight parts of a resource page.
@@ -34,7 +48,7 @@ export const drivers: DriverTable = {
   // The wire: the console's home.
   Main: {
     async drive(c) {
-      await wireWithRefusal(c);
+      await wireAfternoon(c);
     },
   },
 
@@ -146,27 +160,68 @@ export const drivers: DriverTable = {
   // The first-run wire: nothing has called yet.
   'Wire-Empty': {
     async drive(c) {
+      // The board is drawn on another shop ("shop"), which nothing has called.
       const e = await c.instance('empty');
       await c.page.goto(e.url(''));
+      await c.page.waitForSelector('.wire-first');
     },
   },
 
-  // The wire with one call opened.
+  // The wire with one call opened: a served call and the work it caused. Calls
+  // made after it was opened are what the "paused · N new" pill counts.
   'Wire-Inspect': {
     async drive(c) {
-      await wire(c);
-      await c.page.locator('.tr-row .rowopen').first().click();
-      await c.settle(500);
+      const w = await wireAfternoon(c);
+      await orderRow(c).locator('.rowopen').click();
+      await c.page.waitForSelector('#t-drawer-inner .td-h');
+      for (let n = 0; n < 3; n++) await w.sqs('GetQueueUrl', { QueueName: LOYALTY });
+      // The count is asked for every 1.5 seconds while the feed is paused.
+      await c.page.waitForFunction(() => /paused · [1-9]/.test(document.querySelector('.wire-acts')?.textContent ?? ''));
+      await c.settle(300);
+      await c.capture();
+      // The board's card for the function the order set off carries what it
+      // printed. Here the mapping's invoke is a row of its own (an SDK's send
+      // carries nothing that says the invoke came of it), and what it printed is
+      // on its Response tab; that is a second picture of the same board.
+      await c.page.locator('.tr-row', { hasText: 'harbour-order-validator' }).first().locator('.rowopen').click();
+      await c.page.waitForSelector('#t-drawer-inner .td-title:text("Invoke")');
+      await c.page.locator('.td-tabs').getByRole('tab', { name: 'Response' }).click();
+      await c.capture('invoke');
+    },
+    note: 'A second picture (page-Wire-Inspect-invoke.png) is the validator\'s own inspector, which holds the lines it printed; the board puts them on the send\'s card.',
+  },
+
+  // The wire filtered to what was refused, with the refused call opened.
+  'Wire-Refused': {
+    async drive(c) {
+      await wireAfternoon(c);
+      await c.page.getByRole('button', { name: 'Refused', exact: true }).click();
+      await c.page.locator('.tr-row.refused .rowopen').first().click();
+      await c.page.waitForSelector('#t-drawer-inner .td-callout');
+      await c.settle(300);
     },
   },
 
-  // The wire with a refused call opened.
-  'Wire-Refused': {
+  // The console's own poll failing: the page is up, and doze-aws is not
+  // answering. The browser is told every request to the console fails to
+  // connect, which is what a stopped process looks like from the page.
+  'Bad-Down': {
     async drive(c) {
-      await wireWithRefusal(c);
-      await c.page.locator('.tr-row.refused .rowopen').first().click();
-      await c.settle(500);
+      // The board's queue is a quiet one with a dead-letter queue beside it and
+      // twelve messages waiting; a copy of the shop, so the default one keeps its
+      // queues.
+      const f = await c.instance('fresh');
+      await f.sqs('CreateQueue', { QueueName: 'harbour-loyalty-points-dlq' });
+      for (let n = 0; n < 12; n++)
+        await f.sqs('SendMessage', { QueueUrl: f.queueUrl(LOYALTY), MessageBody: JSON.stringify({ customer: 'c-2302', points: 40 }) });
+      await c.page.goto(f.url(`sqs/${LOYALTY}`));
+      await c.settle(600);
+      await c.page.route(/\/_console\//, (r) => r.abort('connectionrefused'));
+      // The counts poll runs every five seconds; the banner follows the first miss.
+      await c.page.waitForSelector('#down-banner:not([hidden])', { timeout: 15000 });
+      await c.settle(300);
     },
+    note: 'The page is left up while every request to the console is refused at the browser, which is how it sees a stopped doze-aws; the e2e spec stops the real process.',
   },
 
   // The map: the wiring graph, drawn while it fits. The instance is wired as
@@ -188,6 +243,5 @@ export const drivers: DriverTable = {
   },
 
   // Boards with nothing to drive, and why. A skip is shown in the report.
-  'Bad-Down': { skip: 'The "cannot reach doze-aws" banner is not built (foundation D); it is the console\'s own poll failing, browser-side.' },
   Grounding: { skip: 'A document board (what was grounded in code and what is new), not a screen: there is no page state to drive.' },
 };

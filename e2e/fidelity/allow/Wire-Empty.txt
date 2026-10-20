@@ -1,0 +1,6 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell, icon, doc, decision, data (a sample value no fixture can
+# reproduce), annotation (the board's own note). A missing sentence is never
+# listed here to make a board pass.
+?every key # decision: D10 (plan/03-shell-fidelity.md section 6): "?" is not bound, no board draws what it would show, and the key bar names only keys that do something

@@ -1,0 +1,13 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell, icon, doc, decision, data (a sample value no fixture can
+# reproduce), annotation (the board's own note). A missing sentence is never
+# listed here to make a board pass.
+#
+# The banner, the top bar's "not answering" and the key bar's "last heard" are
+# this board's subject and are all on the page. What is behind them is a queue
+# page (the board draws it dimmed, as "the last thing it heard"): the SQS
+# stage's page, which this package does not touch.
+message id # shell: the board draws the queue's messages as a table with column heads; the SQS stage's page draws them as rows with no heads (Queue.dc.html agrees with the page, plan/03-shell-fidelity.md section 3)
+body # shell: the same table's column head
+9a1f4c02-… # data: a message id, which is random on every run

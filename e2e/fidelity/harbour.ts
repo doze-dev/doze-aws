@@ -22,7 +22,14 @@ function must(r: { status: number; body: any }, what: string) {
   return r;
 }
 
-export async function seedHarbour(i: Inst, warn: (s: string) => void): Promise<void> {
+export interface HarbourOptions {
+  /** The directory the order validator's code is. Default: the e2e Lambda
+   *  fixture's source, which is enough for a function that is only listed; the
+   *  wire boards need one that runs (wire.ts builds it). */
+  handlerDir?: string;
+}
+
+export async function seedHarbour(i: Inst, warn: (s: string) => void, opts: HarbourOptions = {}): Promise<void> {
   const { sqs, queueUrl: U, queueArn: A, server } = i;
   must(await sqs('CreateQueue', { QueueName: DLQ }), 'dlq');
   must(
@@ -95,7 +102,7 @@ export async function seedHarbour(i: Inst, warn: (s: string) => void): Promise<v
         name: 'harbour-order-validator',
         runtime: 'provided.al2',
         handler: 'bootstrap',
-        code: join(E2E_DIR, 'fixtures', 'lambda-handler'),
+        code: opts.handlerDir ?? join(E2E_DIR, 'fixtures', 'lambda-handler'),
         timeout: '30',
       }),
     });

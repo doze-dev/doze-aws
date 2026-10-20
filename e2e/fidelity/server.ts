@@ -54,6 +54,8 @@ export interface BootOpts {
   iamMode?: 'enforce';
   /** Distinguishes the data dir and the log. */
   tag: string;
+  /** The instance's name in the top bar (`--name`); the harbour fixture's by default. */
+  name?: string;
 }
 
 export interface Booted {
@@ -74,7 +76,8 @@ export async function boot(o: BootOpts): Promise<Booted> {
   mkdirSync(data, { recursive: true });
   mkdirSync(cwd, { recursive: true });
   const log = openSync(join(TMP_DIR, `fidelity-${o.tag}-${o.port}.log`), 'w');
-  const args = ['--listen', `127.0.0.1:${o.port}`, '--data-dir', data, '--console', '--name', 'harbour'];
+  const name = o.name ?? 'harbour';
+  const args = ['--listen', `127.0.0.1:${o.port}`, '--data-dir', data, '--console', '--name', name];
   if (o.id2) args.push('--account-id', id.account, '--region', id.region);
   if (o.iamMode) args.push('--iam-mode', o.iamMode);
   const child: ChildProcess = spawn(BIN, args, { cwd, stdio: ['ignore', log, log] });
@@ -98,7 +101,7 @@ export async function boot(o: BootOpts): Promise<Booted> {
     await Bun.sleep(100);
   }
   return {
-    server: { origin, console: `${origin}/_console/`, account: id.account, region: id.region, name: 'harbour' },
+    server: { origin, console: `${origin}/_console/`, account: id.account, region: id.region, name },
     stop: async () => {
       if (exited) return;
       child.kill('SIGTERM');

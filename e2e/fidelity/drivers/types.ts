@@ -46,10 +46,13 @@ export interface Ctx extends Inst {
    * board whose state needs the real queues spent (a redrive that drains the
    * DLQ) and must not disturb the default instance; `map` and `mapLarge` are
    * wired as the Map and Map-Large boards draw (mapfixture.ts), with the
-   * boards' flows hot. The page must be pointed
-   * at it with `page.goto(inst.url(...))`.
+   * boards' flows hot; `wire` is the harbour fixture and then the afternoon the
+   * wire boards show (e2e/fidelity/wire.ts: a bucket, a table, a function that
+   * throws, a firing alarm, and the calls made against them, with the ring
+   * started over before them). The page must be pointed at it with
+   * `page.goto(inst.url(...))`.
    */
-  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge'): Promise<Inst>;
+  instance(kind: 'enforce' | 'empty' | 'fresh' | 'map' | 'mapLarge' | 'wire'): Promise<Inst>;
   /** Log a thing the report should carry beside the row (a note, not a failure). */
   note(text: string): void;
 }

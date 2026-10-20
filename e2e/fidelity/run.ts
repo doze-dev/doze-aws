@@ -1,13 +1,13 @@
 // The fidelity gate, as machinery (plan/00-foundation B14).
 //
-//   bun e2e/fidelity/run.ts <service|board-name> [--dark] [--w900] [--id2]
+//   bun e2e/fidelity/run.ts <service|board-name> [--dark] [--w900] [--w1024] [--id2]
 //   go tool task console:fidelity -- sqs
 //
 // For every board of the service: render the board (file:// of the .dc.html
 // at 1440 by 900), drive the real page into the board's state, screenshot both
 // at the same size, and write
 //
-//   e2e/.tmp/fidelity/<service>[-dark][-w900][-id2]/
+//   e2e/.tmp/fidelity/<service>[-dark][-w900][-w1024][-id2]/
 //       board-<name>.png  page-<name>.png  report.html  results.json
 //
 // Then the structural check: every line of the board's text must be somewhere
@@ -25,6 +25,7 @@ import type { Ctx, Driver, Inst } from './drivers/types';
 import { DRIVERS } from './drivers';
 import { seedHarbour } from './harbour';
 import { seedMap, seedMapLarge } from './mapfixture';
+import { seedWire } from './wire';
 import { counts, failing, renderReport, type Row } from './report';
 import { boot, build, E2E_DIR, freePort, ID2, inst, REPO_DIR, TMP_DIR, type Booted } from './server';
 import { checkText } from './text';
@@ -41,26 +42,28 @@ const SERVICE_CHROME = '.top, .rail, .keys, .list';
 export interface Flags {
   dark: boolean;
   w900: boolean;
+  w1024: boolean;
   id2: boolean;
 }
 
 export function parseArgs(argv: string[]): { target: string; flags: Flags } | string {
-  const flags: Flags = { dark: false, w900: false, id2: false };
+  const flags: Flags = { dark: false, w900: false, w1024: false, id2: false };
   const pos: string[] = [];
   for (const a of argv) {
     if (a === '--dark') flags.dark = true;
-    else if (a === '--w900') flags.w900 = true;
+    else if (a === "--w900") flags.w900 = true;
+    else if (a === "--w1024") flags.w1024 = true;
     else if (a === '--id2') flags.id2 = true;
     else if (a === '--') continue;
     else if (a.startsWith('--')) return `unknown flag ${a}`;
     else pos.push(a);
   }
-  if (pos.length !== 1) return 'usage: bun e2e/fidelity/run.ts <service|board-name> [--dark] [--w900] [--id2]';
+  if (pos.length !== 1) return 'usage: bun e2e/fidelity/run.ts <service|board-name> [--dark] [--w900] [--w1024] [--id2]';
   return { target: pos[0]!, flags };
 }
 
 export function variantOf(f: Flags): string {
-  return [f.dark ? 'dark' : '', f.w900 ? 'w900' : '', f.id2 ? 'id2' : ''].filter(Boolean).join('-');
+  return [f.dark ? 'dark' : '', f.w900 ? "w900" : "", f.w1024 ? "w1024" : "", f.id2 ? 'id2' : ''].filter(Boolean).join('-');
 }
 
 async function main(): Promise<number> {
@@ -105,11 +108,12 @@ async function main(): Promise<number> {
   let browser: Browser | undefined;
   const rows: Row[] = [];
   try {
-    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | ((i: Inst) => Promise<void>)): Promise<Inst> => {
-      const b = await boot({ port: await freePort(taken), id2: flags.id2, iamMode: enforceMode ? 'enforce' : undefined, tag });
+    const bootSeeded = async (tag: string, enforceMode: boolean, seed: boolean | 'wire' | ((i: Inst) => Promise<void>), name?: string): Promise<Inst> => {
+      const b = await boot({ port: await freePort(taken), id2: flags.id2, iamMode: enforceMode ? 'enforce' : undefined, tag, name });
       booted.push(b);
       const i = inst(b.server);
       if (typeof seed === 'function') await seed(i);
+      else if (seed === 'wire') await seedWire(i, (s) => console.warn('  warning:', s));
       else if (seed) await seedHarbour(i, (s) => console.warn('  warning:', s));
       return i;
     };
@@ -120,9 +124,10 @@ async function main(): Promise<number> {
     let fresh: Promise<Inst> | undefined;
     let map: Promise<Inst> | undefined;
     let mapLarge: Promise<Inst> | undefined;
+    let wire: Promise<Inst> | undefined;
 
     browser = await chromium.launch();
-    const pageWidth = flags.w900 ? 900 : 1440;
+    const pageWidth = flags.w900 ? 900 : flags.w1024 ? 1024 : 1440;
 
     for (const board of t.boards) {
       rows.push(await runBoard(board));
@@ -231,7 +236,10 @@ async function main(): Promise<number> {
         },
         instance: (kind) => {
           if (kind === 'enforce') return (enforce ??= bootSeeded('enforce', true, true));
-          if (kind === 'empty') return (empty ??= bootSeeded('empty', false, false));
+          // The first-run board is drawn on another shop ("shop"), which has not
+          // been called yet; the instance is named so the page says the same.
+          if (kind === 'empty') return (empty ??= bootSeeded('empty', false, false, 'shop'));
+          if (kind === 'wire') return (wire ??= bootSeeded('wire', false, 'wire'));
           if (kind === 'fresh') return (fresh ??= bootSeeded('fresh', false, true));
           if (kind === 'map') return (map ??= bootSeeded('map', false, seedMap));
           if (kind === 'mapLarge') return (mapLarge ??= bootSeeded('map-large', false, seedMapLarge));

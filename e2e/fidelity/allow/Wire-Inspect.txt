@@ -1,0 +1,18 @@
+# Board text the page legitimately omits or words differently. One line each:
+#   board text # kind: why
+# Kinds: shell, icon, doc, decision, data (a sample value no fixture can
+# reproduce), annotation (the board's own note). A missing sentence is never
+# listed here to make a board pass. See Main.txt for the wire boards' numbers.
+paused · 31 new # data: the board's count of calls made while it was open; the page counts the three the driver makes
+2.1 # data: a measured latency (the board's SendMessage); the page prints this run's
+48.0 # data: a measured latency (the board's Invoke); the page prints this run's
+0.4 # data: a measured latency (the board's PutItem and Decrypt); the page prints this run's
+1.2 # data: a measured latency (the board's PutObject); the page prints this run's
+0.3 # data: a measured latency (the board's cascaded SendMessage); the page prints this run's
+0.2 # data: a measured latency (the board's GetSecretValue); the page prints this run's
+38.2 # data: a measured latency (the board's UpdateStack); the page prints this run's
+212 # data: a measured latency (the board's Invoke that threw); the page prints this run's
+48.0 ms # data: a measured latency (the board's Invoke, on its card); the page prints this run's
+<clock> · 2.1 ms · request id <id> # data: the call's own latency; the page prints this run's, and its request id is the one this run answered with
+harbour-depot-dispatch.fifo # decision: AWS does not deliver a bucket's notifications to a FIFO queue (it refuses to configure one), so the fixture notifies a standard queue, harbour-depot-dispatch; plan/03-shell-fidelity.md section 4
+via the queue's event source mapping. what the function printed is on its row. # decision: the board nests the validator's Invoke under the app's SendMessage. An SDK's SendMessage carries no AWSTraceHeader, so doze-aws cannot know the mapping's invoke came of it: the Invoke is a root row beside it (the card's sentence is for work that is nested), and its own inspector shows what it printed
