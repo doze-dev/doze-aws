@@ -59,6 +59,7 @@ server) are constantly adding to that state.
 - **Icon-only buttons** (no visible text, just an SVG) get their accessible name from their `title` attribute, so `getByRole('button', { name: '...' })` works — but scope it (e.g. to the containing row) since the same title ("Delete") often appears more than once on a page.
 - **A real Playwright/Chromium quirk**: a synthetic `.click()` on a link inside the ⌘K command palette (which has a CSS open-animation) doesn't trigger navigation, even though the click provably lands on the right element (`elementFromPoint`-verified). A native DOM `.click()` works fine, and so does keyboard `Enter` selection — `shell.spec.ts`'s palette test uses the keyboard path, which is also more representative of real command-palette usage. If a click on something inside an `.anim`-classed overlay silently does nothing, try that before spending a long time debugging it.
 - **Never assert on global/exact counts.** The shared server accumulates resources across the whole run (and across repeated local runs, since the data dir persists). Scope every assertion to your own `uniqueName()`d resources.
+- **A server of the spec's own**: a test that needs a stack nobody else is calling (the first-run wire), or one it may stop and start (the "cannot reach doze-aws" banner), uses `fixtures/private.ts`. It starts the binary the suite built, on `E2E_PORT + 1`, over a data directory of its own; `wire.spec.ts` is the example. Keep two runs' `E2E_PORT`s at least two apart.
 - **No `data-testid` convention** exists in the console's templates. Prefer semantic locators (`getByRole`, `getByLabel`, resource names) — they're almost always sufficient since the app's forms/buttons have real labels and text.
 
 ## Fidelity: the board beside the page
@@ -71,6 +72,7 @@ of `task check`; it is a tool a service's console stage runs, and reads.
 go tool task console:fidelity -- sqs               # every board of SQS, light, 1440 by 900
 go tool task console:fidelity -- sqs --dark        # both sides dark
 go tool task console:fidelity -- sqs --w900        # the page at 900 wide (the board stays 1440)
+go tool task console:fidelity -- sqs --w1024       # the page at 1024 wide
 go tool task console:fidelity -- sqs --id2         # the instance boots as 111122223333 in eu-west-1
 go tool task console:fidelity -- Sqs-17-Config     # one board
 go tool task console:fidelity -- shell             # the cross-cutting boards (Anatomy, Main, ...)
@@ -78,9 +80,12 @@ go tool task console:fidelity:test                 # unit tests: `bun test e2e/f
 # or, from e2e/: bun fidelity/run.ts sqs
 ```
 
-It builds the real binary, boots it on a free port in 14960-14969 with a fresh
-data dir (`--name harbour`), seeds the **harbour** fixture (`fidelity/harbour.ts`:
-the shop the boards are drawn from), and for each board in
+It builds the real binary, boots it on a free port in 14960-14969 (move the range
+with `FIDELITY_PORT_MIN` and `FIDELITY_PORT_MAX`, so two runs can share a machine)
+with a fresh data dir (`--name harbour`), seeds the **harbour** fixture
+(`fidelity/harbour.ts`: the shop the boards are drawn from; `fidelity/wire.ts`
+adds the afternoon of calls the wire boards draw, on an instance of its own, see
+`ctx.instance('wire')`), and for each board in
 `plan/design/boards/` renders the board (`file://` at 1440 by 900, `.app.dark`
 for `--dark`, Google Fonts blocked so the fallbacks make every machine's picture
 the same), drives the real page into the board's state, and writes

@@ -448,7 +448,7 @@ func (c *Console) withRows(v wireView) wireView {
 	if v.FirstRun {
 		v.Env = firstRunEnv(v.Endpoint, v.Region)
 	}
-	v.Rows = c.wireRows(raw)
+	v.Rows = wireRows(raw)
 	v.Services = servicesOf(raw)
 	for _, row := range v.Rows {
 		if row.State == "refused" || row.State == "refusedhere" {

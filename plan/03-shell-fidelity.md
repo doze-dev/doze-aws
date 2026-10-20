@@ -19,17 +19,33 @@ first and rendered beside its boards:
 | S11 name switcher at 1100 px and below, S12 axe sweep both themes, both widths | built | e24b6e7, a2f1d4b |
 | Defects an independent re-audit found in the SQS pages and shared components | being fixed | (this section is updated) |
 
+**The wire page, 2026-10-20 (D-a, D-b, D-e): built.** Main, Wire-Inspect,
+Wire-Refused, Wire-Empty and Bad-Down are driven in their own state and match
+(`go tool task console:fidelity -- shell`, light and dark, 1440), each with its
+allow-list entries in `e2e/fidelity/allow/` and their reasons (measured values,
+the board's own sample ids, and the decisions in section 4, items 13 to 16).
+Built from data the recorder and the product have: the header's calls a minute,
+the answer chips in a word, cascade rows with "via", time lanes on one scale, a
+long poll as a wait, "Needs a look" (a dead-letter queue and its receive count,
+an alarm and since when, refused, refused here, denied, failed, not built, a
+function error and how often; each only when it is so) and "In this window", the
+inspector with its tabs, the reason and the queue and the ledger for a call that
+was not served, the first run, and the banner. The "N with no wiring
+configured" line of the old deck is not on the wire any more (no board draws it);
+the unwired list is the map's. Where the page differs from a board on purpose:
+the filter row sits under the header in every state (Wire-Refused draws the
+chips in the header), "paused · N new" shows whenever the feed is paused
+(Wire-Refused draws none), and the inspector is 520 wide in every state.
+
 **Not built, by decision or by schedule:** the ghost row in the list pane while
 creating (the Create board draws one, Sqs-03 does not; off everywhere; the hook
 exists); the compact header (boards 08-21 draw less than the Queue board: the
 page keeps the Queue board's header, neighbours and dock on every tab, per
 Anatomy's rule); the region chip and theme switch (no board draws a selector;
-kept); the wire page's own header row, lanes, "Needs a look" panel and
-inspector tabs (D-a), the first-run wire (D-b), the fidelity dialog (D-c),
-Connect (D-d), the "cannot reach" banner (D-e), the map (D-f): foundation D,
-scheduled after the services. `go tool task console:fidelity -- shell` still
-prints 0 of 13 matching: those boards are mostly the wire page and its
-neighbours.
+kept); the fidelity dialog (D-c), Connect (D-d), the map (D-f): foundation D,
+scheduled after the services. (The wire page's header row, lanes, "Needs a look"
+panel and inspector tabs (D-a), the first-run wire (D-b) and the "cannot reach"
+banner (D-e) were built on 2026-10-20: see the paragraph above.)
 
 **How to read the rest of this file.** Sections 2.1 to 2.14 each describe "Page:"
 (what the console did on 2026-10-11) beside "Board:" (the design). The Page
@@ -499,6 +515,33 @@ working copy (the list is at the end of this section).
     lanes, and the `live`/`quiet` rail annotation are untagged too.
 12. **L12 names "the list pane header"** as a place the icon stays; no board
     draws one there and the page hides it by CSS.
+13. **S3 notifies a FIFO queue** (Main, Wire-Inspect: `PutObject` then
+    `└ SendMessage harbour-depot-dispatch.fifo via s3:ObjectCreated:Put`). AWS
+    does not deliver a bucket's notifications to a FIFO queue and refuses to
+    configure one; doze-aws accepts the configuration and the delivery is then
+    refused (`The request must contain the parameter MessageGroupId`). The
+    fidelity fixture notifies a standard queue, `harbour-depot-dispatch`, and the
+    one board line is allow-listed (`decision`). *Product gap found:* the
+    configuration should be refused (S3 stage).
+14. **The validator's `Invoke` nested under the app's `SendMessage`** (Main,
+    Wire-Inspect: `└ Invoke harbour-order-validator via the queue's event source
+    mapping`, and "What it caused 1"). The nesting is carried on the message
+    (`AWSTraceHeader`), which an SDK's `SendMessage` does not set, so doze-aws
+    cannot know the mapping's invoke came of that send; guessing would draw a
+    confident line it cannot know. The invoke was not on the wire at all (the
+    trace package says it "appears as a root"; it did not, and now does), and it
+    is a root row beside the send. The card's sentence is allow-listed
+    (`decision`). *Open question for the owner:* SQS could keep the cause on the
+    message for a send made through the recorder without putting it in the
+    message's system attributes a consumer reads back; that is a storage change
+    in SQS, not a console one.
+15. **"Refused" is one chip on the board and two states in the page**: "refused"
+    and "refused here" (D7). The Needs-a-look callout says each in its own words
+    ("The same request would fail on AWS." / "AWS would accept it. This is a
+    limit of doze-aws."); the board draws only the first.
+16. **The three inspector widths** (Wire-Inspect 520, Wire-Refused 560, Narrow
+    340): one width, 520, and 400 at 1100 px and below, so that the table's
+    On column stays readable at the width the console is declared for.
 
 **Edits made to the working copy** (originals kept as
 `scratchpad/shell/*.orig.html`; nothing else in the repo was touched):

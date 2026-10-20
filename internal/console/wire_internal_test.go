@@ -90,7 +90,7 @@ func TestALongPollIsAWaitAndNotTheSlowestCall(t *testing.T) {
 	if s.Calls != 2 || s.Services != 2 || s.Rate != 2 {
 		t.Errorf("stats = %+v", s)
 	}
-	rows := (&Console{}).wireRows([]TrafficEntry{put, poll})
+	rows := wireRows([]TrafficEntry{put, poll})
 	for _, r := range rows {
 		if r.Action == "ReceiveMessage" && (r.LaneWidth != 0 || !r.Wait) {
 			t.Errorf("a wait drew a lane: %+v", r)
@@ -105,7 +105,7 @@ func TestTheWireIsOrderedByWhenCallsStarted(t *testing.T) {
 	long := TrafficEntry{Seq: 1, At: t0, Service: "sqs", Action: "ReceiveMessage", Status: 200, Millis: 20000}
 	late := TrafficEntry{Seq: 2, At: t0.Add(5 * time.Second), Service: "kms", Action: "Decrypt", Status: 200, Millis: 1}
 	// Ring order, newest FINISHED first: the long poll finished last.
-	rows := (&Console{}).wireRows([]TrafficEntry{long, late})
+	rows := wireRows([]TrafficEntry{long, late})
 	if len(rows) != 2 || rows[0].Action != "Decrypt" || rows[1].Action != "ReceiveMessage" {
 		t.Fatalf("rows = %v, want Decrypt (started later) above ReceiveMessage", actions(rows))
 	}
@@ -126,7 +126,7 @@ func TestLanesShareOneScaleAndAChildStartsInsideItsParent(t *testing.T) {
 	parent := TrafficEntry{Seq: 1, At: t0, Service: "s3", Action: "PutObject", Status: 200, Millis: 10}
 	child := TrafficEntry{Seq: 2, At: t0.Add(20 * time.Millisecond), Service: "sqs", Action: "SendMessage", Status: 200, Millis: 50, Parent: 1, Via: "s3:ObjectCreated:Put"}
 	slow := TrafficEntry{Seq: 3, At: t0.Add(time.Second), Service: "lambda", Action: "Invoke", Status: 200, Millis: 100}
-	rows := (&Console{}).wireRows([]TrafficEntry{slow, child, parent})
+	rows := wireRows([]TrafficEntry{slow, child, parent})
 	by := map[string]trafficRow{}
 	for _, r := range rows {
 		by[r.Action] = r

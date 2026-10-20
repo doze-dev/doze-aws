@@ -295,7 +295,7 @@ type trafficRow struct {
 // delivered on its own goroutine can finish before the request that triggered
 // it returns. Grouping by sequence number rather than by position is what makes
 // that harmless.
-func (c *Console) wireRows(raw []TrafficEntry) []trafficRow {
+func wireRows(raw []TrafficEntry) []trafficRow {
 	kids := map[int64][]TrafficEntry{}
 	known := map[int64]bool{}
 	for _, e := range raw {
@@ -376,15 +376,6 @@ func (c *Console) wireRows(raw []TrafficEntry) []trafficRow {
 		emit(e, 0, e.At)
 	}
 	return rows
-}
-
-// trafficEntries is the ring as rows, for a caller that has no use for the
-// window's other figures.
-func (c *Console) trafficEntries(since int64) []trafficRow {
-	if c.rec == nil {
-		return nil
-	}
-	return c.wireRows(c.rec.Entries(since))
 }
 
 // fmtMillis is a duration as the wire column shows it: two significant
