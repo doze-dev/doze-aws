@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/internal/emitter"
 )
 
 type fakeSink struct {
@@ -177,9 +179,9 @@ func TestAFailedStepDetailRecordsStatusDenialAndWhatItLeftBehind(t *testing.T) {
 // s3:ObjectCreated:Put" under the put that caused it. The step names its own
 // via when it has one (an SNS fan-out), and the work inside the step does not
 // inherit the caller's: a queue send made by a topic's delivery is the topic's.
-func TestAStepCarriesTheViaItsCallerSetAndPassesItNoFurther(t *testing.T) {
+func TestAStepCarriesTheEmitterItsCallerSetAndPassesItNoFurther(t *testing.T) {
 	sink := &fakeSink{run: "r"}
-	ctx := WithVia(With(context.Background(), sink, 1), "s3:ObjectCreated:Put")
+	ctx := emitter.With(With(context.Background(), sink, 1), "s3:ObjectCreated:Put")
 
 	_ = Step(ctx, Event{Service: "sns", Action: "Publish", Resource: "t"}, func(ctx context.Context) error {
 		// Inside the publish, a send with no via of its own is not "via s3".

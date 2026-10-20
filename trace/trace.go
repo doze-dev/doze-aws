@@ -47,6 +47,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/emitter"
 )
 
 // Cause identifies the recorded external call that set this work in motion.
@@ -131,22 +133,6 @@ func With(ctx context.Context, s Sink, c Cause) context.Context {
 	return context.WithValue(ctx, key{}, carrier{sink: s, cause: c})
 }
 
-type viaKey struct{}
-
-// WithVia says what emitted the next piece of work, for a caller that knows and
-// whose delivery goes through a helper that does not (S3's notification calls the
-// same SQS send an SNS fan-out does). The next Step whose Event names no via of
-// its own is recorded with this one. It goes no further: the work inside that
-// step starts with no via, so a send made by a topic's delivery is the topic's.
-func WithVia(ctx context.Context, via string) context.Context {
-	return context.WithValue(ctx, viaKey{}, via)
-}
-
-func viaOf(ctx context.Context) string {
-	v, _ := ctx.Value(viaKey{}).(string)
-	return v
-}
-
 // CauseOf reports the call this work descends from, or 0.
 func CauseOf(ctx context.Context) Cause {
 	if c, ok := ctx.Value(key{}).(carrier); ok {
@@ -171,10 +157,10 @@ func Step(ctx context.Context, e Event, fn func(context.Context) error) error {
 	self := c.sink.ReserveCascade()
 	e.Self, e.Cause = self, c.cause
 	if e.Via == "" {
-		e.Via = viaOf(ctx)
+		e.Via = emitter.Of(ctx)
 	}
 	start := time.Now()
-	err := fn(WithVia(With(ctx, c.sink, self), ""))
+	err := fn(emitter.With(With(ctx, c.sink, self), ""))
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	if err != nil {
 		e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
@@ -197,10 +183,10 @@ func StepDetail(ctx context.Context, e Event, fn func(context.Context) (detail, 
 	self := c.sink.ReserveCascade()
 	e.Self, e.Cause = self, c.cause
 	if e.Via == "" {
-		e.Via = viaOf(ctx)
+		e.Via = emitter.Of(ctx)
 	}
 	start := time.Now()
-	detail, url, err := fn(WithVia(With(ctx, c.sink, self), ""))
+	detail, url, err := fn(emitter.With(With(ctx, c.sink, self), ""))
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	e.Detail, e.DetailURL = detail, url
 	if err != nil {
