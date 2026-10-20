@@ -21,6 +21,7 @@ func TestTemplateClassesAreStyled(t *testing.T) {
 	// Classes that intentionally carry no styles: pure JS/layout hooks.
 	hookClasses := map[string]string{
 		"rt-cd":       "countdown text node — shell.js writes its textContent every second",
+		"tr-wrap":     "the wire's \"a call is open\" hook — shell.js reads .tr-wrap.open to collapse the rail and to close the inspector; the layout is .wire",
 		"rt-cold":     "idle state IS the .rt-badge base look; only rt-warm adds rules",
 		"sqs-peek":    "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"sqs-compose": "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
@@ -206,7 +207,7 @@ var (
 var inlineBudget = map[string]int{
 	"kinesis.html": 47, "iam.html": 101, "ddb.html": 39, "create.html": 15,
 	"s3.html": 58, "lambda.html": 44, "eb.html": 26, "kms.html": 25,
-	"sqs.html": 0, "apigw.html": 39, "sns.html": 8, "traffic.html": 12,
+	"sqs.html": 0, "apigw.html": 39, "sns.html": 8, "traffic.html": 0,
 	"workspace.html": 9, "cfn.html": 26, "sm.html": 6, "connect.html": 0,
 	"layout.html": 2, "panes.html": 3, "ssm.html": 2,
 }

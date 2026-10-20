@@ -55,15 +55,18 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// In this order, so each call's seq is its place in the list below.
-	want := []struct{ action, state, word string }{
-		{"Served", "served", ""},
-		{"Refused", "refused", "Refused"},
-		{"RefusedHere", "refusedhere", "Refused here"},
-		{"Denied", "denied", "Denied"},
-		{"NotBuilt", "notbuilt", "Not built"},
-		{"Failed", "error", "Failed"},
-		{"Threw", "threw", "It threw"},
+	// In this order, so each call's seq is its place in the list below. answer is
+	// the Answer column's text: the state in a word beside the status, so the
+	// colour is never the only signal; a function error says "it threw" in place
+	// of the 200, which is true and is not what a reader needs.
+	want := []struct{ action, state, answer string }{
+		{"Served", "served", "200"},
+		{"Refused", "refused", "400 refused"},
+		{"RefusedHere", "refusedhere", "400 refused here"},
+		{"Denied", "denied", "403 denied"},
+		{"NotBuilt", "notbuilt", "501 not built"},
+		{"Failed", "error", "500 failed"},
+		{"Threw", "threw", "it threw"},
 	}
 	for _, w := range want {
 		r := httptest.NewRequest("POST", "/", strings.NewReader(`{"QueueName":"orders"}`))
@@ -73,13 +76,12 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 	}
 
 	feed := req(t, c, "GET", "/_console/traffic/feed", nil).Body.String()
-	rowRE := regexp.MustCompile(`(?s)<div class="tr-row[^"]*".*?</button>\s*</div>`)
+	rowRE := regexp.MustCompile(`(?s)<div id="r-\d+" class="tr-row[^"]*".*?<span class="lane">.*?</span>\s*</div>`)
 	rows := rowRE.FindAllString(feed, -1)
 	if len(rows) != len(want) {
 		t.Fatalf("the feed drew %d rows, want %d:\n%s", len(rows), len(want), feed)
 	}
-	chipRE := regexp.MustCompile(`<span class="st ([a-z]+)"[^>]*>(\d+)</span>`)
-	wordRE := regexp.MustCompile(`<span class="tr-state">([^<]*)</span>`)
+	chipRE := regexp.MustCompile(`<span class="st ([a-z]+)">([^<]*)</span>`)
 	seqRE := regexp.MustCompile(`traffic/entry\?seq=(\d+)`)
 
 	for _, w := range want {
@@ -100,49 +102,45 @@ func TestTheStatusChipIsTheColourOfItsState(t *testing.T) {
 			if chip == nil || chip[1] != w.state {
 				t.Errorf("row chip = %v, want class %q", chip, w.state)
 			}
-			word := wordRE.FindStringSubmatch(row)
-			if w.word == "" {
-				if word != nil {
-					t.Errorf("a served call's row says %q; it has nothing to say", word[1])
-				}
-			} else if word == nil || word[1] != w.word {
-				t.Errorf("row state word = %v, want %q", word, w.word)
+			if chip != nil && chip[2] != w.answer {
+				t.Errorf("row answer = %q, want %q", chip[2], w.answer)
 			}
 
-			// The inspector: one chip, the state's class and no other.
+			// The inspector: one chip in its header, the state's class and no other.
 			seq := seqRE.FindStringSubmatch(row)
 			if seq == nil {
 				t.Fatalf("the row opens no inspector:\n%s", row)
 			}
 			drawer := req(t, c, "GET", "/_console/traffic/entry?seq="+seq[1], nil).Body.String()
-			meta := regexp.MustCompile(`(?s)<div class="td-meta">.*?</div>`).FindString(drawer)
-			dchip := chipRE.FindStringSubmatch(meta)
+			head := regexp.MustCompile(`(?s)<div class="td-h".*?</div>`).FindString(drawer)
+			dchip := chipRE.FindStringSubmatch(head)
 			if dchip == nil {
-				t.Fatalf("the inspector has no status chip:\n%s", meta)
+				t.Fatalf("the inspector has no status chip:\n%s", head)
 			}
 			if dchip[1] != w.state {
 				t.Errorf("inspector chip class = %q for a %d that is %s, want %q", dchip[1], status, w.action, w.state)
 			}
+			if dchip[2] != w.answer {
+				t.Errorf("inspector chip says %q, want %q", dchip[2], w.answer)
+			}
+			meta := regexp.MustCompile(`(?s)<div class="td-meta">.*?</div>`).FindString(drawer)
 			if strings.Contains(meta, `class="err"`) || strings.Contains(meta, `class="ok"`) {
 				t.Errorf("the inspector still colours the chip by status alone:\n%s", meta)
 			}
 			if w.action == "Threw" {
 				// The panel says what the function raised, as a refusal's says
 				// what the service answered, and the row is an error row for
-				// the "only errors" filter though its status is 200.
-				if !strings.Contains(drawer, "boom: the handler raised") || !strings.Contains(drawer, "<div class=\"td-k\">It threw · Error</div>") {
+				// the "errors" filter though its status is 200.
+				if !strings.Contains(drawer, "boom: the handler raised") || !strings.Contains(drawer, `<span class="m b">Error</span>`) {
 					t.Errorf("the inspector does not say what the function raised:\n%s", drawer)
 				}
 				if !strings.Contains(row, `class="tr-row threw"`) {
 					t.Errorf("a function error is not an error row (the filter would hide it):\n%s", row)
 				}
 			}
-			if w.word != "" {
-				if !strings.Contains(meta, w.word) {
-					t.Errorf("the inspector's chip does not say %q:\n%s", w.word, meta)
-				}
-				if !strings.Contains(drawer, `class="td-sec td-`+w.state+`"`) {
-					t.Errorf("the panel under the chip is not the same state (%s)", w.state)
+			if w.state != "served" {
+				if !strings.Contains(drawer, `class="td-callout td-`+w.state+`"`) {
+					t.Errorf("the panel under the chip is not the same state (%s):\n%s", w.state, drawer)
 				}
 			}
 		})

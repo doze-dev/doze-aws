@@ -1505,4 +1505,16 @@ func TestWireShowsTheCascade(t *testing.T) {
 				"not from the put", q, got)
 		}
 	}
+	// What emitted the work is said on its row: the publish is the bucket's
+	// notification, and the sends inside it are the topic's, not the bucket's
+	// (board Main: "via s3:ObjectCreated:Put" on the first hop only).
+	if !strings.Contains(body, "via s3:ObjectCreated:Put") {
+		t.Errorf("the notification's publish does not say it came from s3:ObjectCreated:Put:\n%.800s", body)
+	}
+	if n := strings.Count(body, "via s3:ObjectCreated:Put"); n != 1 {
+		t.Errorf("%d rows say they came from the bucket, want only the publish", n)
+	}
+	if !strings.Contains(body, "via sns:uploads") {
+		t.Errorf("the sends inside the publish do not say they came from the topic:\n%.800s", body)
+	}
 }

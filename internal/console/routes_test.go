@@ -118,8 +118,8 @@ func TestAnUnmatchedGETIsTheNotFoundPageAndAnUnmatchedPOSTIs405(t *testing.T) {
 // ServeMux answered a HEAD from the GET handler; chi does not unless asked.
 func TestHEADIsAnsweredByItsGET(t *testing.T) {
 	c := routerOnly(t)
-	if rec := serve(c, "HEAD", "/_console/deck"); rec.Code != 200 {
-		t.Errorf("HEAD /deck = %d, want 200", rec.Code)
+	if rec := serve(c, "HEAD", "/_console/connect"); rec.Code != 200 {
+		t.Errorf("HEAD /connect = %d, want 200", rec.Code)
 	}
 }
 

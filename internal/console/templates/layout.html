@@ -118,6 +118,39 @@ window.kvEditor=function(initial){return{
     this.representable=true;},
 };};
 
+/* dozeWire is the wire page's scope (traffic.html): the filter, the open call
+   and the paused flag. Inline for the same reason as kvEditor: Alpine evaluates
+   x-data before the deferred shell.js has run.
+
+   Opening a call pauses the feed (board Wire-Inspect: "paused · 31 new" beside
+   Resume), so the table does not move under the call being read; closing it
+   resumes, unless the reader paused on purpose. While paused the poll that
+   replaces the rows is off and a second, cheap one asks only how many calls the
+   page is missing. */
+window.dozeWire=function(){return{
+  f:"all", svc:"", svcLabel:"", menu:false, sel:null, paused:false, auto:false, fresh:0, last:0, t:null,
+  init:function(){var self=this;
+    this.$watch("sel",function(v){
+      if(v!==null){if(!self.paused)self.pause(true);}
+      else if(self.auto)self.resume();});
+    this.t=setInterval(function(){self.count();},1500);},
+  destroy:function(){clearInterval(this.t);},
+  region:function(){return document.getElementById("traffic-feed");},
+  pause:function(auto){var r=this.region();this.paused=true;this.auto=!!auto;this.fresh=0;
+    if(r){this.last=parseInt(r.getAttribute("data-last")||"0",10)||0;r.setAttribute("data-live-paused","1");}},
+  resume:function(){var r=this.region();this.paused=false;this.auto=false;this.fresh=0;
+    if(r)r.removeAttribute("data-live-paused");
+    if(window.dozePollNow)window.dozePollNow("traffic-feed");},
+  count:function(){if(!this.paused||document.hidden)return;var r=this.region(),self=this;
+    var u=r&&r.getAttribute("data-live");if(!u)return;
+    fetch(u+"?after="+this.last,{cache:"no-store"}).then(function(x){return x.text();})
+      .then(function(t){self.fresh=parseInt(t,10)||0;}).catch(function(){});},
+  pick:function(k,l){this.svc=k;this.svcLabel=l;this.menu=false;},
+  pickRow:function(seq){this.sel=(this.sel===seq?null:seq);},
+  shown:function(el){var d=el.dataset;if(this.svc&&d.svc!==this.svc)return false;
+    if(this.f==="errors")return d.err==="1";if(this.f==="refused")return d.refused==="1";return true;}
+};};
+
 /* dozeDur humanizes a seconds field ("345600" → "= 4 days") for the live echo
    under duration inputs. Inline, not in deferred shell.js — Alpine evaluates
    x-text before deferred scripts run (same race as the filter store above). */
@@ -185,6 +218,9 @@ return p.join(" ");};</script>
     <button class="tb-palette" id="palette-open" aria-label="Jump to a resource, or do something"><span class="tb-jump">Jump to a resource, or do something…</span><span class="tb-jump-short">Jump or act…</span><span class="kbd">⌘K</span></button>
     <div class="tb-spacer"></div>
     <div class="tb-right">
+      {{/* Shown instead of the three below while the console cannot reach
+           doze-aws (board Bad-Down); shell.js sets data-down on <html>. */}}
+      <span class="pill bad down-pill"><span class="dot warn" aria-hidden="true"></span><span class="mono">not answering</span></span>
       <span class="pill mono"><span class="live"></span>{{if .Endpoint}}<span><span class="ep-host">{{.EndpointHost}}</span>{{.EndpointPort}}</span>{{else}}127.0.0.1:4566{{end}}</span>
       {{/* The region is a static chip and stays one. No board draws a selector,
            and a selector would be a control that cannot work: the region this
@@ -205,6 +241,17 @@ return p.join(" ");};</script>
     </div>
   </header>
 
+  {{/* The console's own poll failing (board Bad-Down), drawn by shell.js: shown
+       when a request gets no answer at all, cleared when one does. The page
+       under it is the last thing the console heard and is inert until then. */}}
+  <div class="down-banner" id="down-banner" role="alert" hidden>
+    <div class="down-t">
+      <b>The console cannot reach doze-aws on {{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</b>
+      <span class="note">What is on screen is the last thing it heard. Start doze-aws again and this page picks up on its next poll.</span>
+    </div>
+    <button type="button" class="btn btn-outline" id="down-retry">Try now</button>
+  </div>
+
   <div class="body">
     <nav class="rail" aria-label="Services" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML">
       {{/* Grouped by what you are doing, not by AWS's product taxonomy.
@@ -219,7 +266,7 @@ return p.join(" ");};</script>
            resources, and Connect is the one page a new user needs — it was filed
            under Observe, which is where you look at what happened, not where you
            learn how to point an SDK at it. */}}
-      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity" "Plain" true}}
+      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity" "Plain" true "Note" .WireNote}}
       {{template "ri" dict "P" .Prefix "URL" "/map" "On" (eq .Page "map") "Name" "The map" "Glyph" "map" "Plain" true}}
       {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal" "Plain" true}}
       <div class="rgroup">Storage and data</div>
@@ -348,6 +395,10 @@ return p.join(" ");};</script>
        and an ink tile with a glyph when the rail is marks only. */}}
   <span class="ri-ic">{{if .Svc}}{{awsIcon .Svc}}{{else}}{{icon .Glyph}}{{end}}</span>
   <span class="ri-nm">{{.Name}}</span>
+  {{/* "live" or "quiet" beside The wire (boards Main and Wire-Empty): whether a
+       call started in the last minute. shell.js keeps it current from the same
+       poll as the counts. */}}
+  {{with .Note}}<span class="ri-note" data-wire-note>{{.}}</span>{{end}}
   {{/* The count is server-rendered AND out-of-band. Rendered, so it is right
        before the first paint rather than blank until the 5s poll lands. Out of
        band, because the rail lives outside #workspace and every navigation and

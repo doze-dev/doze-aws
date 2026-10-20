@@ -98,6 +98,12 @@
   --text-base:  13px; /* body AND controls */
   --text-md:    14px; /* object titles, dialog and section headings (.h2) */
   --text-xl:    18px; /* page and form-page title (.h1) */
+  /* The first-run wire's heading and its line under it (board Wire-Empty draws
+     them inline, 28/34 and 15/22). They are the two sizes the design uses
+     once and only there, so they are tokens of their own and not steps of the
+     ladder; TestFirstRunSizesAreTheBoards holds them to the board. */
+  --text-first: 28px;
+  --text-lede:  15px;
   --track-caps: .09em; /* the design's caption tracking */
 
   /* ---------- weight ----------
@@ -654,12 +660,6 @@ tr:hover .row-actions { opacity: 1; }
   background: color-mix(in srgb, var(--svc-mark, var(--muted)) 7.0%, transparent);
 }
 
-/* The wire paints a service NAME, not a 16px mark, in both places below. The
-   icon tier clears 3:1, which is right for a glyph and a hairline and is not
-   enough for 11.5px bold text — this file says so at the top and these two were
-   the sites breaking it. */
-.tr-row .svcb { color: var(--svc-ink, var(--muted-foreground)); }
-.td-title b   { color: var(--svc-ink, var(--foreground)); }
 .msg-line .msum { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msg-detail { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
 .msg-id { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted-foreground); margin-bottom: 6px; }
@@ -1340,35 +1340,6 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .diffbox .dl.ctx { color: var(--muted-foreground); }
 
 
-/* traffic */
-.tr-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: var(--mono); cursor: pointer; }
-.tr-row:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
-.tr-row .ts { color: var(--muted-foreground); flex: 0 0 90px; }
-.tr-row .svcb { flex: 0 0 64px; font-weight: 700; }
-.tr-row .act { flex: 0 0 170px; font-weight: 500; }
-.tr-row .tr-via { color: var(--muted-foreground); font-size: 11px; margin-left: 6px; }
-.tr-row .res-link { color: inherit; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
-.tr-row .res-link:hover { color: var(--foreground); border-bottom-color: currentColor; }
-.tr-row .res { flex: 1; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tr-row .st { flex: 0 0 auto; font-weight: 700; }
-.tr-row .st.ok { color: var(--success); } .tr-row .st.err { color: var(--destructive); }
-.tr-row .dur { flex: 0 0 52px; text-align: right; color: var(--muted-foreground); }
-.tr-detail { padding: 10px 14px; background: color-mix(in srgb, var(--muted) 40%, transparent); border-bottom: 1px solid var(--border); }
-.tr-detail pre { margin: 6px 0 0; font-size: 11px; line-height: 1.6; font-family: var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
-/* traffic inspector: rows | drawer split, drawer opens on row click */
-.tr-wrap { display: grid; grid-template-columns: 1fr; gap: 0; align-items: start; }
-.tr-wrap.open { grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); }
-.tr-row.sel { background: color-mix(in srgb, var(--accent) 7.0%, transparent); box-shadow: inset 2px 0 0 var(--accent); }
-.t-drawer { border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--muted) 30%, transparent); margin-left: 12px; position: sticky; top: 0; max-height: calc(100vh - 190px); overflow-y: auto; }
-.td-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.td-h .td-title { font-size: 13px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.td-h .copy-btn { margin-left: auto; flex: none; }
-.td-meta { padding: 6px 14px; font-size: 12px; font-family: var(--mono); color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
-.td-meta .ok { color: var(--success); font-weight: 700; } .td-meta .err { color: var(--destructive); font-weight: 700; }
-.td-sec { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.td-sec:last-child { border-bottom: 0; }
-.td-k { font-size: 10px; font-weight: 600; letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 6px; overflow-wrap: anywhere; }
-.td-sec pre { margin: 0; font-size: 11px; line-height: 1.6; font-family: var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
 
 /* hidden attribute must beat .overlay display:grid */
 [hidden]{display:none !important}
@@ -1509,8 +1480,6 @@ a.lo-card:hover { border-color: var(--accent); }
 .pub-receipt:not(.warn) .pr-h { color: var(--success); }
 .pub-receipt .pr-row { margin-top: 4px; font-family: var(--mono); font-size: 12px; }
 .pub-receipt .pr-row a { color: var(--accent); }
-.tr-row .tr-curl { opacity: 0; flex: none; }
-.tr-row:hover .tr-curl { opacity: 1; }
 
 /* Table footers (object counts, totals) under S3/DDB listings. */
 .tbl-foot { padding: 8px 2px 0; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
@@ -1736,23 +1705,6 @@ a.lo-card:hover { border-color: var(--accent); }
 .pill.bad { background: var(--badbg); border-color: transparent; }
 .pill.bad .live { background: var(--bad); }
 
-/* ---------- the wire: why a call was refused ---------- */
-/* The status number says a call failed; this says what failed. It sits in the
-   row because scanning for "which call broke" and then "why" should not cost
-   two interactions. */
-.tr-why {
-  font-size: 11px; color: var(--destructive); font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
-}
-.td-refused, .td-refusedhere { border-left: 2px solid var(--refused); background: color-mix(in srgb, var(--refused) 6%, transparent); }
-.td-refused .td-k, .td-refusedhere .td-k { color: var(--refused); }
-.td-denied { border-left: 2px solid var(--warning); background: color-mix(in srgb, var(--warning) 6%, transparent); }
-.td-denied .td-k { color: var(--warning); }
-.td-error, .td-threw { border-left: 2px solid var(--destructive); background: color-mix(in srgb, var(--destructive) 6%, transparent); }
-.td-error .td-k, .td-threw .td-k { color: var(--destructive); }
-.td-notbuilt { border-left: 2px dashed var(--border); }
-.td-notbuilt .td-k { color: var(--muted-foreground); }
-.td-why { margin: 0 0 6px; padding: 0 14px; font-size: 12px; line-height: 1.5; }
 
 /* ---------- fact strip ---------- */
 /* Configuration that must survive an htmx swap. It used to live inside the
@@ -1805,13 +1757,6 @@ a.lo-card:hover { border-color: var(--accent); }
 .preview.txt { display: block; place-items: initial; min-height: 0; max-height: 260px; overflow: auto; background: var(--muted); }
 .obj-pre { margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.55; font-family: var(--mono); white-space: pre-wrap; word-break: break-word; }
 
-/* ---------- the wire: caused work ---------- */
-/* Internal work the gateway never saw — a bucket notification, a topic
-   fan-out — nested under the call that caused it. Quieter than a real request
-   because it is a consequence, not something anyone asked for directly. */
-.tr-row.tr-child { background: color-mix(in srgb, var(--muted) 45%, transparent); }
-.tr-row.tr-child .act { color: var(--muted-foreground); }
-.tr-branch { color: var(--muted-foreground); margin-right: 4px; opacity: .7; }
 
 
 /* The wire tells three failures apart, because doze-aws can. A REFUSAL is an
@@ -1819,53 +1764,14 @@ a.lo-card:hover { border-color: var(--accent); }
    statement deciding; an ERROR is the emulator itself breaking. Every cloud
    console paints all three the same red, which is why "it went red" tells you
    nothing about where to look. */
-.tr-row.refused, .tr-row.refusedhere { background: color-mix(in srgb, var(--refused) 9%, var(--card)); }
-.tr-row.denied  { background: color-mix(in srgb, var(--warning) 9%, var(--card)); }
-.tr-row.error, .tr-row.threw { background: color-mix(in srgb, var(--destructive) 9%, var(--card)); }
 .st.served  { color: var(--success); }
 .st.threw   { color: var(--destructive); }
 .st.refused, .st.refusedhere { color: var(--refused); }
 .st.denied  { color: var(--warning); }
 .st.error   { color: var(--destructive); }
 .st.notbuilt { color: var(--muted-foreground); }
-.tr-row.refused .tr-why, .tr-row.refusedhere .tr-why { color: var(--refused); }
-.tr-row.denied  .tr-why { color: var(--warning); }
-.tr-row.error   .tr-why, .tr-row.threw .tr-why { color: var(--destructive); }
-.tr-row.notbuilt .tr-why { color: var(--muted-foreground); }
 
 
-/* ---------- the deck ---------- */
-#deck { border-bottom: 1px solid var(--border); background: var(--card); }
-.deck-line {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 8px 20px; font-size: 12px;
-}
-.dk-att { display: inline-flex; align-items: center; gap: 6px; color: var(--warning); text-decoration: none; font-weight: 500; }
-.dk-att:hover { text-decoration: underline; }
-.dk-att .ic { width: 13px; height: 13px; }
-/* Unwired is muted, never a warning. An unwired bucket on a fresh stack is
-   normal; painting it amber would cry wolf on day one. */
-.dk-unwired { color: var(--muted-foreground); cursor: help; border-bottom: 1px dotted var(--border); }
-.dk-quiet { color: var(--muted-foreground); }
-.dk-rate { margin-left: auto; color: var(--muted-foreground); font-family: var(--mono); font-size: 11px; }
-
-.deck-board { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 20px 10px; }
-.dk-svc {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 5px 9px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--background); text-decoration: none; color: var(--foreground);
-}
-.dk-svc:hover { border-color: var(--ring); }
-.dk-svc.warn { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 6%, transparent); }
-.dk-b { display: flex; flex-direction: column; line-height: 1.25; }
-.dk-l { font-size: 12px; font-weight: 500; }
-.dk-s { font-size: 11px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
-
-.deck-first { padding: 20px; max-width: 70ch; }
-.deck-first b { display: block; font-size: 14px; margin-bottom: 6px; }
-.deck-first p { margin: 0 0 12px; color: var(--muted-foreground); font-size: 13px; line-height: 1.6; }
-.deck-first-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
-.deck-first-acts a:not(.btn) { color: var(--foreground); }
 
 /* Visually hidden, still announced. */
 .sr-only {
@@ -1883,15 +1789,15 @@ a.lo-card:hover { border-color: var(--accent); }
    hard to find — they were unreachable. Revealing on :focus-within covers the
    keyboard; the hover:none query covers touch, where they should simply always
    show. Only .tag-v had this right. */
-.row-actions:focus-within, .tr-row:focus-within .tr-curl,
+.row-actions:focus-within,
 .kv-copy:focus-within .copy-btn, .sub-row:focus-within .copy-btn,
 .sub-row:focus-within .icon-btn, .msg:focus-within .msg-del,
-.row-actions .btn:focus-visible, .tr-curl:focus-visible,
+.row-actions .btn:focus-visible,
 .kv-copy .copy-btn:focus-visible, .sub-row .copy-btn:focus-visible,
 .sub-row .icon-btn:focus-visible, .msg-del:focus-visible { opacity: 1; }
 
 @media (hover: none) {
-  .row-actions, .tr-curl, .kv-copy .copy-btn,
+  .row-actions, .kv-copy .copy-btn,
   .sub-row .copy-btn, .sub-row .icon-btn, .msg-del, .tag-v .icon-btn { opacity: 1; }
 }
 
@@ -1983,8 +1889,6 @@ a.lo-card:hover { border-color: var(--accent); }
    blank is not where the filter box is. */
 .lp-nomatch b { display: block; font-style: normal; color: var(--foreground); margin-bottom: 6px; }
 .lp-nomatch .lp-empty-cta { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
-.dk-when { color: var(--muted-foreground); font-family: var(--mono); font-size: 11px; }
-.dk-refresh { flex: none; }
 
 /* ---------- SQS Consume tab ---------- */
 /* The receive form's controls sit on one row and the button aligns to the
@@ -2898,14 +2802,198 @@ a.map-chip { color: var(--foreground); }
 .q-create .life-steps li { display: flex; gap: 8px; margin: 0; }
 .q-create .life-foot { margin: 0; }
 /* stage-0 audit fixes */
-/* The inspector's status chip takes the colour of the call's state (.st.refused,
-   .st.denied, ...), not red for any status of 400 or more. */
-.td-meta .st { font-weight: 700; }
-/* The state said in a word on a wire row, before the service's own code. */
-.tr-why .tr-state { margin-right: 6px; }
-.tr-why .tr-code { font-weight: 500; }
-/* Beside the open inspector a row is half as wide. The state word stays and the
-   service's code, which the inspector shows in full, gives its room back to
-   the resource the row names. */
-.tr-wrap.open .tr-why .tr-state { margin-right: 0; }
-.tr-wrap.open .tr-why .tr-code { display: none; }
+
+/* ---------- the wire (boards Main, Wire-Inspect, Wire-Refused, Wire-Empty) ----------
+   One page in two columns: the calls, and beside them either "Needs a look" or
+   the call that is open. The region the live poll replaces (#traffic-feed) is
+   display: contents, so its two children are the page's two columns and the
+   inspector, which the poll never touches, can be the second one. Rows are a
+   grid whose columns are the board's (96 / 236 / 1fr / 110 / 56 / 110, and the
+   Time lane gives way to the inspector). */
+.wire-page { padding: 0; overflow: hidden; }
+.wire { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: stretch; }
+.wire.open { grid-template-columns: minmax(0, 1fr) 520px; }
+.wire-live { display: contents; }
+.wire-main { min-width: 0; min-height: 0; overflow-y: auto; padding: 16px 20px 14px; display: flex; flex-direction: column; gap: 12px; }
+.wire-aside { min-height: 0; overflow-y: auto; padding: 16px 20px 14px 0; display: flex; flex-direction: column; gap: 12px; }
+.wire-aside-off { padding: 16px 20px; max-width: 360px; }
+.wire-off-link { margin-top: 10px; }
+.wire-page .m { font-family: var(--mono); font-size: 12px; }
+.wire-page .b { font-weight: 600; }
+.wire-page .ok { color: var(--ok); }
+.wire-page .bad { color: var(--bad); }
+.wire-page .deny { color: var(--deny); }
+.wire-page .warn { color: var(--warn); }
+.wire-page .ra { text-align: right; }
+.wire-page .el { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wire-page .note { font-size: 12px; color: var(--mut); }
+.wire-page .btn { height: 28px; padding: 0 11px; }
+.wire-page .btn-sm { height: 24px; padding: 0 8px; font-size: 12px; }
+.wire-page .pill.warn { background: var(--warnbg); border-color: transparent; }
+.wire-page .pill.ok { background: var(--okbg); border-color: transparent; }
+.wire-page .pill .live { background: currentColor; }
+.wire-page .pill.ok .live { background: var(--ok); }
+.wire-page .pill.warn .live { background: var(--warn); }
+
+/* the header */
+.wire-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.wire-t { min-width: 0; }
+.wire-t .det-sub { font-size: 13px; margin-top: 0; }
+.wire-acts { display: flex; align-items: center; gap: 8px; flex: none; }
+.wire-f { display: flex; align-items: center; gap: 8px; }
+.wire-grow { flex: 1; }
+.wire-f .seg { gap: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.wire-f .seg button { height: 24px; padding: 0 9px; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--mut); font-size: 12px; font-weight: 400; cursor: pointer; }
+.wire-f .seg button:last-child { border-right: 0; }
+.wire-f .seg button.on { background: var(--ink); color: var(--card); }
+.wire-svc { position: relative; }
+.wire-menu { position: absolute; z-index: 20; top: 28px; left: 0; min-width: 200px; max-height: 320px; overflow-y: auto; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; }
+.wire-menu button { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 28px; padding: 0 8px; border: 0; border-radius: 3px; background: transparent; color: var(--ink); font-size: 13px; cursor: pointer; text-align: left; }
+.wire-menu button:hover { background: var(--sel); }
+.wire-menu button.on { font-weight: 600; }
+.wire-menu .m { color: var(--mut); }
+
+/* the table */
+.wire-tbl { --c: 96px 236px minmax(0, 1fr) 110px 56px 110px; flex: 1 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; align-content: start; display: grid; grid-auto-rows: min-content; }
+.wire.open .wire-tbl { --c: 96px 220px minmax(0, 1fr) 100px 52px; }
+.wire.open .lane, .wire.open .tr-lane-h { display: none; }
+.tr-head, .tr-row { display: grid; grid-template-columns: var(--c); column-gap: 14px; align-items: center; min-height: 28px; padding: 0 12px; border-bottom: 1px solid var(--line2); }
+.tr-head { min-height: 26px; background: var(--well); color: var(--mut); font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: var(--track-caps); text-transform: uppercase; border-bottom-color: var(--line); }
+.tr-head > *, .tr-row > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-row { cursor: pointer; font-size: 12px; }
+.tr-row:hover, .tr-row.cursor { background: var(--well); }
+.tr-row.sel { background: var(--sel); box-shadow: inset 2px 0 0 var(--ink); }
+.tr-row.sel.refused, .tr-row.sel.refusedhere { box-shadow: inset 2px 0 0 var(--deny); }
+.tr-row .ts, .tr-row .dur, .tr-row .res-nm, .tr-row .res-link { font-family: var(--mono); font-size: 12px; }
+.tr-row .dur { text-align: right; }
+.tr-row .dur.wait { color: var(--mut); }
+.tr-call { display: flex; align-items: center; gap: 6px; padding-left: calc(var(--depth, 0) * 14px); }
+.tr-call .act { min-width: 0; padding: 0; border: 0; background: none; color: var(--ink); font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; }
+.tr-child .tr-call .act { color: var(--mut); font-weight: 400; }
+.tr-branch { color: var(--line); font-family: var(--mono); }
+.wire-ic { flex: none; width: 14px; height: 14px; border-radius: 3px; }
+.wire-mk { display: inline-flex; align-items: center; justify-content: center; background: var(--mut); color: var(--card); font-family: var(--mono); font-size: 10px; font-weight: 700; line-height: 1; }
+.svcb { display: inline-flex; flex: none; }
+.tr-row .res { display: flex; align-items: center; gap: 8px; }
+.tr-row .res-link { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--mut) 60%, transparent); text-underline-offset: 2px; }
+.tr-row .res-link:hover { text-decoration-color: currentColor; }
+.tr-row .res-nm { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tr-child .res-nm, .tr-child .res-link { color: var(--mut); }
+.tr-via, .tr-why-t { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--mut); }
+.tr-why-t { flex: 1 1 0; }
+.tr-ans .st { font-family: var(--mono); font-size: 12px; font-weight: 400; }
+.wire-page .st:not(.served) { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border: 1px solid transparent; border-radius: 3px; font-family: var(--sans); font-size: 12px; font-weight: 400; }
+.wire-page .st.refused, .wire-page .st.refusedhere { background: var(--denybg); }
+.wire-page .st.denied { background: var(--warnbg); }
+.wire-page .st.error, .wire-page .st.threw { background: var(--badbg); }
+.wire-page .st.notbuilt { background: var(--card); border: 1px dashed var(--line); }
+.lane { position: relative; height: 8px; background: var(--line2); border-radius: 2px; }
+.lane > span { position: absolute; top: 0; height: 8px; left: calc(var(--l, 0) * 1%); width: calc(var(--w, 2) * 1%); border-radius: 2px; background: var(--ink); }
+.lane > .kid { background: var(--mut); }
+.lane > .bad { background: var(--bad); }
+.wire-none { padding: 24px 16px; color: var(--mut); }
+.wire-none p { margin: 0; }
+.wire-refnote { margin: 0; }
+
+/* beside the table: what needs a look, and the window in figures */
+.wire-cap { padding-top: 6px; color: var(--mut); font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: var(--track-caps); text-transform: uppercase; }
+.wire-aside .wire-cap ~ .wire-cap { padding-top: 8px; }
+.wire-callout { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--ink); text-decoration: none; }
+.wire-callout.warn { background: var(--warnbg); border-color: transparent; }
+.wire-callout.bad { background: var(--badbg); border-color: transparent; }
+.wire-callout.deny { background: var(--denybg); border-color: transparent; }
+.wire-callout.ok { background: var(--okbg); border-color: transparent; }
+a.wire-callout:hover { text-decoration: underline; }
+.wire-card { padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.wire-kv { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 5px; }
+.wire-kv > :nth-child(odd) { color: var(--mut); }
+.wire-well { padding: 12px 14px; background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius); display: flex; flex-direction: column; gap: 6px; }
+
+/* the inspector */
+.t-drawer { min-height: 0; overflow-y: auto; background: var(--card); border-left: 1px solid var(--line); }
+.td { display: flex; flex-direction: column; min-height: 100%; }
+.td-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 0; }
+.td-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.td-svc { display: inline-flex; flex: none; }
+.td-title { font-size: 14px; font-weight: 600; line-height: 20px; }
+.td-x { color: var(--mut); }
+.td-meta { padding: 4px 16px 10px; border-bottom: 1px solid var(--line2); color: var(--mut); font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.td-id .st { font-family: var(--mono); }
+.td-id .st.served { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 3px; background: var(--okbg); }
+.td-why-line { margin: 0; padding: 8px 16px 0; }
+.td-tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.td-tabs button { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--mut); font-size: 13px; cursor: pointer; }
+.td-tabs button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+.td-body { flex: 1; min-height: 0; padding: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
+.td-pane { display: flex; flex-direction: column; gap: 14px; }
+.td-kv { grid-template-columns: 80px minmax(0, 1fr); }
+.td-kv > :nth-child(even) { min-width: 0; }
+.td-kv a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.td-s { display: flex; flex-direction: column; gap: 6px; }
+.td-sh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.t-drawer .code, .wire-first .code { margin: 0; padding: 10px 12px; background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; line-height: 19px; white-space: pre; overflow-x: auto; }
+.t-drawer .code .s { color: var(--ok); }
+.t-drawer .code .kw { color: var(--deny); }
+.t-drawer .code .n { color: var(--warn); }
+.td-tail { padding: 6px 0 0; border: 0; background: transparent; }
+.td-fail { gap: 14px; }
+.td-callout { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius); background: var(--denybg); }
+.td-callout.td-refused, .td-callout.td-refusedhere { background: var(--denybg); }
+.td-callout.td-denied { background: var(--warnbg); }
+.td-callout.td-error, .td-callout.td-threw { background: var(--badbg); }
+.td-callout.td-notbuilt { background: var(--well); border: 1px dashed var(--line); }
+.td-res, .td-cah, .td-ledh { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.td-resl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.td-resl a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.td-caused { gap: 4px; }
+.td-led { gap: 4px; }
+.td-grow { flex: 1; }
+.td-foot { margin: 0; }
+.td-gone { margin: 0; padding: 10px 16px; }
+.td-actions { display: flex; gap: 8px; }
+.linkish { padding: 0; border: 0; background: none; color: inherit; font-size: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+
+/* the first run */
+.wire-first { grid-column: 1 / -1; min-width: 0; overflow-y: auto; padding: 56px 72px 0; display: flex; flex-direction: column; gap: 28px; }
+.wf-h h1 { margin: 0; font-size: var(--text-first); line-height: 34px; font-weight: 600; }
+.wf-lede { margin: 6px 0 0; max-width: 640px; color: var(--mut); font-size: var(--text-lede); line-height: 22px; }
+.wf-cards { display: flex; gap: 20px; align-items: stretch; }
+.wf-card { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.wf-ch { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wf-ch .h2 { font-size: var(--text-md); font-weight: 600; line-height: 20px; }
+.wf-acts { display: flex; flex-direction: column; gap: 6px; }
+.wf-acts .btn { justify-content: flex-start; text-decoration: none; }
+.wire-waiting { max-width: 720px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius); }
+.wire-waiting .live { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
+.wire-waiting .m { color: var(--ink); }
+@media (max-width: 1100px) {
+  /* At 1024 the rail is marks (56) and the room is shared between the table and
+     what is beside it, so the Time lane goes first and the inspector is the
+     inspector is 400 and not 520: the table's On column is the one that says
+     what a call touched, and it is the one that must stay readable. */
+  .wire { grid-template-columns: minmax(0, 1fr) 300px; }
+  .wire.open { grid-template-columns: minmax(0, 1fr) 400px; }
+  .wire-tbl { --c: 88px 150px minmax(0, 1fr) 100px 48px; }
+  .wire.open .wire-tbl { --c: 80px 130px minmax(0, 1fr) 88px 44px; }
+  .tr-head, .tr-row { column-gap: 8px; }
+  .lane, .tr-lane-h { display: none; }
+  .wire-first { padding: 32px 28px 0; }
+  .wf-cards { flex-wrap: wrap; }
+}
+
+/* the rail's word beside The wire */
+.rail .ri .ri-note { flex: none; margin-left: auto; color: var(--mut); font-family: var(--mono); font-size: 11px; line-height: 1; }
+:root[data-rail="slim"] .rail .ri-note { display: none; }
+
+/* the console cannot reach doze-aws (board Bad-Down): a banner under the top
+   bar, the top bar's own words, the key bar's "last heard", and the page under
+   it as the last thing heard, dimmed and inert (shell.js sets data-down). */
+.down-pill { display: none; background: var(--badbg); border-color: transparent; color: var(--bad); }
+.down-pill .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+html[data-down] .tb-right > :not(.down-pill) { display: none; }
+html[data-down] .tb-right > .down-pill { display: inline-flex; }
+.down-banner { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; background: var(--badbg); border-bottom: 1px solid var(--line); }
+.down-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.down-t b { font-weight: 600; }
+.down-t .note { font-size: 12px; color: var(--mut); }
+html[data-down] #workspace { opacity: .6; }

@@ -326,6 +326,7 @@ type Alarm struct {
 	State       string // OK | ALARM | INSUFFICIENT_DATA
 	StateReason string
 	Updated     string
+	UpdatedAt   time.Time // the instant behind Updated, for "since 14:31"
 	Namespace   string
 	MetricName  string
 	Dimensions  map[string]string
@@ -401,6 +402,7 @@ func (w cwAlarmWire) toAlarm() Alarm {
 	}
 	if !w.StateUpdatedTimestamp.IsZero() {
 		a.Updated = stamp(w.StateUpdatedTimestamp)
+		a.UpdatedAt = w.StateUpdatedTimestamp
 	}
 	if len(w.Dimensions) > 0 {
 		a.Dimensions = map[string]string{}

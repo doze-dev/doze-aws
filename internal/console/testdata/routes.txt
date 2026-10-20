@@ -28,7 +28,6 @@ GET /cw/metric
 GET /ddb
 GET /ddb/create
 GET /ddb/{table}
-GET /deck
 GET /eb
 GET /eb/create-bus
 GET /eb/destinations

@@ -25,6 +25,7 @@ const (
 	layoutClock       = "15:04:05"
 	layoutClockMillis = "15:04:05.000"
 	layoutClockTenths = "15:04:05.0"
+	layoutClockMinute = "15:04"
 )
 
 // stamp is a date and a time to the second: a row's "created" column.
@@ -49,6 +50,9 @@ func clockMillis(t time.Time) string { return t.Local().Format(layoutClockMillis
 
 // clockTenths is a time of day to a tenth of a second, for the tightest column.
 func clockTenths(t time.Time) string { return t.Local().Format(layoutClockTenths) }
+
+// clockMinute is a time of day to the minute: "since 14:31".
+func clockMinute(t time.Time) string { return t.Local().Format(layoutClockMinute) }
 
 // zoned is what a displayed time says on hover: the same instant with its zone
 // named and its offset, and in UTC. The page shows the local wall clock because

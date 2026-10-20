@@ -1,118 +1,278 @@
+{{/* The wire (boards Main, Wire-Inspect, Wire-Refused, Wire-Empty).
+
+     One page with two states. A stack nothing has called, and nothing exists in,
+     gets the first-run page; everything else gets the wire. Both are drawn
+     inside #traffic-feed, the one region the live poll replaces, so the first
+     call ends the first-run page without a reload.
+
+     The page is an Alpine scope (dozeWire, layout.html) that the poll never
+     touches: the filter, the open call and the paused flag live there. What the
+     poll replaces is the region, and the region holds everything that changes
+     with the ring: the header's rate, the rows, and the panel beside them. The
+     inspector sits beside the region, not in it, so a poll cannot close it. */}}
 {{define "traffic"}}{{template "shell_top" .}}
-  <section class="detail" style="border-left:0">
-    <div class="det-h">
-      <div class="det-title" role="heading" aria-level="1">The wire
-        <div class="acts"><span class="chip"><span class="live"></span> live</span></div>
+  <section class="detail wire-page">
+    {{if .Enabled}}
+      {{template "wire_page" .Wire}}
+    {{else}}
+      {{/* Capture off used to be one grey sentence and a dead end. The rail and
+           every other page still work; this only has to explain itself. */}}
+      <div class="empty"><span class="ic-lg">{{icon "activity"}}</span>
+        <b>Traffic capture is off in this topology.</b>
+        The console is not in the external request path here, so it cannot see your app's calls. Everything else on this page still works.
+        <div class="wire-off-link"><a href="{{.Prefix}}/connect">How to connect →</a></div>
       </div>
-      <div class="det-sub">Every AWS API call your app makes against this endpoint, newest first. The console's own requests are excluded, so this is your app talking — nothing else.</div>
-    </div>
-    {{template "deck" .Deck}}
-    <div class="det-b">
-      {{if .Enabled}}{{template "traffic_feed" .}}{{else}}
-        {{/* Capture off used to be one grey sentence and a dead end. The deck
-             above still has the board and the attention line — they come from
-             list calls, not the ring — so this only has to explain itself. */}}
-        <div class="empty"><span class="ic-lg">{{icon "activity"}}</span>
-          <b>Traffic capture is off in this topology.</b>
-          The console is not in the external request path here, so it cannot see your app's calls. Everything else on this page still works.
-          <div style="margin-top:10px"><a href="{{.Prefix}}/connect">How to connect →</a></div>
-        </div>
-      {{end}}
-    </div>
+      {{/* What needs a look does not come from the ring, so it is still true here. */}}
+      <aside class="wire-aside wire-aside-off" aria-label="Needs a look">{{template "wire_needs" .Wire}}</aside>
+    {{end}}
   </section>
 {{template "shell_bottom" .}}{{end}}
 
-{{/* The filter/selection state lives on this OUTER wrapper, which the live
-     poll never replaces — only #traffic-feed (the rows) morphs each tick, so
-     the filters, pause state and open inspector survive incoming traffic. */}}
-{{define "traffic_feed"}}
-<div x-data="{errOnly:false, svc:'', sel:null, paused:false}">
-  <div class="chips" style="margin-bottom:10px">
-    <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
-    <select aria-label="Filter by service" class="chip" title="Filter by service" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option>{{range list "s3" "ddb" "sqs" "sns" "eb" "kinesis" "lambda" "apigw" "sfn" "logs" "cw" "kms" "sm" "ssm" "iam" "cfn" "sts"}}<option>{{.}}</option>{{end}}</select>
-    <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
-            @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
-    <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-confirm="Clear the feed? Calls already recorded are dropped from this view." hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
-  </div>
-  <div class="tr-wrap" :class="sel!==null && 'open'">
-    {{template "traffic_rows" .}}
-    <aside class="t-drawer" x-show="sel!==null" x-cloak aria-label="Request detail"><div id="t-drawer-inner"></div></aside>
-  </div>
+{{define "wire_page"}}
+<div class="wire tr-wrap" x-data="dozeWire()" :class="{open: sel!==null, paused: paused}">
+  {{template "traffic_rows" dict "Wire" . "Hash" .Hash}}
+  <aside class="t-drawer" x-show="sel!==null" x-cloak aria-label="The selected call"><div id="t-drawer-inner"></div></aside>
 </div>
 {{end}}
 
 {{define "traffic_rows"}}
+{{$w := .Wire}}
 {{/* The keys this page answers to (boards Main, Wire-Empty): over the calls
      when there are some, only the palette's when there are none. The inspector
-     declares its own, below. */}}
-<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}" data-keys="{{if .Entries}}j k=move|⏎=open the call|/=filter|{{end}}⌘K=jump or act">
-  <div class="table-wrap" style="overflow:hidden">
-  {{if .Entries}}
-  {{range .Entries}}
-  <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
-    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-seq="{{.Seq}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
-         hx-get="{{$.Prefix}}/traffic/entry?seq={{urlquery .Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
-         @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
-      <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
-      <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
-      <button type="button" class="act rowopen" aria-label="Inspect {{.Action}} {{.Resource}}">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</button>
-      {{/* The three hx-* attributes here are load-bearing. The row sets
-           hx-target="#t-drawer-inner" and hx-select="", and htmx
-           inheritance hands both to any link inside it — so a boosted click
-           would swap the whole page into the 380px inspector drawer.
-           @click.stop keeps the row's own drawer toggle from firing too. */}}
-      <span class="res" title="{{.Resource}}">{{if .Ref.Path}}<a class="res-link"
-           href="{{$.Prefix}}{{.Ref.Path}}"
-           hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML"
-           @click.stop>{{.Resource}}</a>{{else}}{{.Resource}}{{end}}</span>
-      <span class="st {{.State}}">{{.Status}}</span>
-      <span class="tr-why">{{with .StateWord}}<span class="tr-state">{{.}}</span>{{end}}{{with .Refused}}<span class="tr-code" title="{{.Message}}">{{.Code}}</span>{{end}}</span>
-      <span class="dur">{{.Millis}}ms</span>
-      <button class="copy-btn tr-curl" data-copy="{{.Curl}}" title="Copy as curl — replay this call (secrets stay masked)" @click.stop>{{icon "copy"}}</button>
+     declares its own. */}}
+<div id="traffic-feed" class="wire-live" data-live="{{$w.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}" data-last="{{$w.LastSeq}}">
+{{if $w.FirstRun}}{{template "wire_first" $w}}{{else}}
+  <div class="wire-main" data-keys="{{if $w.Rows}}j k=move|⏎=open the call|/=filter|{{end}}⌘K=jump or act">
+    <div class="wire-h">
+      <div class="wire-t">
+        <div class="det-title" role="heading" aria-level="1">The wire</div>
+        <div class="det-sub" x-show="sel===null">Every AWS call your app made against this endpoint, newest first. The console's own calls are left out.</div>
+      </div>
+      <div class="wire-acts">
+        {{if $w.Stats.Rate}}<span class="pill ok" x-show="!paused"><span class="live"></span>live · {{$w.Stats.Rate}} a minute</span>{{else}}<span class="pill" x-show="!paused">quiet · nothing in the last minute</span>{{end}}
+        <span class="pill warn" x-show="paused" x-cloak aria-live="polite"><span class="live"></span>paused · <span x-text="fresh">0</span>&nbsp;new</span>
+        <button type="button" class="btn btn-outline" x-show="!paused" @click="pause(false)">Pause</button>
+        <button type="button" class="btn btn-outline" x-show="paused" x-cloak @click="resume()">Resume</button>
+        <button type="button" class="btn btn-outline" hx-post="{{$w.Prefix}}/traffic/clear" hx-confirm="Clear the feed? Calls already recorded are dropped from this view." hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null; paused=false; auto=false; fresh=0">Clear</button>
+      </div>
     </div>
+    <div class="wire-f">
+      <div class="seg" role="group" aria-label="Filter by answer">
+        <button type="button" :class="f==='all' && 'on'" :aria-pressed="f==='all'" @click="f='all'">All</button>
+        <button type="button" :class="f==='errors' && 'on'" :aria-pressed="f==='errors'" @click="f='errors'">Errors</button>
+        <button type="button" :class="f==='refused' && 'on'" :aria-pressed="f==='refused'" @click="f='refused'">Refused</button>
+      </div>
+      <div class="wire-svc">
+        <button type="button" class="btn btn-outline btn-sm" aria-label="Filter by service" aria-haspopup="true" :aria-expanded="menu" @click="menu=!menu"><span x-text="svc ? svcLabel : 'every service'">every service</span> <span aria-hidden="true">▾</span></button>
+        <div class="wire-menu" x-show="menu" x-cloak @click.outside="menu=false" @keydown.escape.stop="menu=false" role="menu">
+          <button type="button" role="menuitem" :class="svc==='' && 'on'" @click="pick('', 'every service')">every service</button>
+          {{range $w.Services}}<button type="button" role="menuitem" data-key="{{.Key}}" data-label="{{.Label}}" :class="svc===$el.dataset.key && 'on'" @click="pick($el.dataset.key, $el.dataset.label)">{{.Label}} <span class="m">{{.N}}</span></button>{{end}}
+        </div>
+      </div>
+      <span class="wire-grow"></span>
+      <span class="note">the last {{$w.Kept}} calls are kept</span>
+    </div>
+    <div class="wire-tbl">
+      <div class="tr-head"><span>When</span><span>Call</span><span>On</span><span>Answer</span><span class="ra">ms</span><span class="tr-lane-h">Time</span></div>
+      {{range $row := $w.Rows}}
+      <div id="r-{{.Seq}}" class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-seq="{{.Seq}}" data-depth="{{.Depth}}" data-svc="{{.Service}}" data-err="{{if .IsErr}}1{{end}}" data-refused="{{if or (eq .State "refused") (eq .State "refusedhere")}}1{{end}}"
+           x-show="shown($el)" :class="sel==={{.Seq}} && 'sel'"
+           hx-get="{{$w.Prefix}}/traffic/entry?seq={{urlquery .Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
+           @click="pickRow({{.Seq}})">
+        <span class="ts">{{if not .Cascade}}<time title="{{zoned .Time}}">{{.Time}}</time>{{end}}</span>
+        <span class="tr-call" style="--depth:{{.Depth}}">
+          {{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}
+          <span class="svcb">{{wireIcon .Service}}<span class="sr-only">{{.Service}}</span></span>
+          {{/* The three hx-* attributes on the link below are load-bearing. The row
+               sets hx-target="#t-drawer-inner" and hx-select="", and htmx
+               inheritance hands both to any link inside it — so a boosted click
+               would swap the whole page into the inspector. @click.stop keeps the
+               row's own toggle from firing too. */}}
+          <button type="button" class="act rowopen" aria-label="Inspect {{.Label}} {{.Resource}}">{{.Label}}</button>
+        </span>
+        <span class="res" title="{{.Resource}}">{{if .Ref.Path}}<a class="res-link"
+             href="{{$w.Prefix}}{{.Ref.Path}}"
+             hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML"
+             @click.stop>{{.Resource}}</a>{{else}}<span class="res-nm">{{.Resource}}</span>{{end}}{{with .Via}}<span class="tr-via note" title="what emitted this work">via {{.}}</span>{{end}}{{with .Why}}<span class="tr-why-t note" title="{{$row.WhyTitle}}">{{.}}</span>{{end}}</span>
+        <span class="tr-ans"><span class="st {{.State}}">{{.Answer}}</span></span>
+        <span class="dur{{if .Wait}} wait{{end}}">{{.Millis}}</span>
+        <span class="lane">{{if not .Wait}}<span class="{{if .LaneBad}}bad{{else if .Cascade}}kid{{end}}" style="--l:{{.LaneLeft}};--w:{{.LaneWidth}}"></span>{{end}}</span>
+      </div>
+      {{else}}
+      <div class="wire-none"><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://{{if $w.Endpoint}}{{$w.Endpoint}}{{else}}127.0.0.1:4566{{end}}</code> and watch them stream in. <a href="{{$w.Prefix}}/connect">How to connect &rarr;</a></p></div>
+      {{end}}
+    </div>
+    {{/* What a refusal is, said where it is being looked at (board Wire-Refused). */}}
+    <p class="note wire-refnote" x-show="f==='refused'" x-cloak>{{if eq $w.RefusedN 1}}One call in this window was refused.{{else if eq $w.RefusedN 0}}No call in this window was refused.{{else}}{{$w.RefusedN}} calls in this window were refused.{{end}} A refusal is doze-aws declining a request it would not accept from AWS either, so it is the answer your app will get after it is deployed.</p>
   </div>
-  {{end}}
-  {{else}}
-  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</code> and watch them stream in. <a href="{{$.Prefix}}/connect">How to connect &rarr;</a></p></div>
-  {{end}}
-  </div>
+  <aside class="wire-aside" aria-label="Needs a look" x-show="sel===null">
+    {{template "wire_needs" $w}}
+    <div class="wire-cap">In this window</div>
+    <div class="wire-card">
+      <div class="wire-kv">
+        <span>Calls</span><span class="m b">{{$w.Stats.Calls}}</span>
+        <span>Services</span><span class="m b">{{$w.Stats.Services}}</span>
+        <span>Refused</span><span class="m b{{if $w.Stats.Refused}} deny{{end}}">{{$w.Stats.Refused}}</span>
+        <span>Function errors</span><span class="m b{{if $w.Stats.FnErrors}} bad{{end}}">{{$w.Stats.FnErrors}}</span>
+        <span>Slowest</span><span class="m b">{{if $w.Stats.Slowest}}{{$w.Stats.Slowest}}{{else}}—{{end}}</span>
+      </div>
+    </div>
+  </aside>
+{{end}}
 </div>
 {{end}}
 
-{{/* The inspector drawer: the full request/response pair for one call. */}}
-{{define "traffic_drawer"}}
-{{/* The keys an open call answers to (board Wire-Inspect): the next call, the
-     curl, the resource it touched when it names one, and closing. */}}
-<div class="td-h" data-keys="j k=next call|c=copy as curl|{{if .Link}}→=go to the {{if .Noun}}{{.Noun}}{{else}}resource{{end}}|{{end}}esc=close">
-  <span class="td-title"><b style="--svc-ink:var(--svc-{{.E.Service}}-ink)">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
-  <button class="copy-btn" data-copy="{{.E.Curl}}" title="Copy as curl">{{icon "copy"}} curl</button>
-</div>
-{{/* The chip is the state's colour, as the row it was opened from and the panel
-     below it are: a refusal is not a failure and does not get a failure's red. */}}
-<div class="td-meta"><span class="st {{.State}}">{{.E.Status}}</span>{{if ne .State "served"}} <span class="st {{.State}}">{{.Copy.Label}}</span>{{end}} · {{.Millis}}ms · <time title="{{zoned .Time}}">{{.Time}}</time></div>
-{{with .E.Failure}}
-<div class="td-sec td-{{$.State}}">
-  <div class="td-k">{{$.Copy.Label}}{{if .Code}} · {{.Code}}{{end}}</div>
-  <p class="td-why">{{.Message}}</p>
-  <p class="mini-note">{{$.Copy.Why}}{{if $.Copy.LinkPath}} <a href="{{$.Prefix}}{{$.Copy.LinkPath}}">{{$.Copy.LinkText}} →</a>{{end}}</p>
+{{/* "Needs a look": each callout is a fact read from the ring or the product, and
+     says nothing when there is nothing to say. */}}
+{{define "wire_needs"}}
+<div class="wire-cap">Needs a look</div>
+{{range .Needs}}{{if .Href}}<a class="wire-callout {{.Tone}}" href="{{$.Prefix}}{{.Href}}"><span class="b">{{.Title}}</span>{{with .Note}}<span class="note">{{.}}</span>{{end}}</a>{{else}}<div class="wire-callout {{.Tone}}"><span class="b">{{.Title}}</span>{{with .Note}}<span class="note">{{.}}</span>{{end}}</div>{{end}}
+{{else}}<div class="wire-callout ok"><span class="b">Nothing needs a look</span><span class="note">{{if .Enabled}}No dead letters, firing alarms, refusals or function errors in the last {{.Kept}} calls.{{else}}No dead letters or firing alarms.{{end}}</span></div>{{end}}
+{{end}}
+
+{{/* The first-run wire (board Wire-Empty): the stack is empty and nothing has
+     called. It says where it is listening, how to point code at it, and the
+     ways to make something here. Both halves have to hold for it to be drawn
+     (wireProbe), so it ends the moment anything exists or is recorded. */}}
+{{define "wire_first"}}
+<div class="wire-first" data-keys="⌘K=jump or act">
+  <div class="wf-h">
+    <h1>Nothing has called yet.</h1>
+    <p class="wf-lede">doze-aws is listening on {{.Endpoint}}. The first call your code makes shows up here.</p>
+  </div>
+  <div class="wf-cards">
+    <div class="wire-card wf-card">
+      <div class="wf-ch"><span class="h2">1 · Point your code at it</span><button type="button" class="btn btn-outline btn-sm" data-copy="{{.Env}}">Copy</button></div>
+      <pre class="code mono">{{.Env}}</pre>
+      <span class="note">Every AWS SDK and the CLI read these. Your real credentials are not touched. <a href="{{.Prefix}}/connect">A CLI profile, Terraform and the deploy tools</a></span>
+    </div>
+    <div class="wire-card wf-card">
+      <div class="wf-ch"><span class="h2">2 · Or make something from here</span></div>
+      <div class="wf-acts">
+        <a class="btn btn-outline" href="{{.Prefix}}/s3/create">{{awsIconSm "s3"}}Create a bucket</a>
+        <a class="btn btn-outline" href="{{.Prefix}}/sqs/create">{{awsIconSm "sqs"}}Create a queue</a>
+        <a class="btn btn-outline" href="{{.Prefix}}/ddb/create">{{awsIconSm "ddb"}}Create a table</a>
+        <a class="btn btn-outline" href="{{.Prefix}}/cfn/create">{{awsIconSm "cfn"}}Deploy a CloudFormation template</a>
+      </div>
+      <span class="note">A template.yaml in the folder you started doze-aws from is applied when it starts. There is none here.</span>
+    </div>
+  </div>
+  <div class="wire-waiting"><span class="live"></span><span class="m">waiting for a call…</span><span class="note">try <span class="m">aws s3 ls</span> with the block above</span></div>
 </div>
 {{end}}
-<div class="td-sec">
-  <div class="td-k">Request · {{.E.Method}} {{.E.Path}}{{if .E.Target}} · {{.E.Target}}{{end}}</div>
-  {{if .Req}}<pre>{{.Req}}</pre>{{else}}<p class="mini-note">No body captured{{if .E.CT}} ({{.E.CT}}){{end}}.</p>{{end}}
+
+{{/* The inspector (boards Wire-Inspect, Wire-Refused). A call that was served
+     has tabs; one that was not has no tabs and leads with why. */}}
+{{define "traffic_drawer"}}
+<div class="td" x-data="{tab:'request'}">
+{{/* The keys an open call answers to: the next call, the curl, the resource it
+     touched when it names one, and closing. */}}
+<div class="td-h" data-keys="j k=next call|c=copy as curl|{{if .Link}}→=go to the {{if .Noun}}{{.Noun}}{{else}}resource{{end}}|{{end}}esc=close">
+  <span class="td-id"><span class="td-svc">{{wireIcon .E.Service}}<span class="sr-only">{{.E.Service}}</span></span><span class="td-title">{{.Label}}</span><span class="st {{.State}}">{{.Answer}}</span></span>
+  <button type="button" class="btn btn-ghost btn-sm td-x" aria-label="Close" @click="sel=null">esc</button>
 </div>
-<div class="td-sec">
-  <div class="td-k">Response{{if .E.RespCT}} · {{.E.RespCT}}{{end}}</div>
-  {{if .E.RequestID}}<p class="mini-note">Request id <span class="mono">{{.E.RequestID}}</span> — the same value the SDK reports and the server logs on a 5xx, so an error a colleague quotes can be found here.</p>{{end}}
-  {{if .Resp}}<pre>{{.Resp}}</pre>{{else}}<p class="mini-note">Empty or binary response.</p>{{end}}
+<div class="td-meta"><time title="{{zoned .Time}}">{{.Time}}</time> · {{.Millis}} ms{{if .E.RequestID}} · request id <span class="mono">{{.E.RequestID}}</span>{{end}}</div>
+
+{{if .Failure}}
+{{/* Not served: the reason first, in the state's colour, with the code and the
+     sentence the service answered with. */}}
+<div class="td-body td-fail">
+  <div class="td-callout td-{{.State}}">
+    {{if .Failure.Code}}<span class="m b">{{.Failure.Code}}</span>{{end}}
+    {{if .Failure.Message}}<span>{{.Failure.Message}}</span>{{end}}
+    {{if ne .State "refused"}}<span class="note">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}</span>{{end}}
+  </div>
+  <div class="td-s">
+    <div class="wire-cap">What it was sent</div>
+    {{if .Req}}<pre class="code">{{.ReqHTML}}</pre>{{else}}<p class="note">No body captured{{if .E.CT}} ({{.E.CT}}){{end}}.</p>{{end}}
+  </div>
+  {{with .Context}}
+  <div class="td-s">
+    <div class="wire-cap">The {{.Noun}} it was sent to</div>
+    <div class="wire-well td-res"><span class="td-resl">{{wireIcon .Svc}}<a class="m" href="{{$.Prefix}}{{.Path}}" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">{{.Name}}</a>{{with .Pill}}<span class="pill">{{.}}</span>{{end}}</span>{{with .Note}}<span class="note">{{.}}</span>{{end}}</div>
+    {{with .Sentence}}<span class="note">{{.}}</span>{{end}}
+  </div>
+  {{end}}
+  {{template "td_ledger" .}}
+  {{if .E.Detail}}<div class="td-s"><div class="wire-cap">Logs{{if .E.DetailURL}} · <a href="{{.Prefix}}{{.E.DetailURL}}">open this invocation in the Logs tab</a>{{end}}</div><pre class="code">{{.E.Detail}}</pre></div>{{end}}
+  <div class="td-grow"></div>
+  <div class="td-actions"><button type="button" class="btn" data-copy="{{.E.Curl}}" data-copy-curl>Copy as curl</button><button type="button" class="btn btn-outline" data-copy="{{.CopyError}}">Copy the error</button></div>
 </div>
-{{if or .E.Detail .E.DetailURL}}<div class="td-sec">
-  <div class="td-k">Logs{{if .E.DetailURL}} · <a href="{{.Prefix}}{{.E.DetailURL}}">open this invocation in the Logs tab</a>{{end}}</div>
-  {{if .E.Detail}}<pre>{{.E.Detail}}</pre>{{else}}<p class="mini-note">The function ran after this call returned; its lines are in the Logs tab.</p>{{end}}
-</div>{{end}}
+{{else}}
+{{if ne .State "served"}}<p class="note td-why-line">{{.Copy.Why}}{{if .Copy.LinkPath}} <a href="{{.Prefix}}{{.Copy.LinkPath}}">{{.Copy.LinkText}} →</a>{{end}}</p>{{end}}
+<div class="td-tabs" role="tablist">
+  <button type="button" role="tab" :class="tab==='request' && 'on'" :aria-selected="tab==='request'" @click="tab='request'">Request</button>
+  <button type="button" role="tab" :class="tab==='response' && 'on'" :aria-selected="tab==='response'" @click="tab='response'">Response</button>
+  <button type="button" role="tab" :class="tab==='caused' && 'on'" :aria-selected="tab==='caused'" @click="tab='caused'">What it caused <span class="m">{{len .Caused}}</span></button>
+</div>
+<div class="td-body">
+  <div class="td-pane" x-show="tab==='request'">
+    <div class="wire-kv td-kv">
+      <span>Sent to</span><span class="m el">{{.E.Method}} {{.E.Path}}  ·  Host {{.E.Host}}</span>
+      <span>Operation</span><span class="m">{{.Operation}}</span>
+      {{if .E.CT}}<span>Content type</span><span class="m">{{.E.CT}}</span>{{end}}
+      {{if .Link}}<span>On</span><a class="m" href="{{.Prefix}}{{.Link}}" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">{{.E.Resource}}</a>{{end}}
+    </div>
+    <div class="td-s">
+      <div class="td-sh"><span class="wire-cap">Body</span><span class="note">secrets are masked, long bodies cut</span></div>
+      {{if .Req}}<pre class="code">{{.ReqHTML}}</pre>{{else}}<p class="note">No body captured{{if .E.CT}} ({{.E.CT}}){{end}}.</p>{{end}}
+    </div>
+    <div class="td-s">
+      <div class="wire-cap">The call, as curl</div>
+      <pre class="code">{{.CurlShown}}</pre>
+      <div class="td-actions"><button type="button" class="btn" data-copy="{{.E.Curl}}" data-copy-curl>Copy as curl</button>{{if .Req}}<button type="button" class="btn btn-outline" data-copy="{{.Req}}">Copy the body</button>{{end}}</div>
+    </div>
+  </div>
+  <div class="td-pane" x-show="tab==='response'" x-cloak>
+    <div class="td-s">
+      <div class="td-sh"><span class="wire-cap">Response{{if .E.RespCT}} · {{.E.RespCT}}{{end}}</span></div>
+      {{if .Resp}}<pre class="code">{{.RespHTML}}</pre>{{else}}<p class="note">Empty or binary response.</p>{{end}}
+    </div>
+    {{if .E.Detail}}<div class="td-s"><div class="wire-cap">Logs{{if .E.DetailURL}} · <a href="{{.Prefix}}{{.E.DetailURL}}">open this invocation in the Logs tab</a>{{end}}</div><pre class="code">{{.E.Detail}}</pre></div>
+    {{else if .E.DetailURL}}<div class="td-s"><div class="wire-cap">Logs · <a href="{{.Prefix}}{{.E.DetailURL}}">open this invocation in the Logs tab</a></div><p class="note">The function ran after this call returned; its lines are in the Logs tab.</p></div>{{end}}
+  </div>
+  <div class="td-pane" x-show="tab==='request' || tab==='caused'" x-cloak>
+    <div class="td-s">
+      <div class="wire-cap">What it caused</div>
+      {{range .Caused}}
+      <div class="wire-well td-caused">
+        <div class="td-cah"><span class="td-resl">{{wireIcon .Service}}<span class="b">{{.Label}} {{.Resource}}</span></span><span class="m">{{.Millis}}{{if not (eq .Millis "")}} ms{{end}}</span></div>
+        <span class="note">{{with .Via}}via {{.}}.{{end}}{{if .Detail}} What the function printed is on its row.{{end}}</span>
+        {{with .Detail}}<pre class="code td-tail">{{.}}</pre>{{end}}
+      </div>
+      {{else}}<p class="note">Nothing. This call set no other work of doze-aws's own off.</p>{{end}}
+    </div>
+  </div>
+  <div class="td-grow"></div>
+  <p class="note td-foot">Only work doze-aws did itself is nested here. What your function calls from inside, with an SDK, arrives as its own call.</p>
+</div>
+{{end}}
+</div>
+{{end}}
+
+{{/* The ledger card, and the one link from the wire to the fidelity table. The
+     table itself is the fidelity dialog's (info_panel), loaded the same way. */}}
+{{define "td_ledger"}}
+{{with .Ledger}}
+<div class="td-s" x-data="{info:false}">
+  <div class="wire-cap">The same operation, in the ledger</div>
+  <div class="wire-well td-led">
+    <div class="td-ledh"><span class="m b">{{.Op}}</span><span class="pill {{if eq .Tier "F"}}ok{{end}}">{{.Tier}} · {{.TierLabel}}</span></div>
+    <span class="note">{{.Note}} <button type="button" class="linkish" @click="info=true">The {{.Label}} ledger</button></span>
+  </div>
+  <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
+    <div class="dialog wide anim">
+      <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
+      <div class="dialog-b info-body" tabindex="0" role="region" aria-label="What is real here" x-show="info" hx-get="{{$.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
+    </div>
+  </div>
+</div>
+{{end}}
 {{end}}
 
 {{define "traffic_drawer_gone"}}
-<div class="td-h" data-keys="j k=next call|esc=close"><span class="td-title">Entry expired</span></div>
-<p class="mini-note" style="padding:10px 14px">This call has scrolled out of the 500-entry ring. Pause the tail to keep entries around while you read.</p>
+<div class="td-h" data-keys="j k=next call|esc=close"><span class="td-id"><span class="td-title">Entry expired</span></span>
+  <button type="button" class="btn btn-ghost btn-sm td-x" aria-label="Close" @click="sel=null">esc</button></div>
+<p class="note td-gone">This call has scrolled out of the {{.Kept}}-call ring. Resume the feed, or Clear, and read the next one.</p>
 {{end}}

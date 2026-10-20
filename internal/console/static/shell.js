@@ -146,7 +146,13 @@
   });
   function refreshCounts() {
     if (document.hidden) return;
-    fetch(PREFIX + "/api/counts").then(function (r) { return r.json(); }).then(function (counts) {
+    // A fetch that rejects is a connection that did not answer; an answer of any
+    // kind, even a 500, is doze-aws being there.
+    fetch(PREFIX + "/api/counts", { cache: "no-store" }).then(function (r) { heard(); return r.json(); }, function (err) { lost(); throw err; }).then(function (counts) {
+      // "live" or "quiet" beside The wire, from the same poll.
+      if (typeof counts.wire === "number") {
+        document.querySelectorAll("[data-wire-note]").forEach(function (el) { el.textContent = counts.wire > 0 ? "live" : "quiet"; });
+      }
       document.querySelectorAll(".rail [data-ct]").forEach(function (el) {
         if (Date.now() - (patchedAt[el.id] || 0) < 2500) return; // the patch is newer
         var n = counts[el.getAttribute("data-ct")];
@@ -180,6 +186,61 @@
   // and waited up to another five seconds to catch up.
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) refreshCounts();
+  });
+
+  // ---------- the console cannot reach doze-aws (board Bad-Down) ----------
+  // The console is a page in a browser and doze-aws is a process that can be
+  // stopped while the page is open. Every live region and the rail's counts poll
+  // it, so a poll that cannot connect is the signal, and one that is answered is
+  // the all-clear: when the process comes back the page picks up on its next
+  // poll, with nothing to reload.
+  //
+  // Only a request that never got an answer counts. A 500 is doze-aws being
+  // there and saying so (the response:error path draws that); a refused or
+  // timed-out connection is the process not being there.
+  var down = false, lastHeard = Date.now(), downTimer = null;
+  function hhmmss(t) {
+    var d = new Date(t), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+  function heard() {
+    lastHeard = Date.now();
+    if (down) setDown(false);
+  }
+  function lost() { if (!down) setDown(true); }
+  function setDown(v) {
+    down = v;
+    var root = document.documentElement, banner = document.getElementById("down-banner");
+    if (v) root.setAttribute("data-down", ""); else root.removeAttribute("data-down");
+    if (banner) banner.hidden = !v;
+    applyInert();
+    drawKeyBar();
+    clearInterval(downTimer);
+    // While it is down, ask more often than the counts' five seconds: the page
+    // should notice the process returning about as fast as a person would.
+    downTimer = v ? setInterval(probe, 2000) : null;
+    if (!v) refreshCounts();
+  }
+  // What is on screen is the last thing the console heard, so it is not to be
+  // acted on: a button that would POST into nothing is not a button.
+  function applyInert() {
+    var ws = document.getElementById("workspace");
+    if (ws) { if (down) ws.setAttribute("inert", ""); else ws.removeAttribute("inert"); }
+  }
+  function probe() {
+    fetch(PREFIX + "/api/counts", { cache: "no-store" }).then(heard, function () { lost(); });
+  }
+  document.addEventListener("htmx:error", function (e) {
+    var ctx = e.detail && e.detail.ctx;
+    if (ctx && !ctx.response) lost();
+  });
+  document.addEventListener("htmx:after:request", function (e) {
+    var ctx = e.detail && e.detail.ctx;
+    if (ctx && ctx.response) heard();
+  });
+  document.addEventListener("htmx:after:swap", applyInert);
+  document.addEventListener("click", function (e) {
+    if (e.target.closest && e.target.closest("#down-retry")) { e.preventDefault(); probe(); }
   });
 
   // ---------- toasts ----------
@@ -1120,7 +1181,7 @@
     return true;
   }
   function wireCopyCurl() {
-    var b = document.querySelector(".t-drawer .td-h .copy-btn");
+    var b = document.querySelector(".t-drawer [data-copy-curl]");
     if (b) b.click();
     return !!b;
   }
@@ -1223,10 +1284,19 @@
   function drawKeyBar() {
     var bar = document.getElementById("keybar");
     if (!bar) return;
-    var spec = declaredKeys();
+    // While the console cannot reach doze-aws the bar says when it last could
+    // (board Bad-Down), and nothing else: no key on it would do anything.
+    var spec = down ? "down:" + hhmmss(lastHeard) : declaredKeys();
     if (bar.getAttribute("data-spec") === spec) return;
     bar.setAttribute("data-spec", spec);
     bar.textContent = "";
+    if (down) {
+      bar.appendChild(document.createTextNode("last heard "));
+      var t = document.createElement("time");
+      t.textContent = hhmmss(lastHeard);
+      bar.appendChild(t);
+      return;
+    }
     parseKeys(spec).forEach(function (it) {
       var span = document.createElement("span");
       it.caps.forEach(function (c) {
@@ -1357,46 +1427,52 @@
     document.querySelectorAll("[data-live]").forEach(function (el) {
       var id = el.id;
       var every = parseInt(el.getAttribute("data-live-ms") || "3000", 10);
-      var t = setInterval(function () {
-        // Re-query by id every tick: a plain outerHTML swap (composer send,
-        // purge, redrive, delete) REPLACES the element, so a captured reference
-        // would go stale and the poll would silently die. The morph poll itself
-        // re-includes data-live, so a morphed element keeps the same id too.
-        var cur = document.getElementById(id);
-        if (document.hidden || !cur) return;
-        if (cur.hasAttribute("data-live-paused")) return; // user hit pause
-        var url = cur.getAttribute("data-live");
-        if (!url) return;
-        // outerMorph, which under htmx 4 is a built-in swap style rather than
-        // an extension that has to be activated. That distinction is the whole
-        // history of this line: morphing here never once ran. hx-ext was
-        // absent for the life of the feature so "morph" fell back to innerHTML
-        // and nested each region inside itself on first change; activating the
-        // extension on <body> then broke UNRELATED swaps, because idiomorph
-        // claims every style it does not recognise as inline. The retreat to a
-        // plain outerHTML replace was the right call at the time and cost
-        // scroll position inside a region on every tick that changed anything.
-        //
-        // Nothing to activate now, so the feature can finally do what it was
-        // written for. The 204 no-change path still swaps nothing at all,
-        // which is most ticks.
-        var swap = cur.getAttribute("data-live-swap") || "outerMorph";
-        var hash = cur.getAttribute("data-hash") || "";
-        // select:"" is load-bearing, and it is the JS half of the 198
-        // hx-select="" attributes in the templates. htmx 4's ajax() resolves
-        // the source element as `sourceElt ||= target`, so the source here is
-        // the live region — which sits inside #workspace and therefore
-        // INHERITS its hx-select:inherited="#workspace". The region's partial
-        // has no #workspace in it, so every poll would select nothing and swap
-        // nothing, silently, forever. htmx 2 sourced htmx.ajax() from
-        // document.body and never picked the attribute up.
-        htmx.ajax("GET", url + (url.indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
-          target: "#" + id, swap: swap, select: "",
-        });
-      }, every);
+      var t = setInterval(function () { livePoll(id, false); }, every);
       liveTimers.push(t);
     });
   }
+  // One poll of one live region. force skips the checks a timer makes (a hidden
+  // tab, a paused region): the caller is a person who has just asked for it.
+  function livePoll(id, force) {
+    // Re-query by id every tick: a plain outerHTML swap (composer send,
+    // purge, redrive, delete) REPLACES the element, so a captured reference
+    // would go stale and the poll would silently die. The morph poll itself
+    // re-includes data-live, so a morphed element keeps the same id too.
+    var cur = document.getElementById(id);
+    if (!cur || (!force && document.hidden)) return;
+    if (!force && cur.hasAttribute("data-live-paused")) return; // user hit pause
+    var url = cur.getAttribute("data-live");
+    if (!url) return;
+    // outerMorph, which under htmx 4 is a built-in swap style rather than
+    // an extension that has to be activated. That distinction is the whole
+    // history of this line: morphing here never once ran. hx-ext was
+    // absent for the life of the feature so "morph" fell back to innerHTML
+    // and nested each region inside itself on first change; activating the
+    // extension on <body> then broke UNRELATED swaps, because idiomorph
+    // claims every style it does not recognise as inline. The retreat to a
+    // plain outerHTML replace was the right call at the time and cost
+    // scroll position inside a region on every tick that changed anything.
+    //
+    // Nothing to activate now, so the feature can finally do what it was
+    // written for. The 204 no-change path still swaps nothing at all,
+    // which is most ticks.
+    var swap = cur.getAttribute("data-live-swap") || "outerMorph";
+    var hash = cur.getAttribute("data-hash") || "";
+    // select:"" is load-bearing, and it is the JS half of the 198
+    // hx-select="" attributes in the templates. htmx 4's ajax() resolves
+    // the source element as `sourceElt ||= target`, so the source here is
+    // the live region — which sits inside #workspace and therefore
+    // INHERITS its hx-select:inherited="#workspace". The region's partial
+    // has no #workspace in it, so every poll would select nothing and swap
+    // nothing, silently, forever. htmx 2 sourced htmx.ajax() from
+    // document.body and never picked the attribute up.
+    htmx.ajax("GET", url + (url.indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
+      target: "#" + id, swap: swap, select: "",
+    });
+  }
+  // A page that has just changed what a live region shows (the wire's Resume)
+  // asks for it now rather than at the next tick.
+  window.dozePollNow = function (id) { livePoll(id, true); };
   // A live region is morphed in place, and the server's markup knows nothing of
   // what Alpine has done to the copy on screen: x-show's inline display:none,
   // the class a :class binding added. Morphing those attributes back to the
@@ -1415,7 +1491,11 @@
         if (!el || !el.hasAttribute || !name) return true;
         if (name === "x-cloak") return !(el._x_dataStack || (el.closest && el.closest("[x-data]")));
         if (name === "style" && el.hasAttribute("x-show")) return false;
-        if (name === "class" && (el.hasAttribute(":class") || el.hasAttribute("x-bind:class"))) return false;
+        // Any attribute Alpine binds (":aria-pressed", "x-bind:class") is
+        // Alpine's: the server wrote the attribute's resting value and Alpine has
+        // moved it since, and writing the resting value back would undo that
+        // until its expression next changed.
+        if (el.hasAttribute(":" + name) || el.hasAttribute("x-bind:" + name)) return false;
         return true;
       },
     });

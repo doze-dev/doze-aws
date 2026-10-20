@@ -228,11 +228,15 @@ test.describe('it threw', () => {
     const row = page.locator('.tr-row', { hasText: fn }).first();
     await expect(row).toBeVisible();
     // The word is on the row, as well as the colour.
-    await expect(row.locator('.tr-state')).toHaveText('It threw');
+    await expect(row.locator('.st')).toHaveText('it threw');
     await expect(row).toHaveClass(/threw/);
     await expect(row.locator('.st')).toHaveClass(/threw/);
-    // The status is what it was: it was served.
-    await expect(row.locator('.st')).toHaveText('200');
+    // And what it raised is on the row, beside the resource.
+    await expect(row.locator('.tr-why-t')).toContainText(why);
+    // "Needs a look" names the function and says how often, from the ring.
+    const callout = page.locator('.wire-callout', { hasText: `${fn} answered with an error` });
+    await expect(callout).toBeVisible();
+    await expect(callout).toContainText(/An Invoke came back with a function error \d+ times? in the last 500 calls\./);
 
     // The inspector says what the function threw.
     // The feed re-renders while it polls, and a click that lands in the middle
@@ -241,13 +245,14 @@ test.describe('it threw', () => {
     const drawer = page.locator('#t-drawer-inner');
     await expect(async () => {
       await row.locator('.rowopen').click({ timeout: 2000 });
-      await expect(drawer.locator('.td-threw')).toBeVisible({ timeout: 1500 });
+      await expect(drawer.locator('.td-callout.td-threw')).toBeVisible({ timeout: 1500 });
     }).toPass({ timeout: 15000 });
-    await expect(drawer.locator('.td-threw')).toContainText('It threw');
-    await expect(drawer.locator('.td-threw')).toContainText(why);
+    await expect(drawer.locator('.td-callout.td-threw')).toContainText(why);
+    // The chip in its header says it too.
+    await expect(drawer.locator('.td-h .st')).toHaveText('it threw');
 
-    // And it is an error for the "only errors" filter, though its status is 200.
-    await page.getByLabel('only errors').check();
+    // And it is an error for the Errors filter, though its status is 200.
+    await page.getByRole('button', { name: 'Errors', exact: true }).click();
     await expect(row).toBeVisible();
   });
 });

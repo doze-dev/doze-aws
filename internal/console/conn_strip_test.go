@@ -40,24 +40,12 @@ func TestTheStripNeverClaimsNothingFeedsAResource(t *testing.T) {
 		})
 	}
 
-	// The deck counts the resources no configuration connects. That is what it
-	// can say of them, in the count and in the hover that names them.
-	t.Run("deck", func(t *testing.T) {
-		// The deck stays quiet about wiring until something is wired, so wire
-		// one pair and leave the rest.
-		req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"sink"}, "dlq_mode": {"none"}})
-		req(t, h, "POST", "/_console/sns/create", url.Values{"name": {"wired"}})
-		if sub := req(t, h, "POST", "/_console/sns/wired/subscribe", url.Values{
-			"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:sink"},
-		}); sub.Code != 200 {
-			t.Fatalf("subscribe: %d\n%s", sub.Code, sub.Body)
-		}
-		body := req(t, h, "GET", "/_console/deck", nil).Body.String()
-		if !strings.Contains(body, `class="dk-unwired"`) {
-			t.Fatalf("the deck shows no unwired count for a stack of unwired resources:\n%.600s", body)
-		}
+	// The wire's "Needs a look" says what a queue holds and what is firing; it
+	// is not a place to say what nothing feeds, and does not.
+	t.Run("the wire", func(t *testing.T) {
+		body := req(t, h, "GET", "/_console/traffic", nil).Body.String()
 		if m := unseenClientClaim.FindString(body); m != "" {
-			t.Errorf("the deck claims %q; the graph holds configuration and cannot know that", m)
+			t.Errorf("the wire claims %q; the graph holds configuration and cannot know that", m)
 		}
 	})
 }

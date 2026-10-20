@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // createNameParam is the query parameter that carries a name into a create
@@ -225,6 +226,15 @@ func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
 		out[k] = v
 	}
 	out["warn"] = warn
+	// The rail's word beside "The wire" is read from one more number: the calls
+	// that started in the last minute. Live when there are some, quiet when
+	// there are none. It is under a key no service has, so a reader that takes
+	// the counts by service key never sees it.
+	if c.rec != nil {
+		out["wire"] = c.rec.pulse(time.Now())
+	} else {
+		out["wire"] = 0
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
 }

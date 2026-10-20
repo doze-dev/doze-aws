@@ -148,32 +148,32 @@ test.describe('one colour per state', () => {
 
     const row = page.locator('#traffic-feed .tr-row.refused', { hasText: queueName }).first();
     await expect(row.locator('.st')).toHaveClass(/\brefused\b/);
-    await expect(row.locator('.tr-state')).toHaveText('Refused');
+    // The word is on the row beside the status (board Main: "400 refused").
+    await expect(row.locator('.st')).toHaveText('400 refused');
 
     await row.locator('.act').click();
-    const meta = page.locator('#t-drawer-inner .td-meta');
-    const chip = meta.locator('.st').first();
-    await expect(chip).toHaveText('400');
+    const chip = page.locator('#t-drawer-inner .td-h .st');
+    await expect(chip).toHaveText('400 refused');
     await expect(chip).toHaveClass(/\brefused\b/);
-    await expect(meta.locator('.err')).toHaveCount(0);
-    await expect(meta.locator('.st').nth(1)).toHaveText('Refused');
+    await expect(page.locator('#t-drawer-inner .td-meta .err')).toHaveCount(0);
 
-    // The same colour, read off the page: chip, row chip and panel heading.
+    // The same colour, read off the page: chip, row chip and the reason's heading.
     const colour = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).color);
-    const chipColour = await colour('#t-drawer-inner .td-meta .st');
-    expect(chipColour).toBe(await colour('#t-drawer-inner .td-refused .td-k'));
+    const chipColour = await colour('#t-drawer-inner .td-h .st');
     expect(chipColour).toBe(await row.locator('.st').evaluate((el) => getComputedStyle(el).color));
+    // The reason's panel is the same state, and its code is in the state's colour too.
+    await expect(page.locator('#t-drawer-inner .td-callout.td-refused')).toBeVisible();
 
     // And it is not the colour of a failure, nor of a call that was served.
     const servedRow = page.locator('#traffic-feed .tr-row', { hasText: 'CreateQueue' }).filter({ hasText: queueName }).first();
     await expect(servedRow.locator('.st')).toHaveClass(/\bserved\b/);
-    await expect(servedRow.locator('.tr-state')).toHaveCount(0);
+    await expect(servedRow.locator('.st')).toHaveText('200');
     expect(chipColour).not.toBe(await servedRow.locator('.st').evaluate((el) => getComputedStyle(el).color));
   });
 });
 
 test.describe('filters', () => {
-  test('only-errors and service filters narrow the visible rows', async ({
+  test('the answer filter and the service menu narrow the visible rows', async ({
     page,
     request,
     uniqueName,
@@ -188,38 +188,52 @@ test.describe('filters', () => {
     // (AWS.SimpleQueueService.NonExistentQueue) — a real, gateway-produced error.
     const errRes = await rawAwsJson(request, 'AmazonSQS.GetQueueUrl', { QueueName: missingQueue });
     expect(errRes.status()).toBe(400);
+    // And a call to another service, for the service filter to tell apart.
+    const bucket = uniqueName('e2e-traffic-bucket');
+    expect((await request.put(`${GATEWAY_ROOT}${bucket}`)).ok()).toBeTruthy();
 
     await page.goto('traffic');
     await waitForLive(
       '#traffic-feed',
-      (text) => text.includes(okQueue) && text.includes(missingQueue)
+      (text) => text.includes(okQueue) && text.includes(missingQueue) && text.includes(bucket)
     );
 
     const okRow = trafficRow(page, okQueue);
     const errRow = trafficRow(page, missingQueue);
+    const bucketRow = trafficRow(page, bucket);
     await expect(okRow).toBeVisible();
     await expect(errRow).toBeVisible();
+    await expect(bucketRow).toBeVisible();
 
-    // "only errors": the successful CreateQueue row hides, the failing
-    // GetQueueUrl row stays visible.
-    const errCheckbox = page
-      .locator('label.chip', { hasText: 'only errors' })
-      .locator('input[type=checkbox]');
-    await errCheckbox.check();
+    // Errors: the successful CreateQueue row hides, the failing GetQueueUrl row
+    // stays visible. All brings it back.
+    const seg = page.getByRole('group', { name: 'Filter by answer' });
+    await seg.getByRole('button', { name: 'Errors' }).click();
     await expect(okRow).toBeHidden();
     await expect(errRow).toBeVisible();
-    await errCheckbox.uncheck();
+    await seg.getByRole('button', { name: 'All' }).click();
     await expect(okRow).toBeVisible();
 
-    // Service filter: a service neither row belongs to hides both; switching
-    // back to sqs restores them.
-    const svcSelect = page.locator('select.chip');
-    await svcSelect.selectOption('kms');
+    // Service filter: a service neither row belongs to hides both, and the
+    // service they do belong to hides the one that does not. The menu lists the
+    // services that are in the window, each with its calls.
+    const menu = page.getByRole('button', { name: 'Filter by service' });
+    await menu.click();
+    await page.getByRole('menuitem', { name: /^S3/ }).click();
+    await expect(menu).toContainText('S3');
     await expect(okRow).toBeHidden();
     await expect(errRow).toBeHidden();
-    await svcSelect.selectOption('sqs');
+    await expect(bucketRow).toBeVisible();
+    await menu.click();
+    await page.getByRole('menuitem', { name: /^SQS/ }).click();
+    await expect(menu).toContainText('SQS');
     await expect(okRow).toBeVisible();
     await expect(errRow).toBeVisible();
+    await expect(bucketRow).toBeHidden();
+    await menu.click();
+    await page.getByRole('menuitem', { name: 'every service' }).click();
+    await expect(menu).toContainText('every service');
+    await expect(bucketRow).toBeVisible();
   });
 });
 
@@ -260,7 +274,7 @@ test.describe('secret redaction', () => {
 // only on its own row disappearing, never on an empty feed, so a sibling's
 // call landing afterwards cannot fail it.
 test.describe('clear', () => {
-  test('the clear chip empties the feed and recorded calls stay gone', async ({
+  test('Clear empties the feed and recorded calls stay gone', async ({
     page,
     request,
     uniqueName,
@@ -277,7 +291,7 @@ test.describe('clear', () => {
     const [resp] = await Promise.all([
       page.waitForResponse((r) => r.url().includes('/traffic/clear') && r.request().method() === 'POST'),
       (async () => {
-        await page.locator('button.chip', { hasText: 'clear' }).click();
+        await page.getByRole('button', { name: 'Clear', exact: true }).click();
         await confirmDialog('accept');
       })(),
     ]);

@@ -52,6 +52,14 @@ type backend struct {
 	// the graph: they go stale for the same reasons and on the same mutations.
 	dlqAt   time.Time
 	dlqHeld bool
+
+	// wireAt, wireDLQ and wireAlarms are the product's half of the wire's
+	// "Needs a look" (productNeeds in wire.go), read at most every needsTTL and
+	// dropped by bustGraph for the same reason as dlqHeld: a console mutation is
+	// something the page should show at once.
+	wireAt     time.Time
+	wireDLQ    []needItem
+	wireAlarms []needItem
 }
 
 const graphTTL = 5 * time.Second
@@ -104,6 +112,7 @@ func (b *backend) bustGraph() {
 	b.graphMu.Lock()
 	b.graphSnap = nil
 	b.dlqAt = time.Time{}
+	b.wireAt = time.Time{}
 	b.graphMu.Unlock()
 }
 
@@ -497,6 +506,10 @@ type Queue struct {
 	InFlight  int    // ApproximateNumberOfMessagesNotVisible
 	DLQ       string // redrive target queue name, "" when none (from the same attrs fetch)
 	IsDLQ     bool   // some queue in the list dead-letters into this one
+	// MaxReceive is the queue's own maxReceiveCount when it has a redrive
+	// policy (0 when it has none): after this many receives a message moves to
+	// DLQ. The wire's "Needs a look" says it of the dead-letter queue.
+	MaxReceive int
 }
 
 type SQSMessage struct {
@@ -576,7 +589,9 @@ func (b *backend) ListQueues(ctx context.Context) ([]Queue, error) {
 		if attrs, err := b.queueAttrs(ctx, name); err == nil {
 			q.Available = atoi(attrs["ApproximateNumberOfMessages"])
 			q.InFlight = atoi(attrs["ApproximateNumberOfMessagesNotVisible"])
-			q.DLQ = sqsConfigOf(attrs).DLQ // BuildGraph reads redrive edges from here
+			cfg := sqsConfigOf(attrs)
+			q.DLQ = cfg.DLQ // BuildGraph reads redrive edges from here
+			q.MaxReceive = atoi(cfg.MaxReceive)
 		}
 		queues = append(queues, q)
 	}

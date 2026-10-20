@@ -12,7 +12,7 @@ import { createBucket, createQueue, createTable, createTopic, createBus, postFor
 // at and wrong on the next one.
 
 const SURFACES = [
-  '', 'traffic', 'connect', 'deck',
+  '', 'traffic', 'connect',
   's3', 'ddb', 'sqs', 'sns', 'eb', 'eb/destinations', 'lambda', 'kinesis',
   'sfn', 'apigw', 'apigw-keys', 'logs', 'cw', 'kms', 'sm', 'ssm', 'iam', 'cfn',
   's3/create', 'sqs/create', 'ddb/create', 'sns/create', 'cfn/create', 'sfn/create',

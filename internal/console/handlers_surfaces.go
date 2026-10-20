@@ -1,8 +1,6 @@
 package console
 
 import (
-	"fmt"
-	"hash/fnv"
 	"net/http"
 	"sort"
 	"strconv"
@@ -25,8 +23,7 @@ func (c *Console) traffic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.render(w, r, "traffic", map[string]any{
-		"Entries": c.trafficEntries(0), "Enabled": c.rec != nil, "Title": "Traffic",
-		"Deck": c.deckData(r),
+		"Wire": c.wireData(r), "Enabled": c.rec != nil, "Title": "Traffic",
 	})
 }
 
@@ -116,21 +113,31 @@ var sectionNouns = map[string]string{
 }
 
 func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
-	// Cheap probe first: the idle tick (the common case) must not copy and
-	// format the whole ring just to throw it away on a 204.
-	hash := "0"
-	if c.rec != nil {
-		if s := c.rec.Changes(); s > 0 {
-			hash = strconv.FormatInt(s, 10)
+	// While the feed is paused the page asks only how many calls it is missing:
+	// ?after=<the newest call it holds>. A number, not a page, so a reader who
+	// paused to read a call is not made to wait on a render for it.
+	if after := r.URL.Query().Get("after"); after != "" {
+		n := int64(0)
+		if c.rec != nil {
+			since, _ := strconv.ParseInt(after, 10, 64)
+			n = int64(len(c.rec.Entries(since)))
 		}
-	}
-	if liveUnchanged(w, r, hash) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_, _ = w.Write([]byte(strconv.FormatInt(n, 10)))
 		return
 	}
-	entries := c.trafficEntries(0)
-	// Poll returns only the rows region (traffic_rows); the filter state lives on
-	// the outer wrapper the poll never touches.
-	c.partial(w, "traffic_rows", map[string]any{"Entries": entries, "Hash": hash, "Endpoint": endpointHost(r)})
+	// The probe first: the idle tick (the common case) must not copy and format
+	// the whole ring just to throw it away on a 204. It is the ring's counter, the
+	// rate, and what "Needs a look" says, so the page changes when any of those do.
+	v := c.wireProbe(r)
+	if liveUnchanged(w, r, v.Hash) {
+		return
+	}
+	v = c.withRows(v)
+	// The poll returns the region (traffic_rows); the filter state and the paused
+	// flag live on the outer wrapper the poll never touches.
+	c.partial(w, "traffic_rows", map[string]any{"Wire": v, "Hash": v.Hash})
 }
 
 // resWireRows is how many of a resource's calls its dock shows. The dock is a
@@ -212,39 +219,7 @@ func tallyOf(n [5]int) []wireTally {
 	return out
 }
 
-// trafficEntry renders the inspector drawer for one recorded call.
-func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
-	seq, _ := strconv.ParseInt(r.URL.Query().Get("seq"), 10, 64)
-	if c.rec == nil {
-		http.Error(w, "traffic capture is off", http.StatusNotFound)
-		return
-	}
-	e, ok := c.rec.Get(seq)
-	if !ok {
-		c.partial(w, "traffic_drawer_gone", map[string]any{})
-		return
-	}
-	req := e.ReqBody
-	if strings.Contains(e.CT, "json") {
-		req = prettyJSON(req)
-	}
-	resp := e.RespBody
-	if strings.Contains(e.RespCT, "json") {
-		resp = prettyJSON(resp)
-	}
-	c.partial(w, "traffic_drawer", map[string]any{
-		"E": e, "Req": req, "Resp": resp,
-		// The key bar offers → only when the call names a resource the console
-		// has a page for, and calls it by its kind ("go to the queue").
-		"Link": resourceURL(e.Service, e.Resource).Path, "Noun": nounFor(e.Service),
-		"Millis": fmtMillis(e.Millis),
-		"Time":   clockMillis(e.At),
-		"State":  callState(e.Status, e.Failure(), factsOfEntry(e)),
-		"Copy":   stateCopyFor(callState(e.Status, e.Failure(), factsOfEntry(e)), e.NotBuilt),
-	})
-}
-
-// trafficClear empties the recorder ring and hands back the (now empty) rows.
+// trafficClear empties the recorder ring and hands back the (now empty) page.
 func (c *Console) trafficClear(w http.ResponseWriter, r *http.Request) {
 	if c.rec != nil {
 		c.rec.Clear()
@@ -256,26 +231,35 @@ func (c *Console) trafficClear(w http.ResponseWriter, r *http.Request) {
 type trafficRow struct {
 	Time     string
 	Service  string
-	Action   string
+	Action   string // as the service names it; Label is what a row says
+	Label    string
 	Resource string
 	Status   int
 	Millis   string
 	IsErr    bool
-	// State is which of the four outcomes this call had: served, refused,
-	// denied or error. IsErr survives beside it because the "errors only"
-	// filter is a single boolean and does not care which kind.
+	// State is which outcome this call had: served, refused, refusedhere,
+	// denied, notbuilt, error or threw. IsErr survives beside it because the
+	// "errors" filter is a single boolean and does not care which kind.
 	State string
 	// StateWord is the state said in a word (Refused, Denied, Not built,
 	// Failed), and empty for a served call. The row's colour carries the same
 	// thing and cannot be the only thing that does.
 	StateWord string
-	Body      string
-	Curl      string
-	Seq       int64
+	// Answer is the Answer column: "200", "400 refused", "it threw".
+	Answer string
+	Body   string
+	Curl   string
+	Seq    int64
 	// Refused is the parsed reason a 4xx/5xx was refused, or nil. Carried on
 	// the row rather than looked up in the drawer because the reason belongs
 	// where you are already scanning for the failure.
 	Refused *Refusal
+	// Why is that reason as a row says it beside the resource: the service's
+	// message, or what the function raised.
+	Why string
+	// WhyTitle is the same with the code the service gave, for the hover: the
+	// row says the sentence, and the code is what a caller matches on.
+	WhyTitle string
 
 	// Depth is how far this row nests under the call that caused it. Zero for
 	// anything a client asked for directly.
@@ -283,14 +267,23 @@ type trafficRow struct {
 	// Cascade marks internal work the gateway never saw — a bucket
 	// notification, a topic fan-out, a rule dispatch.
 	Cascade bool
-	// Via names what emitted it, when that is not obvious from the action.
+	// Via names what emitted it, in words ("the queue's event source mapping"),
+	// when that is not obvious from the action.
 	Via string
 	// Ref points at the resource's page, when the resource resolves to one.
 	Ref resourceRef
+
+	// Wait marks a long poll: its milliseconds were spent waiting, so the row
+	// says seconds, muted, and draws no lane.
+	Wait bool
+	// LaneLeft and LaneWidth place the call's time bar, in percent of the
+	// slowest call in the window; LaneBad paints a failed one.
+	LaneLeft, LaneWidth int
+	LaneBad             bool
 }
 
-// trafficEntries renders the ring as the wire shows it: newest first, with the
-// work a call caused nested underneath it.
+// wireRows renders the ring as the wire shows it: newest first, with the work a
+// call caused nested underneath it.
 //
 // Ordering is the whole difficulty. The ring is newest-first, so a parent —
 // which by definition was recorded earlier — sits BELOW its children, and a
@@ -302,16 +295,21 @@ type trafficRow struct {
 // delivered on its own goroutine can finish before the request that triggered
 // it returns. Grouping by sequence number rather than by position is what makes
 // that harmless.
-func (c *Console) trafficEntries(since int64) []trafficRow {
-	if c.rec == nil {
-		return nil
-	}
-	raw := c.rec.Entries(since)
-
+func (c *Console) wireRows(raw []TrafficEntry) []trafficRow {
 	kids := map[int64][]TrafficEntry{}
 	known := map[int64]bool{}
 	for _, e := range raw {
 		known[e.Seq] = true
+	}
+	// The lanes share one scale: the slowest call in the window, leaving out a
+	// long poll's wait. A bar is how long a call took against the slowest one,
+	// so two rows can be compared by eye, and the window's "Slowest" is the bar
+	// that fills its lane.
+	scale := 1.0
+	for _, e := range raw {
+		if !waited(e) && e.Millis > scale {
+			scale = e.Millis
+		}
 	}
 	for _, e := range raw {
 		if e.Parent != 0 && known[e.Parent] {
@@ -325,22 +323,68 @@ func (c *Console) trafficEntries(since int64) []trafficRow {
 	}
 
 	rows := make([]trafficRow, 0, len(raw))
-	var emit func(e TrafficEntry, depth int)
-	emit = func(e TrafficEntry, depth int) {
-		rows = append(rows, rowOf(e, depth))
+	var emit func(e TrafficEntry, depth int, parentAt time.Time)
+	emit = func(e TrafficEntry, depth int, parentAt time.Time) {
+		row := rowOf(e, depth)
+		if !row.Wait {
+			offset := 0.0
+			if depth > 0 {
+				offset = float64(e.At.Sub(parentAt)) / float64(time.Millisecond)
+			}
+			left := int(offset / scale * 100)
+			if left < 0 {
+				left = 0
+			}
+			if left > 96 {
+				left = 96
+			}
+			width := int(e.Millis/scale*100 + 0.5)
+			if width < 2 {
+				width = 2
+			}
+			if left+width > 100 {
+				width = 100 - left
+			}
+			row.LaneLeft, row.LaneWidth = left, width
+			row.LaneBad = row.State == "error" || row.State == "threw"
+		}
+		rows = append(rows, row)
 		for _, k := range kids[e.Seq] {
-			emit(k, depth+1)
+			emit(k, depth+1, e.At)
 		}
 	}
+	roots := make([]TrafficEntry, 0, len(raw))
 	for _, e := range raw {
 		// A cascade whose parent is still in the window is emitted with it. One
 		// whose parent has aged out stands alone rather than disappearing.
 		if e.Parent != 0 && known[e.Parent] {
 			continue
 		}
-		emit(e, 0)
+		roots = append(roots, e)
+	}
+	// Newest first by when the call STARTED, which is what the When column
+	// says. The ring is in the order calls finished, and a long poll that waited
+	// twenty seconds finishes last: ordered by the ring it would sit above calls
+	// that happened after it began, under a time that is older than theirs.
+	sort.SliceStable(roots, func(i, j int) bool {
+		if !roots[i].At.Equal(roots[j].At) {
+			return roots[i].At.After(roots[j].At)
+		}
+		return roots[i].Seq > roots[j].Seq
+	})
+	for _, e := range roots {
+		emit(e, 0, e.At)
 	}
 	return rows
+}
+
+// trafficEntries is the ring as rows, for a caller that has no use for the
+// window's other figures.
+func (c *Console) trafficEntries(since int64) []trafficRow {
+	if c.rec == nil {
+		return nil
+	}
+	return c.wireRows(c.rec.Entries(since))
 }
 
 // fmtMillis is a duration as the wire column shows it: two significant
@@ -357,6 +401,14 @@ func fmtMillis(ms float64) string {
 	return strconv.FormatFloat(ms, 'f', 0, 64)
 }
 
+// millisCell is the ms column: milliseconds, or a long poll's wait in seconds.
+func millisCell(e TrafficEntry) string {
+	if waited(e) {
+		return strconv.Itoa(int(e.Millis/1000+0.5)) + " s"
+	}
+	return fmtMillis(e.Millis)
+}
+
 func rowOf(e TrafficEntry, depth int) trafficRow {
 	ref := e.Failure()
 	state := callState(e.Status, ref, factsOfEntry(e))
@@ -366,11 +418,12 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 	}
 	return trafficRow{
 		Time:    clockMillis(e.At),
-		Service: e.Service, Action: e.Action, Resource: e.Resource,
-		Status: e.Status, Millis: fmtMillis(e.Millis),
+		Service: e.Service, Action: e.Action, Label: actionLabel(e.Action), Resource: e.Resource,
+		Status: e.Status, Millis: millisCell(e), Wait: waited(e),
 		IsErr: e.Status >= 400 || state == "threw", Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		Refused: ref, State: state, StateWord: word,
-		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,
+		Answer: answerOf(e.Status, state, word), Why: whyOf(state, ref), WhyTitle: whyTitle(ref),
+		Depth: depth, Cascade: e.IsCascade(), Via: viaWords(e),
 		// Every row names a resource and none of them was a link, on the
 		// console's busiest surface. Pure string work, so it costs nothing at
 		// five hundred rows a poll.
@@ -486,79 +539,4 @@ func stateCopyFor(state, notBuilt string) stateView {
 	}
 	return stateView{Label: "Refused",
 		Why: "doze-aws refused the request: it breaks a rule of the service. The input is what to change."}
-}
-
-// ---- The deck ----
-
-// deckView is the stack in two rows: what needs attention, and what exists.
-type deckView struct {
-	Prefix    string
-	Services  []glanceService
-	Attention []glanceAttention
-	Unwired   []glanceUnwired
-	Rate      string
-	Recorder  bool
-	// FirstRun is a property of the STACK, not a memory of the user: nothing
-	// exists and nothing has ever been recorded. Both halves are needed —
-	// someone who cleared the wire is not new, and someone who deleted
-	// everything and is watching traffic is not new either. It self-heals: one
-	// API call or one bucket ends it forever, which is why it needs no
-	// persistence to detect.
-	FirstRun bool
-	Endpoint string
-	Hash     string
-	// Updated is when this snapshot was taken. A deck that polls silently gives
-	// no way to tell "nothing is happening" from "nothing is arriving".
-	Updated string
-}
-
-func (c *Console) deckData(r *http.Request) deckView {
-	g := c.glanceSnapshot(r.Context())
-	v := deckView{
-		Prefix: c.prefix, Services: g.Services, Attention: g.Attention,
-		Unwired: g.Unwired, Rate: g.Rate, Recorder: g.Recorder,
-		Endpoint: endpointHost(r),
-	}
-	// Suppress unwired entirely when NOTHING is wired. On a stack where no
-	// resource is connected to any other, "6 wired to nothing" is not an
-	// attention signal, it is a description of a stack nobody has wired yet.
-	if g.Nodes > 0 && len(g.Unwired) == g.Nodes {
-		v.Unwired = nil
-	}
-	total := 0
-	for _, s := range g.Services {
-		total += s.Calls
-	}
-	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.Changes() == 0)
-	v.Hash = deckHash(g)
-	v.Updated = clock(time.Now())
-	return v
-}
-
-// deckHash is the live-poll probe. The spark buckets are included deliberately:
-// on an idle stack — exactly when the 204 matters — they are all zero and the
-// hash is stable, and when there IS traffic the wire below is already morphing.
-func deckHash(g glanceResponse) string {
-	h := fnv.New64a()
-	for _, s := range g.Services {
-		fmt.Fprintf(h, "%s|%s|%s|%v|%v;", s.Svc, s.Label, s.State, s.Warn, s.Spark)
-	}
-	for _, a := range g.Attention {
-		fmt.Fprintf(h, "a:%s;", a.Slug)
-	}
-	fmt.Fprintf(h, "u:%d;r:%s", len(g.Unwired), g.Rate)
-	return strconv.FormatUint(h.Sum64(), 36)
-}
-
-func (c *Console) deck(w http.ResponseWriter, r *http.Request) {
-	v := c.deckData(r)
-	if liveUnchanged(w, r, v.Hash) {
-		return
-	}
-	// partial takes a map; the deck is a struct because it has enough shape to
-	// deserve one. One line of adaptation beats loosening the helper.
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := c.tmpl.ExecuteTemplate(w, "deck", v); err != nil {
-		http.Error(w, err.Error(), 500)
-	}
 }

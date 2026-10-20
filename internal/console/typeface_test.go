@@ -297,3 +297,28 @@ func TestEveryFontTheCSSNamesIsEmbedded(t *testing.T) {
 		t.Error("static/InterVariable.woff2 is still embedded; nothing uses it")
 	}
 }
+
+// The first-run wire draws its heading at 28/34 and the line under it at 15/22
+// (board Wire-Empty, inline: con.css has neither). They are not steps of the
+// ladder, because the design uses them once, so they are tokens of their own;
+// this holds the tokens to the board, so that they are the design's and not a
+// size somebody liked.
+func TestFirstRunSizesAreTheBoards(t *testing.T) {
+	board := strings.ReplaceAll(readAll(t, "../../plan/design/boards/Wire-Empty.dc.html"), "\n", "")
+	for _, want := range []string{`font: 600 28px/34px`, `font-size: 15px; line-height: 22px`} {
+		if !strings.Contains(board, want) {
+			t.Fatalf("Wire-Empty no longer says %q; update this test with the board", want)
+		}
+	}
+	app := cssComments.ReplaceAllString(readAll(t, "static/app.css"), " ")
+	root := ruleBody(t, app, "", ":root")
+	if root["--text-first"] != "28px" || root["--text-lede"] != "15px" {
+		t.Errorf("--text-first = %q, --text-lede = %q, want 28px and 15px", root["--text-first"], root["--text-lede"])
+	}
+	if h := ruleBody2(t, app, ".wf-h h1"); h["line-height"] != "34px" || h["font-size"] != "var(--text-first)" {
+		t.Errorf(".wf-h h1 = %v, want the heading's 28/34", h)
+	}
+	if l := ruleBody2(t, app, ".wf-lede"); l["line-height"] != "22px" || l["font-size"] != "var(--text-lede)" {
+		t.Errorf(".wf-lede = %v, want the line's 15/22", l)
+	}
+}

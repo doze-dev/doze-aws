@@ -60,6 +60,7 @@ type Console struct {
 	rec    *Recorder
 	name   string  // this instance's name, drawn in the top bar; empty draws none
 	held   heldSet // what the SQS Consume tab has received and not yet let go
+	id     awsident.Identity
 
 	chromeMu sync.Mutex
 	iamMode  string    // the IAM mode, read from the service once; "" until then
@@ -105,7 +106,7 @@ func New(opts Options) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Console{be: newBackend(opts.Peers, opts.Identity, opts.Suffix), tmpl: tmpl, prefix: prefix, rec: opts.Recorder, name: opts.Name}
+	c := &Console{be: newBackend(opts.Peers, opts.Identity, opts.Suffix), tmpl: tmpl, prefix: prefix, rec: opts.Recorder, name: opts.Name, id: opts.Identity}
 	c.routes()
 	return c, nil
 }
@@ -159,6 +160,8 @@ func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, da
 	// Not "Name": a page's own data says Name for the resource it shows, and
 	// render writes after the page does.
 	data["InstanceName"] = c.name
+	// "live" or "quiet" beside The wire in the rail (Main, Wire-Empty).
+	data["WireNote"] = c.wireNote()
 	data["IAMMode"] = c.iamModeCached(r.Context())
 	// The rail's default for this page. The wire is the one page that is
 	// labelled (Anatomy, rule 1: "Full names on the wire, marks only inside a
@@ -446,6 +449,15 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"resolveIn": resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
+		},
+		// wireIcon is the service's mark for a wire row. The wire names two
+		// services that have no icon (sts, and http for an API destination), and
+		// a missing image is a broken one, so they get a plain tile.
+		"wireIcon": func(svc string) template.HTML {
+			if _, ok := catalogOf(svc); ok {
+				return template.HTML(`<img class="aws-ic wire-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
+			}
+			return template.HTML(`<span class="aws-ic wire-ic wire-mk" aria-hidden="true">` + template.HTMLEscapeString(strings.ToUpper(svc[:min(2, len(svc))])) + `</span>`)
 		},
 		// awsIconSm is the mark at the size a link in a sentence carries it.
 		"awsIconSm": func(svc string) template.HTML {

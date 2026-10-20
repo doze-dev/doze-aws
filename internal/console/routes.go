@@ -52,7 +52,6 @@ func (c *Console) routes() {
 		r.Get("/map", c.mapPage)                 // the wiring graph, as flows
 		r.Get("/connect", c.connect)
 		r.Post("/connect/verify", c.connectVerify)
-		r.Get("/deck", c.deck) // the stack at a glance
 
 		// Resource index for the command palette.
 		r.Get("/api/resources", c.apiResources)
