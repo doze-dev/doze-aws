@@ -1,6 +1,7 @@
 package console_test
 
 import (
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -59,6 +60,17 @@ func TestAMissingResourceIsAPageInTheShell(t *testing.T) {
 // and the one thing a person looking for a name needs is the list of names.
 func TestAMissingResourceKeepsItsListPane(t *testing.T) {
 	h := newConsole(t)
+	// seedFixtures writes the sweep's package-level fixture maps, which name
+	// things that exist in the console the sweep itself boots. Seeding another
+	// console through them left the sweep believing its access keys and key id
+	// already existed (six routes then found nothing), so they are put back.
+	savedFixtures, savedDiscovered := maps.Clone(fixtures), maps.Clone(discovered)
+	defer func() {
+		clear(fixtures)
+		maps.Copy(fixtures, savedFixtures)
+		clear(discovered)
+		maps.Copy(discovered, savedDiscovered)
+	}()
 	discovered["code"] = t.TempDir()
 	seedFixtures(t, h)
 	for _, c := range []struct{ svc, path string }{

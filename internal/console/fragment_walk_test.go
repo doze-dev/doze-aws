@@ -199,16 +199,16 @@ func fragmentRegions() []fragCase {
 				rec := made(t, h, [2]any{"/kms/create", vals("spec", "SYMMETRIC_DEFAULT", "usage", "ENCRYPT_DECRYPT", "alias", "alias-one")})
 				return map[string]string{"{id}": idOf(t, rec)}
 			}},
-		{tpl: "ddb_details", method: "POST", path: "/ddb/t1/ttl", form: vals("attr", "expires"),
-			page: "/ddb/t1?tab=details",
+		{tpl: "ddb_details", method: "POST", path: "/ddb/tbl1/ttl", form: vals("attr", "expires"),
+			page: "/ddb/tbl1?tab=details",
 			pre: func(t *testing.T, h http.Handler) map[string]string {
-				made(t, h, [2]any{"/ddb/create", vals("name", "t1", "hash_key", "pk", "hash_type", "S")})
+				made(t, h, [2]any{"/ddb/create", vals("name", "tbl1", "hash_key", "pk", "hash_type", "S")})
 				return nil
 			}},
-		{tpl: "ddb_item_table", method: "POST", path: "/ddb/t1/put", form: vals("item", `{"pk":"a"}`),
-			page: "/ddb/t1",
+		{tpl: "ddb_item_table", method: "POST", path: "/ddb/tbl1/put", form: vals("item", `{"pk":"a"}`),
+			page: "/ddb/tbl1",
 			pre: func(t *testing.T, h http.Handler) map[string]string {
-				made(t, h, [2]any{"/ddb/create", vals("name", "t1", "hash_key", "pk", "hash_type", "S")})
+				made(t, h, [2]any{"/ddb/create", vals("name", "tbl1", "hash_key", "pk", "hash_type", "S")})
 				return nil
 			}},
 		{tpl: "eb_targets", method: "POST", path: "/eb/default/rule/r1/add-target", form: vals("arn", q1),
