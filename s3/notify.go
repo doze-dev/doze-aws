@@ -17,6 +17,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 type notificationConfig struct {
@@ -68,7 +69,7 @@ func (s *Server) notify(ctx context.Context, bucket, key, eventName string, v *s
 		// survive, which is the part that has to.
 		// The delivery is S3's own call, on behalf of the bucket: the target's
 		// resource policy sees s3.amazonaws.com and the bucket ARN.
-		outer := peers.WithPrincipal(context.WithoutCancel(ctx), "s3", "arn:aws:s3:::"+bucket)
+		outer := trace.WithVia(peers.WithPrincipal(context.WithoutCancel(ctx), "s3", "arn:aws:s3:::"+bucket), eventName)
 		target := arn
 		bg.Go(s.logf, "s3: notification delivery", func() {
 			s.deliverNotification(outer, target, string(payload))

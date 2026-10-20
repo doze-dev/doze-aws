@@ -171,3 +171,33 @@ func TestAFailedStepDetailRecordsStatusDenialAndWhatItLeftBehind(t *testing.T) {
 		t.Error("an untraced StepDetail dropped its error")
 	}
 }
+
+// A caller that knows what emitted a delivery (S3, for a notification) says so
+// on the context, and the step it makes carries it: the wire reads "via
+// s3:ObjectCreated:Put" under the put that caused it. The step names its own
+// via when it has one (an SNS fan-out), and the work inside the step does not
+// inherit the caller's: a queue send made by a topic's delivery is the topic's.
+func TestAStepCarriesTheViaItsCallerSetAndPassesItNoFurther(t *testing.T) {
+	sink := &fakeSink{run: "r"}
+	ctx := WithVia(With(context.Background(), sink, 1), "s3:ObjectCreated:Put")
+
+	_ = Step(ctx, Event{Service: "sns", Action: "Publish", Resource: "t"}, func(ctx context.Context) error {
+		// Inside the publish, a send with no via of its own is not "via s3".
+		return Step(ctx, Event{Service: "sqs", Action: "SendMessage", Resource: "q"}, func(context.Context) error { return nil })
+	})
+	_ = Step(ctx, Event{Service: "sqs", Action: "SendMessage", Resource: "q2", Via: "sns:t"}, func(context.Context) error { return nil })
+
+	byRes := map[string]Event{}
+	for _, e := range sink.events {
+		byRes[e.Resource] = e
+	}
+	if got := byRes["t"].Via; got != "s3:ObjectCreated:Put" {
+		t.Errorf("the publish's via = %q, want the caller's", got)
+	}
+	if got := byRes["q"].Via; got != "" {
+		t.Errorf("the send inside the publish inherited via %q; the caller's via goes no further", got)
+	}
+	if got := byRes["q2"].Via; got != "sns:t" {
+		t.Errorf("a step's own via was replaced: %q", got)
+	}
+}

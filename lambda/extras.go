@@ -338,6 +338,19 @@ func stateFor(enabled bool) string {
 	return "Disabled"
 }
 
+// deliveryContext is the context an SQS mapping's invoke is recorded under: the
+// chain the message came from when its header names one, and otherwise a root.
+//
+// A message nothing of ours sent (an SDK's SendMessage carries no header) has no
+// parent to continue, and the delivery is still work doze-aws did, so it is a
+// root on the wire, as a stream's delivery is (invokeFromSource). trace.Continue
+// alone hands back the bare context in that case, which has no sink, and the
+// invoke was then not on the wire at all.
+func (s *Server) deliveryContext(header string) context.Context {
+	sink := s.traceSink()
+	return trace.Continue(trace.With(context.Background(), sink, 0), sink, header)
+}
+
 // invokeFromSource runs an event-source invocation that has no cause of its
 // own — a stream record carries no trace header — as a root on the wire, so
 // a DynamoDB or Kinesis delivery is visible where it used to be silent, and
@@ -504,7 +517,7 @@ func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 		// mix causes; the first message's header is used, because one invoke
 		// has one parent and inventing a second edge would be a guess. In
 		// practice a batch is one producer's work.
-		ctx := trace.Continue(context.Background(), s.traceSink(), msgs[0].TraceHeader())
+		ctx := s.deliveryContext(msgs[0].TraceHeader())
 
 		records := make([]map[string]any, 0, len(msgs))
 		for _, msg := range msgs {
