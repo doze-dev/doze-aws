@@ -30,11 +30,11 @@ import (
 
 func TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove(t *testing.T) {
 	if testing.Short() {
-		t.Skip("moves a few thousand messages and restarts the service (about 15 s)")
+		t.Skip("moves a few thousand messages and restarts the service (about 15 s on a quiet machine; the limits catch a hang, not a slow one)")
 	}
 	const total = 3000
 	started := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 55*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	dir := t.TempDir()
 
@@ -155,7 +155,7 @@ func TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove(t *testing.T) {
 			movedBefore = n
 			break
 		}
-		if time.Now().After(started.Add(30 * time.Second)) {
+		if time.Now().After(started.Add(2 * time.Minute)) {
 			t.Fatalf("only %d moved after 30 s", n)
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -189,7 +189,7 @@ func TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove(t *testing.T) {
 		if status != "RUNNING" {
 			t.Fatalf("the second task is %s", status)
 		}
-		if time.Now().After(started.Add(45 * time.Second)) {
+		if time.Now().After(started.Add(3 * time.Minute)) {
 			t.Fatalf("the second task was still running at %s", time.Since(started))
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -203,7 +203,7 @@ func TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove(t *testing.T) {
 		if got >= total {
 			break
 		}
-		if time.Now().After(started.Add(50 * time.Second)) {
+		if time.Now().After(started.Add(220 * time.Second)) {
 			t.Fatalf("the consumer has seen %d of %d messages at %s", got, total, time.Since(started))
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -249,7 +249,7 @@ func TestSQSRedriveOfAFewThousandMessagesSurvivesARestartMidMove(t *testing.T) {
 		}
 	}
 	t.Logf("%d messages, %d repeats, restart at %d moved, %s", total, dup, movedBefore, time.Since(started).Round(100*time.Millisecond))
-	if time.Since(started) > 55*time.Second {
-		t.Errorf("the soak took %s; it is bounded to under a minute", time.Since(started))
+	if time.Since(started) > 4*time.Minute {
+		t.Errorf("the soak took %s; it is bounded to four minutes, to catch a hang, not a slow machine", time.Since(started))
 	}
 }

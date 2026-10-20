@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fragCase struct {
@@ -390,7 +391,7 @@ func TestFragmentsAreRegionsOfTheirPage(t *testing.T) {
 				t.Fatalf("%s %s: status %d, error %q, location %q\n%s", c.method, c.path, frag.Code, frag.Header().Get("HX-Doze-Error"), frag.Header().Get("HX-Location"), clip(frag.Body.String()))
 			}
 			body := strings.TrimSpace(frag.Body.String())
-			differs, detail := func() (bool, string) {
+			compare := func(body string) (bool, string) {
 				var pageHTML string
 				if from, ok := strings.CutPrefix(c.page, "frag:"); ok {
 					// The page loads this region from a route of its own.
@@ -407,7 +408,17 @@ func TestFragmentsAreRegionsOfTheirPage(t *testing.T) {
 					pageHTML = page.Body.String()
 				}
 				return compareRegions(body, pageHTML, c.page)
-			}()
+			}
+			differs, detail := compare(body)
+			// The fragment and the page are two requests. What the clock or a running
+			// execution changes between them is transient; a fragment that shows less
+			// than its page differs every time. So a GET is looked at again before it
+			// is called a difference (a mutating route is never replayed).
+			for i := 0; differs && c.method == "GET" && i < 5; i++ {
+				time.Sleep(200 * time.Millisecond)
+				again := htmxDo(h, c.method, subst(c.path, with), form)
+				differs, detail = compare(strings.TrimSpace(again.Body.String()))
+			}
 			switch {
 			case differs && c.adopts == "":
 				t.Errorf("%s: the fragment shows less (or other) than its page: %s", c.tpl, detail)

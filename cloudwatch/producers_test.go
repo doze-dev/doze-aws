@@ -160,17 +160,14 @@ func TestLambdaPublishesInvocationMetrics(t *testing.T) {
 	}
 
 	dims := []cwtypes.Dimension{{Name: aws.String("FunctionName"), Value: aws.String("worker")}}
-	if got := waitForMetric(t, cwC, ctx, "AWS/Lambda", "Invocations", dims); got != 2 {
-		t.Errorf("Invocations = %v, want 2", got)
-	}
+	// Two invocations publish separately: wait for the sum to reach 2.
+	waitForMetricSum(t, cwC, ctx, "AWS/Lambda", "Invocations", dims, 2)
 	// Duration is published too, and is a real measurement rather than zero.
 	if got := waitForMetric(t, cwC, ctx, "AWS/Lambda", "Duration", dims); got <= 0 {
 		t.Errorf("Duration = %v, want a positive measurement", got)
 	}
 	// The undimensioned copy is what an account-wide alarm watches.
-	if got := waitForMetric(t, cwC, ctx, "AWS/Lambda", "Invocations", nil); got != 2 {
-		t.Errorf("undimensioned Invocations = %v, want 2", got)
-	}
+	waitForMetricSum(t, cwC, ctx, "AWS/Lambda", "Invocations", nil, 2)
 }
 
 // An EMF line a function prints becomes a custom metric, with no SDK call.
@@ -385,9 +382,8 @@ func TestAPIGatewayPublishesRequestMetrics(t *testing.T) {
 		{Name: aws.String("ApiName"), Value: aws.String("shop")},
 		{Name: aws.String("Stage"), Value: aws.String("dev")},
 	}
-	if got := waitForMetric(t, cwC, ctx, "AWS/ApiGateway", "Count", dims); got != 4 {
-		t.Errorf("Count = %v, want 4 (three served and one refused)", got)
-	}
+	// Three served and one refused: four calls, published separately.
+	waitForMetricSum(t, cwC, ctx, "AWS/ApiGateway", "Count", dims, 4)
 	if got := waitForMetric(t, cwC, ctx, "AWS/ApiGateway", "4XXError", dims); got != 1 {
 		t.Errorf("4XXError = %v, want 1", got)
 	}
@@ -449,15 +445,11 @@ func TestStepFunctionsPublishesExecutionMetrics(t *testing.T) {
 
 	good := []cwtypes.Dimension{{Name: aws.String("StateMachineArn"), Value: aws.String(arns["good"])}}
 	bad := []cwtypes.Dimension{{Name: aws.String("StateMachineArn"), Value: aws.String(arns["bad"])}}
-	if got := waitForMetric(t, cwC, ctx, "AWS/States", "ExecutionsStarted", good); got != 2 {
-		t.Errorf("good ExecutionsStarted = %v, want 2", got)
-	}
-	if got := waitForMetric(t, cwC, ctx, "AWS/States", "ExecutionsSucceeded", good); got != 2 {
-		t.Errorf("ExecutionsSucceeded = %v, want 2", got)
-	}
-	if got := waitForMetric(t, cwC, ctx, "AWS/States", "ExecutionsFailed", bad); got != 1 {
-		t.Errorf("ExecutionsFailed = %v, want 1", got)
-	}
+	// Each execution publishes on its own, so the first datapoint to appear can
+	// be 1 of the 2: wait for the sum to REACH the number, not for any value.
+	waitForMetricSum(t, cwC, ctx, "AWS/States", "ExecutionsStarted", good, 2)
+	waitForMetricSum(t, cwC, ctx, "AWS/States", "ExecutionsSucceeded", good, 2)
+	waitForMetricSum(t, cwC, ctx, "AWS/States", "ExecutionsFailed", bad, 1)
 	// The failing machine's executions must not appear as the other's — this
 	// is the dimension bug Moto has, and the one alarms cannot tolerate.
 	out, err := cwC.ListMetrics(ctx, &awscw.ListMetricsInput{
