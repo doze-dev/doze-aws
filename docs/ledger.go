@@ -84,7 +84,7 @@ func (r Row) TierLabel() string {
 		return "cosmetic"
 	case "S":
 		return "stub"
-	case ExtensionTier:
+	case extensionTier:
 		return "doze extension"
 	}
 	return r.Tier
@@ -174,14 +174,14 @@ func Rows(svc string) []Row {
 	return rows
 }
 
-// ExtensionTier is the tier cell of a row that is not an AWS operation at all:
+// extensionTier is the tier cell of a row that is not an AWS operation at all:
 // a call this emulator adds (SQS's DozePeek, IAM's DozeAccessLog). It is not a
 // fourth tier, so Rows leaves it out and every ratchet over the real tiers is
 // unchanged; the fidelity dialog draws it last, with the dash (board Fidelity).
-const ExtensionTier = "—"
+const extensionTier = "—"
 
-// Extensions parses the rows of a ledger that are the emulator's own, tier
-// ExtensionTier, in the order the ledger has them.
+// Extensions parses the rows of a ledger that are the emulator's own, whose
+// Tier is the dash, in the order the ledger has them.
 func Extensions(svc string) []Row {
 	text, err := Read(svc)
 	if err != nil {
@@ -189,12 +189,12 @@ func Extensions(svc string) []Row {
 	}
 	var rows []Row
 	forEachTableRow(text, func(m []string) {
-		if strings.TrimSpace(m[2]) != ExtensionTier {
+		if strings.TrimSpace(m[2]) != extensionTier {
 			return
 		}
 		rows = append(rows, Row{
 			Ops:  strings.TrimSpace(strings.ReplaceAll(m[1], "`", "")),
-			Tier: ExtensionTier,
+			Tier: extensionTier,
 			Note: strings.TrimSpace(strings.ReplaceAll(m[3], "`", "")),
 		})
 	})

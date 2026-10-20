@@ -67,15 +67,20 @@ cloudwatch: func New(opts Options) (*Server, error)
 cloudwatch: type Options struct
 cloudwatch: type Server struct
 docs: const TierLegend
+docs: field Difference.Lead string
+docs: field Difference.Text string
 docs: field Row.Note string
 docs: field Row.Ops string
 docs: field Row.Tier string
 docs: func (Row) TierLabel() string
+docs: func Differences(svc string) []Difference
+docs: func Extensions(svc string) []Row
 docs: func FTierOps(svc string) []string
 docs: func Read(svc string) (string, error)
 docs: func Rows(svc string) []Row
 docs: func Section(svc, heading string) string
 docs: func Services() []string
+docs: type Difference struct
 docs: type Row struct
 docs: var FS
 dozeaws: const GlobalDir

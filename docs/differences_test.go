@@ -73,7 +73,7 @@ func TestADifferenceWithoutALeadIsAllBody(t *testing.T) {
 // Extensions reads exactly them.
 func TestExtensionsAreTheDashRowsAndRowsLeavesThemOut(t *testing.T) {
 	ext := Extensions("sqs")
-	if len(ext) != 1 || ext[0].Ops != "DozePeek" || ext[0].Tier != ExtensionTier ||
+	if len(ext) != 1 || ext[0].Ops != "DozePeek" || ext[0].Tier != extensionTier ||
 		ext[0].Note != "doze extension: read-only full-queue inspection (no visibility/receive-count side effects)" {
 		t.Fatalf("SQS extensions = %+v", ext)
 	}
