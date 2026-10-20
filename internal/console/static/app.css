@@ -2963,6 +2963,7 @@ a.wire-callout:hover { text-decoration: underline; }
 .wf-ch .h2 { font-size: var(--text-md); font-weight: 600; line-height: 20px; }
 .wf-acts { display: flex; flex-direction: column; gap: 6px; }
 .wf-acts .btn { justify-content: flex-start; text-decoration: none; }
+.wire-first .note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .wire-waiting { max-width: 720px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius); }
 .wire-waiting .live { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
 .wire-waiting .m { color: var(--ink); }
@@ -2977,6 +2978,10 @@ a.wire-callout:hover { text-decoration: underline; }
   .wire.open .wire-tbl { --c: 80px 130px minmax(0, 1fr) 88px 44px; }
   .tr-head, .tr-row { column-gap: 8px; }
   .lane, .tr-lane-h { display: none; }
+  /* The refusal's sentence is on the inspector and its word is in the chip; at
+     this width the cell has room for the resource and not for a sentence beside
+     it, and a sentence cut to a letter says nothing. */
+  .tr-why-t { display: none; }
   .wire-first { padding: 32px 28px 0; }
   .wf-cards { flex-wrap: wrap; }
 }

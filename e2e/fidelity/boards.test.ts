@@ -101,10 +101,10 @@ describe('the real tables against the real boards', () => {
     expect(coverage(boards, DRIVERS.sqs!)).toEqual({ undriven: [], orphaned: [] });
   });
 
-  test.skipIf(!have)('the shell table covers the cross-cutting boards, with the two undrivable ones as explicit skips', () => {
+  test.skipIf(!have)('the shell table covers the cross-cutting boards, with the one document board (Grounding) as an explicit skip', () => {
     const boards = boardsFor(SHELL, real);
     expect(coverage(boards, DRIVERS.shell!)).toEqual({ undriven: [], orphaned: [] });
-    for (const name of ['Bad-Down', 'Grounding']) {
+    for (const name of ['Grounding']) {
       const d = DRIVERS.shell![name];
       expect(d && 'skip' in d && d.skip.length > 10).toBe(true);
     }
@@ -131,8 +131,8 @@ describe('the real tables against the real boards', () => {
 
 describe('the command line', () => {
   test('a target and its flags', () => {
-    expect(parseArgs(['sqs', '--dark', '--id2'])).toEqual({ target: 'sqs', flags: { dark: true, w900: false, id2: true } });
-    expect(parseArgs(['--', 'sqs'])).toEqual({ target: 'sqs', flags: { dark: false, w900: false, id2: false } });
+    expect(parseArgs(['sqs', '--dark', '--id2'])).toEqual({ target: 'sqs', flags: { dark: true, w900: false, w1024: false, id2: true } });
+    expect(parseArgs(['--', 'sqs'])).toEqual({ target: 'sqs', flags: { dark: false, w900: false, w1024: false, id2: false } });
   });
 
   test('no target, two targets and unknown flags are refused', () => {
@@ -142,8 +142,10 @@ describe('the command line', () => {
   });
 
   test('the output directory is named by the variant', () => {
-    expect(variantOf({ dark: false, w900: false, id2: false })).toBe('');
-    expect(variantOf({ dark: true, w900: true, id2: false })).toBe('dark-w900');
-    expect(variantOf({ dark: false, w900: false, id2: true })).toBe('id2');
+    expect(variantOf({ dark: false, w900: false, w1024: false, id2: false })).toBe('');
+    expect(variantOf({ dark: true, w900: true, w1024: false, id2: false })).toBe('dark-w900');
+    expect(variantOf({ dark: false, w900: false, w1024: false, id2: true })).toBe('id2');
+    expect(variantOf({ dark: true, w900: false, w1024: true, id2: false })).toBe('dark-w1024');
+    expect(parseArgs(['sqs', '--w1024'])).toEqual({ target: 'sqs', flags: { dark: false, w900: false, w1024: true, id2: false } });
   });
 });

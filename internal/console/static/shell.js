@@ -232,6 +232,10 @@
   }
   document.addEventListener("htmx:error", function (e) {
     var ctx = e.detail && e.detail.ctx;
+    // A request the page itself cancelled (a navigation that replaced a poll) is
+    // not a connection that failed.
+    var err = e.detail && e.detail.error;
+    if (err && err.name === "AbortError") return;
     if (ctx && !ctx.response) lost();
   });
   document.addEventListener("htmx:after:request", function (e) {

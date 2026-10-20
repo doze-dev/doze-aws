@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/console';
 import { createQueue } from '../fixtures/api';
 import { fileURLToPath } from 'node:url';
+import { ACCOUNT_ID, BASE_URL } from '../playwright.config';
 
 // What the audit sweep (audit/crawl.ts) found in the shell and the shell now
 // holds: axe over the places the shell draws, in both themes at the two widths
@@ -83,6 +84,28 @@ for (const theme of ['light', 'dark']) {
         await page.keyboard.press('Control+k');
         await expect(page.locator('#pal-q')).toBeVisible();
         await page.waitForTimeout(500);
+        expect(await violations(page)).toEqual([]);
+      });
+
+      test('the wire, with the service menu open and a refused call open, has nothing for axe', async ({ page, request, uniqueName }) => {
+        // A refusal (the answer chip, the callouts, the reason, the ledger) and a
+        // served call, so the table, "Needs a look" and the inspector are all drawn.
+        const root = new URL('/', BASE_URL).toString();
+        const q = uniqueName('e2e-a11y-wire');
+        const call = (op: string, body: object) =>
+          request.post(root, { headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': `AmazonSQS.${op}` }, data: JSON.stringify(body) });
+        await call('CreateQueue', { QueueName: q });
+        await call('SendMessage', { QueueUrl: `${root}${ACCOUNT_ID}/${q}`, MessageBody: 'x', MessageDeduplicationId: 'd' });
+        await page.goto('');
+        await expect(page.locator('#traffic-feed .tr-row', { hasText: q }).first()).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+        // The service menu open, and then a call open.
+        await page.getByRole('button', { name: 'Filter by service' }).click();
+        await expect(page.getByRole('menuitem').first()).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+        await page.keyboard.press('Escape');
+        await page.locator('#traffic-feed .tr-row.refused', { hasText: q }).first().locator('.act').click();
+        await expect(page.locator('#t-drawer-inner .td-callout')).toBeVisible();
         expect(await violations(page)).toEqual([]);
       });
     });

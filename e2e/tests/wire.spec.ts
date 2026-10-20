@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '../fixtures/console';
 import { PRIVATE_CONSOLE, PRIVATE_ORIGIN, privateSqs, startPrivate, type PrivateServer } from '../fixtures/private';
 import { ACCOUNT_ID, BASE_URL, REGION } from '../playwright.config';
@@ -14,6 +15,7 @@ import { ACCOUNT_ID, BASE_URL, REGION } from '../playwright.config';
 // (fixtures/private.ts), serially.
 
 const GATEWAY_ROOT = new URL('/', BASE_URL).toString();
+const AXE = fileURLToPath(new URL('../node_modules/axe-core/axe.min.js', import.meta.url));
 
 async function aws(request: APIRequestContext, target: string, body: Record<string, unknown>) {
   return request.post(GATEWAY_ROOT, {
@@ -253,6 +255,19 @@ test.describe('on a stack of its own', () => {
     await expect(page.getByText('waiting for a call…')).toBeVisible();
     await expect(page.getByText('There is none here.')).toBeVisible();
 
+    // Nothing for axe on it, in either theme.
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((t) => localStorage.setItem('theme', t), theme);
+      await page.reload();
+      await expect(page.locator('.wire-first')).toBeVisible();
+      await page.waitForTimeout(300);
+      await page.addScriptTag({ path: AXE });
+      const found = await page.evaluate(async () => (await (window as any).axe.run(document, { resultTypes: ['violations'] })).violations.filter((v: any) => v.impact !== 'minor').map((v: any) => `${v.id}: ${v.nodes[0].target.join(' ')}`));
+      expect(found, `axe on the first-run wire, ${theme}`).toEqual([]);
+    }
+    await page.evaluate(() => localStorage.removeItem('theme'));
+    await page.reload();
+
     // The first call ends it: the page becomes the wire without a reload.
     await privateSqs(PRIVATE_ORIGIN, 'ListQueues', {});
     await expect(page.locator('.wire-first')).toHaveCount(0, { timeout: 10000 });
@@ -353,6 +368,7 @@ test.describe('on a stack of its own', () => {
     await expect(page.locator('#keybar')).toHaveText(/^last heard \d\d:\d\d:\d\d$/);
     // What is on screen is the last thing heard, and is not to be acted on.
     await expect(page.locator('#workspace')).toHaveAttribute('inert', '');
+    await expect(page.locator('#workspace')).toHaveCSS('opacity', '0.6');
     // "Try now" asks again, and is still refused.
     await page.getByRole('button', { name: 'Try now' }).click();
     await page.waitForTimeout(500);
