@@ -133,6 +133,11 @@ test.describe('API Gateway gates', () => {
     await page.locator('input[name="stage"]').fill('v1');
     await page.getByRole('button', { name: 'Deploy API' }).click();
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('v1');
+    // The toast comes in a header htmx acts on before it swaps the response in, so the page still
+    // shows the form and not the stage. Go on only once the stage row is there: a link clicked in
+    // between was overwritten by the late swap (the address read /apigw-keys over the API's page,
+    // seen in 7 of 30 loaded runs, 7 ms from the toast to the click in the log).
+    await expect(page.locator('tbody td', { hasText: 'v1' }).first()).toBeVisible();
     await page.locator('a', { hasText: 'API keys' }).first().click();
     await page.waitForURL(/apigw-keys/);
     const body = () => page.locator('#apigw-keys-body');

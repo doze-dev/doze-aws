@@ -149,6 +149,18 @@ export const test = base.extend<ConsoleFixtures>({
             `  console said: ${detail}`
         );
       }
+      // The toast arrives in an HX-Trigger header, which htmx acts on BEFORE it swaps the
+      // response in: at the moment the toast is on screen the old form is still in the
+      // document and the triggering element still carries htmx-request (measured, 12 of 12
+      // Deploy API clicks). A spec that fills the next field, or clicks the next link, the
+      // instant this returns can land on the DOM the swap is about to replace (the form it
+      // filled is swapped for an empty one; the link it clicked is dropped). So wait for
+      // htmx to be done with the exchange that produced the toast: no element is requesting,
+      // swapping or settling. Bounded and not an error: a page may have a long request of
+      // its own in flight (a long poll), which is not what the toast was about.
+      await page
+        .waitForFunction(() => !document.querySelector('.htmx-request, .htmx-swapping, .htmx-settling'), null, { timeout: 3000 })
+        .catch(() => {});
       state.__lastToastSeq = seq;
       // A refusal before this point was survivable (a spec may drive one on
       // purpose); don't let it explain a LATER timeout.
