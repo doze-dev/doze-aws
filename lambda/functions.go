@@ -586,7 +586,13 @@ const (
 	memoryMinMB = 128
 	memoryMaxMB = 32768
 	timeoutMinS = 1
-	timeoutMaxS = 5400
+	// timeoutMaxS is 900, not the range trait's 5400. The model's member text
+	// gives both: "the maximum allowed value is 900 seconds. For functions using
+	// Lambda Managed Instances, asynchronous invocations and event source
+	// mapping invocations ... a maximum allowed value of 5,400 seconds". The
+	// 5400 belongs to a function on a capacity provider, which doze-aws does not
+	// serve, so every function here is bounded at 900.
+	timeoutMaxS = 900
 )
 
 // onlyLatest refuses a change addressed to anything but the live function. A
