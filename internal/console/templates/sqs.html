@@ -320,7 +320,7 @@
            data-readers='[{{range $i, $r := .Readers}}{{if $i}},{{end}}{"n":"{{$r.Name}}","t":{{$r.Timeout}},"u":"{{$r.URL}}"}{{end}}]'
            x-show="short.length" x-init="read()" @input.window="read()" @change.window="read()">
         <b>Shorter than the reader's timeout</b>
-        <template x-for="r in short" :key="r.n"><span class="q-note"><a class="mono" :href="r.u" x-text="r.n"></a> may run for <span class="mono" x-text="s(r.t)"></span>. A message received at the start comes back after <span x-text="s(v)"></span> and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be <span x-text="s(6*r.t)"></span>. doze-aws does not check this when the trigger is created.</span></template>
+        <template x-for="r in short" :key="r.n"><span class="q-note"><a class="mono" :href="r.u" x-text="r.n"></a> may run for <span class="mono" x-text="s(r.t)"></span>. A message received at the start comes back after <span x-text="s(v)"></span> and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be <span x-text="s(6*r.t)"></span>. doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated.</span></template>
       </div>
       {{/* ...and when it fits, the Teaching board draws the same line five as the
            quiet green callout under the field: "Its timeout is 30 s and a
@@ -421,7 +421,7 @@
       {{if .Short}}
       <div class="q-callout warn">
         <b>Shorter than the reader's timeout</b>
-        <span class="q-note"><a class="mono stack-reader-link" href="{{.URL}}">{{.Name}}</a> may run for <span class="mono">{{.TimeoutShort}}</span>. A message received at the start comes back after {{.VisShort}} and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be {{.AdvisedShort}}. doze-aws does not check this when the trigger is created.</span>
+        <span class="q-note"><a class="mono stack-reader-link" href="{{.URL}}">{{.Name}}</a> may run for <span class="mono">{{.TimeoutShort}}</span>. A message received at the start comes back after {{.VisShort}} and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be {{.AdvisedShort}}. doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated.</span>
       </div>
       {{else}}
       <div class="q-callout ok">

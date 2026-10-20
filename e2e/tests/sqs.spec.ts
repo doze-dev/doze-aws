@@ -1018,7 +1018,10 @@ test.describe('configuration tab', () => {
     await expect(reader).toContainText("Shorter than the reader's timeout");
     await expect(reader).toContainText('may run for 60 s. A message received at the start comes back after 30 s and can be handled twice');
     await expect(reader).toContainText('which here would be 360 s');
-    await expect(reader).toContainText('does not check this when the trigger is created');
+    // What is true: the six times is guidance and is not checked; a trigger is refused when its
+    // queue hides messages for less time than the function runs (LAM-5), at create and at update.
+    await expect(reader).toContainText("doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated.");
+    await expect(reader).not.toContainText('does not check this when the trigger is created');
     await expect(reader.locator('a')).toHaveAttribute('href', new RegExp(`/lambda/${fn}$`));
 
     // The other state: a visibility timeout that covers the function.
@@ -1081,6 +1084,7 @@ test.describe('configuration tab', () => {
     await expect(callout).toContainText('may run for 30 s');
     await expect(callout).toContainText('comes back after 20 s');
     await expect(callout).toContainText('which here would be 180 s');
+    await expect(callout).toContainText("doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated.");
     await page.locator('input[name=visibility]').fill('300');
     await expect(callout).toBeHidden();
     await expect(fits).toHaveText('Its timeout is 30 s and a received message stays hidden 300 s, so one run finishes before the message returns.');

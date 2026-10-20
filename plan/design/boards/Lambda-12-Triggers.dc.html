@@ -187,7 +187,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 <div class="callout warn">
 <div class="row ce g8"><span class="b">Shorter than this function's timeout</span><span class="tag new">new</span></div>
-<span class="note"><span class="m">harbour-loyalty-points-prod</span> hides a received message for <span class="m">20 s</span>, and this function may run <span class="m">30 s</span>. A slow run is handled twice. AWS refuses an SQS trigger set up like this; doze-aws does not check, so it will be added.</span>
+<span class="note"><span class="m">harbour-loyalty-points-prod</span> hides a received message for <span class="m">20 s</span>, and this function may run <span class="m">30 s</span>. A slow run is handled twice. AWS refuses an SQS trigger set up like this, and so does doze-aws: it is refused when added, so lower the function's timeout or raise the queue's first.</span>
 </div>
 <span class="note">Over 10, the poller gathers the batch over receives of at most 10 messages, and AWS needs a batching window of at least 1 second.</span>
 <div class="row" style="justify-content: flex-end"><button class="btn pri">Add trigger</button></div>

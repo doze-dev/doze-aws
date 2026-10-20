@@ -177,7 +177,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 <div class="callout warn">
 <span class="b">Longer than the queue's visibility timeout</span>
-<span class="note"><a class="m" href="Lambda-12-Triggers.dc.html">harbour-checkout-orders</a> hides a received message for <span class="m">60 s</span>. This function may now run <span class="m">90 s</span>, so the message can come back and be handled twice while the first run is still going. AWS will not create an SQS trigger from a queue that hides messages for less time than the function runs. This one already exists, and doze-aws does not check either way.</span>
+<span class="note"><a class="m" href="Lambda-12-Triggers.dc.html">harbour-checkout-orders</a> hides a received message for <span class="m">60 s</span>. This function may now run <span class="m">90 s</span>, so the message can come back and be handled twice while the first run is still going. AWS will not create an SQS trigger from a queue that hides messages for less time than the function runs. doze-aws refuses to create one too, but a trigger that already exists is not re-checked when the function changes, and this one already exists.</span>
 </div>
 </div>
 

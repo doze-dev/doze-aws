@@ -165,7 +165,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 
 <div class="callout warn">
 <span class="b">Shorter than the reader's timeout</span>
-<span class="note"><a class="m" href="Lambda-Home.dc.html">harbour-order-validator</a> may run for <span class="m">30 s</span>. A message received at the start comes back after 20 s and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be 180 s. doze-aws does not check this when the trigger is created.</span>
+<span class="note"><a class="m" href="Lambda-Home.dc.html">harbour-order-validator</a> may run for <span class="m">30 s</span>. A message received at the start comes back after 20 s and can be handled twice. AWS's guidance is a visibility timeout of at least six times the function's timeout, which here would be 180 s. doze-aws does not check that. It refuses a trigger only when its queue hides messages for less time than the function's timeout, and only when the trigger is created or updated.</span>
 </div>
 
 <div class="row g12">
