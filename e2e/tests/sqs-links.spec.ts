@@ -45,20 +45,22 @@ async function linksOn(page: Page): Promise<string[]> {
 
 /** What can be opened on a queue page that shows more links: the composer, the edit form, the redrive dialog. */
 async function openWhatOpens(page: Page) {
-  for (const open of [
-    () => page.locator('.dock-bar').click({ timeout: 500 }),
-    () => page.getByRole('button', { name: 'Edit settings' }).click({ timeout: 500 }),
-    () => page.getByRole('button', { name: /^Redrive/ }).first().click({ timeout: 500 }),
-    () => page.getByRole('button', { name: /Show raw attributes/ }).click({ timeout: 500 }),
+  for (const opener of [
+    page.locator('.dock-bar'),
+    page.getByRole('button', { name: 'Edit settings' }),
+    page.getByRole('button', { name: /^Redrive/ }).first(),
+    page.getByRole('button', { name: /Show raw attributes/ }),
   ]) {
-    await open().catch(() => {});
+    // Only what is on this page: a missing control is not waited for.
+    if ((await opener.count()) === 0) continue;
+    await opener.click({ timeout: 2000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
   }
 }
 
 test.describe('every link on the SQS pages opens', () => {
   test('in each state a queue can be in', async ({ page, request, uniqueName }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(240_000); // the full suite runs this beside forty other specs
     // A queue with a dead-letter queue made alongside, one that names an existing
     // one, a FIFO queue with its own, a name at the edge of the rule, and a bare one.
     const orders = await createQueue(request, uniqueName('e2e-lk-orders'), { dlqMode: 'new', maxReceive: 2, visibility: 30 });
