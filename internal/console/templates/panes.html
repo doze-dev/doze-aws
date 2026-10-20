@@ -25,6 +25,11 @@
      whose board draws a count beside the heading passes "ShowCount" and its
      "Count"; the slot has the id the out-of-band patch writes.
 
+     "Selected" says a resource is open, whose own header then holds the ⓘ
+     beside its name (kit res_header, board Fidelity, D12); a service whose header
+     has not adopted the kit leaves it off and the button stays here, which is
+     where Kms-01..18 draw it.
+
      "Creating" dims New on a create page, as Sqs-03 draws it: you are there.
      "Ghost" is the Create board's hook: the thing being made, as an italic row
      tagged new at the top of the list while its name is typed. Any input with
@@ -43,7 +48,7 @@
 <aside class="listpane" data-keys="{{if .Count}}{{listKeys .Svc}}{{else}}{{if .NewURL}}{{emptyListKeys .Svc true}}{{else}}{{emptyListKeys .Svc false}}{{end}}{{end}}">
   <div class="lp-h">
     <span class="l"><span class="lp-name">{{plural .Svc}}</span>{{if .ShowCount}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span>{{end}}{{template "lp_switch" dict "Svc" .Svc}}</span>
-    {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
+    {{if not .Selected}}{{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}{{end}}
     {{if .NewURL}}<a class="new-link{{if .Creating}} is-current{{end}}" href="{{.NewURL}}"{{if .Creating}} aria-current="page" aria-disabled="true"{{end}}>New</a>{{end}}
   </div>
   <div class="lp-menu">
@@ -326,41 +331,75 @@
      ledger records functional vs cosmetic vs stub per operation — a table
      real AWS cannot offer, because real AWS never has to answer "is this
      call real". Lazy: the panel loads on first open. The dot is the service
-     key. */}}
+     key.
+
+     The dialog is board Fidelity's: 940 wide, titled for the service in the
+     name the rail prints ("SQS · what is real here", an h1-sized title), an
+     `esc` at the right of the title and a Close in the foot, the three tiers
+     counted, the table, and under it "Differences from AWS" (info_panel). Its
+     height is its content's, to the board's 760. Where the button sits is D12:
+     beside the name in a resource's header (kit res_header), and in the list
+     pane's header when nothing is open. */}}
 {{define "info_button"}}
 <span x-data="{info:false}">
-  <button type="button" class="info-btn" title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" @click="info=true">{{icon "info"}}</button>
-  <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
-    <div class="dialog wide anim">
-      <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
-      <div class="dialog-b info-body" tabindex="0" role="region" aria-label="What is real here" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
-      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
-    </div>
-  </div>
+  <button type="button" class="info-btn" title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" aria-label="What of {{svcLabel .Svc}} is real here" @click="info=true">{{icon "info"}}</button>
+  {{template "info_overlay" .}}
 </span>
 {{end}}
 
+{{/* The header's half of the ⓘ: only the button, which asks the dialog (below,
+     outside the heading, so the heading's name is the resource's and not the
+     dialog's) to open. info_dialog is the dialog that answers it. */}}
+{{define "info_open"}}<button type="button" class="info-btn" x-data title="What of {{svcLabel .Svc}} is real here — the fidelity ledger" aria-label="What of {{svcLabel .Svc}} is real here" @click="$dispatch('open-fidelity')">{{icon "info"}}</button>{{end}}
+{{define "info_dialog"}}<div x-data="{info:false}" @open-fidelity.window="info=true">{{template "info_overlay" .}}</div>{{end}}
+
+{{define "info_overlay"}}
+  <div class="overlay q-center" role="dialog" aria-modal="true" aria-label="{{svcLabel .Svc}} fidelity" x-effect="[info, window.dozeTrap && dozeTrap($el, info)]" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
+    <div class="dialog fid anim">
+      <div class="fid-h">
+        <div class="fid-hr"><h3 class="fid-title">{{svcLabel .Svc}} · what is real here</h3><button type="button" class="btn btn-ghost btn-sm fid-esc" aria-label="Close" @click="info=false">esc</button></div>
+        <p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p>
+      </div>
+      <div class="fid-b info-body" tabindex="0" role="region" aria-label="What is real here" hx-get="{{.Prefix}}/info/{{pathesc .Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
+    </div>
+  </div>
+{{end}}
+
 {{define "info_panel"}}
-<div class="chips" style="margin-bottom:10px">
-  <span class="chip"><span class="badge state-on">F</span>&nbsp;{{.F}} functional</span>
-  {{if .C}}<span class="chip"><span class="badge state-warn">C</span>&nbsp;{{.C}} cosmetic</span>{{end}}
-  {{if .S}}<span class="chip"><span class="badge state-off">S</span>&nbsp;{{.S}} stub</span>{{end}}
+{{/* The dialog's body (board Fidelity, and Kms-19 for a service with many
+     rows): the tiers counted as pills (a tier none of the rows has is not
+     drawn), the ledger's table, and under it "Differences from AWS", the
+     ledger's own bullets, each a card with its bold lead in ink. A service with
+     two ledgers (API Gateway) names each and gives each its table and its
+     differences. Everything is read from docs/SUPPORT.md when the dialog opens. */}}
+<div class="fid-tiers">
+  <span class="pill ok"><span class="fid-tl">F</span>&nbsp;{{.F}} functional</span>
+  {{if .C}}<span class="pill warn"><span class="fid-tl">C</span>&nbsp;{{.C}} cosmetic</span>{{end}}
+  {{if .S}}<span class="pill"><span class="fid-tl">S</span>&nbsp;{{.S}} stub</span>{{end}}
 </div>
 {{if .Empty}}<p class="mini-note">No ledger for this service.</p>{{end}}
 {{$many := gt (len .Sections) 1}}
 {{range .Sections}}
 {{if $many}}<h4 class="info-sec">{{.Title}}</h4>{{end}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th style="width:60px">Tier</th><th style="width:280px">Operations</th><th>Notes</th></tr></thead>
+<div class="fid-card"><table class="fid-table">
+  <thead><tr><th class="fid-c-t">Tier</th><th class="fid-c-o">Operations</th><th>Notes</th></tr></thead>
   <tbody>
   {{range .Rows}}
     <tr>
-      <td><span class="badge {{if eq .Tier "F"}}state-on{{else if eq .Tier "C"}}state-warn{{else}}state-off{{end}}" title="{{.TierLabel}}">{{.Tier}}</span></td>
-      <td class="mono sub" style="overflow-wrap:anywhere">{{.Ops}}</td>
-      <td class="dim sub">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
+      <td><span class="pill {{if eq .Tier "F"}}ok{{else if eq .Tier "C"}}warn{{end}}" title="{{.TierLabel}}">{{.Tier}}</span></td>
+      <td class="fid-op">{{.Ops}}</td>
+      <td class="fid-note">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
     </tr>
   {{end}}
   </tbody>
 </table></div>
+{{if .Diffs}}
+<section class="fid-diff" aria-label="Differences from AWS{{if $many}}, {{.Title}}{{end}}">
+  <h4 class="fid-h2">Differences from AWS</h4>
+  {{range .Diffs}}<div class="fid-callout"><span class="fid-note">{{if .Lead}}<b>{{.Lead}}</b>{{end}}{{.Text}}</span></div>
+  {{end}}
+</section>
+{{end}}
 {{end}}
 {{end}}

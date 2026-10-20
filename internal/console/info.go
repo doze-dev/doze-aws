@@ -8,6 +8,10 @@ package console
 // this is the most useful table a console page can show — real AWS cannot offer
 // it, because real AWS never has to answer "is this call real here".
 //
+// The ledger's "### Differences from AWS" bullets are the dialog's second half
+// (boards Fidelity and Kms-19): what is real is the table, what is not the same
+// as AWS is the prose beneath it, and both are SUPPORT.md's own words.
+//
 // The parsing used to live here, and a second, differently-behaved copy lived
 // in coverage_test.go. Both now call docs.Rows / docs.FTierOps, so the panel and
 // the ratchets read the ledger identically and a format change cannot break
@@ -26,6 +30,8 @@ type infoSection struct {
 	// Title is shown above the table when a service has more than one.
 	Title string
 	Rows  []docs.Row
+	// Diffs is the ledger's "Differences from AWS", read with the rows.
+	Diffs []docs.Difference
 }
 
 // infoSvc maps a console service key onto the ledger sections it covers.
@@ -53,13 +59,18 @@ func infoSections(svc string) []infoSection {
 	}
 	out := make([]infoSection, 0, len(secs))
 	for _, s := range secs {
-		s.Rows = docs.Rows(s.Key)
+		// The emulator's own calls (DozePeek) come last, with a dash for a tier.
+		s.Rows = append(docs.Rows(s.Key), docs.Extensions(s.Key)...)
+		s.Diffs = docs.Differences(s.Key)
 		out = append(out, s)
 	}
 	return out
 }
 
-// svcInfo renders one service's fidelity table.
+// svcInfo renders one service's fidelity dialog body: the tier counts, the
+// table of operations, and the ledger's "Differences from AWS". It runs when a
+// dialog is opened, so the ledger is read (docs.Rows, docs.Differences) at that
+// moment and held nowhere: an idle console carries none of it.
 func (c *Console) svcInfo(w http.ResponseWriter, r *http.Request) {
 	secs := infoSections(param(r, "svc"))
 	counts := map[string]int{}

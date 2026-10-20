@@ -16,13 +16,15 @@ type Registration struct {
 	CreatePath string
 	// Path is the service's own page, prefix-relative.
 	Path string
+	// Label is the name the rail prints ("SQS", "DynamoDB").
+	Label string
 }
 
 // RegisteredServices is every service in the catalogue.
 func RegisteredServices() []Registration {
 	out := make([]Registration, 0, len(catalog))
 	for _, e := range catalog {
-		out = append(out, Registration{Key: e.Key, CreatePath: e.CreatePath, Path: "/" + e.Key})
+		out = append(out, Registration{Key: e.Key, CreatePath: e.CreatePath, Path: "/" + e.Key, Label: e.Label})
 	}
 	return out
 }

@@ -19,13 +19,45 @@ import (
 )
 
 func (c *Console) connect(w http.ResponseWriter, r *http.Request) {
-	host := endpointHost(r)
+	url := "http://" + endpointHost(r)
+	region := c.be.id.RegionName()
+	key, secret := awsident.AccessKeyID, awsident.SecretAccessKey
+	// Each block is written once, here, and the page draws it and hands the same
+	// string to Copy: what is copied is what is read (board Connect).
 	c.render(w, r, "connect", map[string]any{
-		"Title":  "Connect",
-		"URL":    "http://" + host,
-		"Region": c.be.id.RegionName(),
-		"Key":    awsident.AccessKeyID,
-		"Secret": awsident.SecretAccessKey,
+		"Title": "Connect",
+		"URL":   url,
+		"Config": "[profile doze]\n" +
+			"region = " + region + "\n" +
+			"output = json\n" +
+			"endpoint_url = " + url,
+		"Credentials": "[doze]\n" +
+			"aws_access_key_id = " + key + "\n" +
+			"aws_secret_access_key = " + secret,
+		"Env": "export AWS_ENDPOINT_URL=" + url + "\n" +
+			"export AWS_ACCESS_KEY_ID=" + key + "\n" +
+			"export AWS_SECRET_ACCESS_KEY=" + secret + "\n" +
+			"export AWS_REGION=" + region,
+		"Terraform": "provider \"aws\" {\n" +
+			"  region                      = \"" + region + "\"\n" +
+			"  access_key                  = \"" + key + "\"\n" +
+			"  secret_key                  = \"" + secret + "\"\n" +
+			"  skip_credentials_validation = true\n" +
+			"  skip_requesting_account_id  = true\n" +
+			"  s3_use_path_style           = true\n" +
+			"\n" +
+			"  endpoints {\n" +
+			"    s3       = \"" + url + "\"\n" +
+			"    sqs      = \"" + url + "\"\n" +
+			"    sns      = \"" + url + "\"\n" +
+			"    dynamodb = \"" + url + "\"\n" +
+			"    lambda   = \"" + url + "\"\n" +
+			"  }\n" +
+			"}",
+		"Deploy": "aws cloudformation deploy \\\n" +
+			"  --template-file template.yaml --stack-name shop\n" +
+			"sam deploy --stack-name shop --s3-bucket artifacts\n" +
+			"cdk bootstrap && cdk deploy",
 	})
 }
 

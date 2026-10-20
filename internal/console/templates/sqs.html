@@ -12,7 +12,7 @@
 {{define "sqs_lr_n"}}{{if and .IsDLQ .Available}}<span class="warn">{{.Available}}</span>{{else}}{{.Available}}{{end}}{{end}}
 
 {{define "sqs_lp"}}
-{{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List) "Creating" .Creating}}
+{{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List) "Creating" .Creating "Selected" (ne .Sel "")}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{pathesc .Name}}"
      data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">

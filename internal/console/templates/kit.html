@@ -13,6 +13,10 @@
      actions beside the name (a primary, and the destructive one, confirmed),
      and the facts that answer "what is this" before a tab is opened.
 
+     The ⓘ is beside the name (board Fidelity, D12): what of this service is real
+     here, one dialog for the service, the same one the list pane carries when
+     nothing is open. A page whose list pane passes "Selected" has only this one.
+
      Delete stays BESIDE the name (decision D2: 119 boards draw it there, and
      Anatomy's rule 3, "under ···", is the board contradicting itself). A
      service that has a thing it does most often gives it as Primary, the one
@@ -47,12 +51,14 @@
        Prefix */}}
 {{define "res_header"}}
 <div class="det-title" role="heading" aria-level="1">{{awsIcon .Svc}} {{.Title}}
+  {{template "info_open" dict "Svc" .Svc}}
   {{range .Badges}}{{if .Show}}<span class="badge {{.Class}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}</span>{{end}}{{end}}
   {{if or .Primary .Delete}}<div class="acts">
     {{with .Primary}}<a class="btn" href="{{.Href}}">{{.Label}}</a>{{end}}
     {{with .Delete}}<button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}"{{if .Cancel}} data-confirm-cancel="{{.Cancel}}"{{end}}>{{if .Label}}{{.Label}}{{else}}Delete{{end}}</button>{{end}}
   </div>{{end}}
 </div>
+{{template "info_dialog" dict "Svc" .Svc "Prefix" .Prefix}}
 {{if .Chips}}<div class="chips">{{range .Chips}}{{template "copychip" dict "Label" .Label "Value" .Value}}{{end}}</div>{{end}}
 {{if .Sentence}}<div class="sentence">
   {{$first := true}}{{range $c := .Sentence}}{{if not $c.Skip}}{{if not $first}}<span class="sep">·</span>{{end}}{{$first = false}}<span class="s-clause {{$c.Class}}">{{if $c.NID}}<span id="{{$c.NID}}">{{$c.N}}</span> {{end}}{{$c.Text}}</span>{{if $c.Link}}<a class="s-link" href="{{$c.Link}}">{{$c.LinkText}}</a>{{with $c.Tail}}<span class="s-clause s-mut">{{.}}</span>{{end}}{{end}}{{end}}{{end}}
