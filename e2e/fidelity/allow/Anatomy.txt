@@ -25,3 +25,5 @@ Selecting anything opens it on the right. # annotation: the board's "rule" panel
 An item, an object, a call. It replaces this panel, in place. Nothing opens at the foot of the page or in a drawer over the content. A queue's messages are the exception: the service's own boards (Queue, Sqs-11) put Release and Delete on the row and open the body in place, under it. # annotation: the board's "rule" panel: what the design says about the page, not text the page shows
 🗑 # icon: the page draws the delete control as an SVG
 ▾ # icon: the page draws the disclosure chevron in CSS
+1 # annotation: a numbered callout on one of the eight parts; the page numbers none of them
+4 # annotation: a numbered callout on one of the eight parts; the page numbers none of them

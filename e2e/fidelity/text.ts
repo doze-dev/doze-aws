@@ -185,7 +185,7 @@ export function checkText(
     if (seen.has(line)) continue; // a repeated line is asked about once
     seen.add(line);
     checked++;
-    if (containsText(hay, line)) continue;
+    if (isBareNumber(line) ? pageLines.includes(line) : containsText(hay, line)) continue;
     const a = entries.find((e) => e.line === line);
     if (a) {
       used.add(a);
@@ -203,4 +203,11 @@ export function checkText(
     needlessAllow: entries.filter((e) => !used.has(e) && boardSet.has(e.line)),
     allowErrors: errors,
   };
+}
+
+/** A board line that is only a number ("2", "12", "0.4"): a count or a measure
+ *  on its own line. Found anywhere in the page's text it proves nothing (some
+ *  other "2" always turns up), so it must be a line of the page by itself. */
+export function isBareNumber(line: string): boolean {
+  return /^[0-9][0-9.,]*$/.test(line);
 }

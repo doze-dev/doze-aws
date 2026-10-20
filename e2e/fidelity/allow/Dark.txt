@@ -20,3 +20,4 @@ Following the system is the default and costs no script: it is the absence of a 
 WHAT A THEME NEVER CHANGES # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
 Each answer keeps its word. The colour is the second signal, never the only one. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
 Sixteen marks, the same in both themes. They are the only chroma in the chrome. # annotation: the Dark board's own right-hand cards: they document the theme (its control, what it never changes, the marks). The page's control is the three-button group in the top bar
+0.1 # data: a measured latency (the board's CreateQueue); the page prints this run's

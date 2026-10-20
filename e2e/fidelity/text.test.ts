@@ -174,3 +174,10 @@ describe('checkText', () => {
     expect(checkText(board, page, '', { pageIdentity: { account: '111122223333', region: 'eu-west-1' } }).missing).toEqual([]);
   });
 });
+
+describe('a bare number on the board', () => {
+  test('must be a line of the page by itself, not any digit that happens to be there', () => {
+    expect(checkText('Queues\n2', 'Queues\n12 waiting\nthe 2 of them\n').missing).toEqual(['2']);
+    expect(checkText('Queues\n2', 'Queues\n2\n').missing).toEqual([]);
+  });
+});

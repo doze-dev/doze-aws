@@ -37,3 +37,6 @@ Repeat itself. The sentence under a field is written once and says something the
 Show up where nothing is being chosen. A page you only read does not lecture. # annotation: the Teaching board's commentary: the rule, the table of what each part is and where it comes from, the two shapes, what it never does. The one setting it draws is the page's Visibility field
 Where it shows # annotation: the Teaching board's commentary: the rule, the table of what each part is and where it comes from, the two shapes, what it never does. The one setting it draws is the page's Visibility field
 Create forms, edit forms and the read view of a settings tab. In the read view the same sentence sits beside the value, so a setting is explained wherever you meet it. # annotation: the Teaching board's commentary: the rule, the table of what each part is and where it comes from, the two shapes, what it never does. The one setting it draws is the page's Visibility field
+1 # annotation: the number of a teaching line on the board (one to five); the page draws the lines, not their numbers
+4 # annotation: the number of a teaching line on the board (one to five); the page draws the lines, not their numbers
+5 # annotation: the number of a teaching line on the board (one to five); the page draws the lines, not their numbers

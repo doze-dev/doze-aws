@@ -18,3 +18,4 @@ live · 234 a minute # data: the board's rate; the page says how many calls star
 212 # data: the board's window holds 212 calls and its slowest took 212 ms; the page counts and measures this run's
 212 ms · invoke # data: the board's slowest call; the page names this run's slowest
 harbour-depot-dispatch.fifo # decision: AWS does not deliver a bucket's notifications to a FIFO queue (it refuses to configure one), so the fixture notifies a standard queue, harbour-depot-dispatch; plan/03-shell-fidelity.md section 4
+0.1 # data: a measured latency (the board's CreateQueue); the page prints this run's
