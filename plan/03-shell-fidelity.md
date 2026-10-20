@@ -609,16 +609,22 @@ working copy (the list is at the end of this section).
     configuration should be refused (S3 stage).
 14. **The validator's `Invoke` nested under the app's `SendMessage`** (Main,
     Wire-Inspect: `└ Invoke harbour-order-validator via the queue's event source
-    mapping`, and "What it caused 1"). The nesting is carried on the message
-    (`AWSTraceHeader`), which an SDK's `SendMessage` does not set, so doze-aws
-    cannot know the mapping's invoke came of that send; guessing would draw a
-    confident line it cannot know. The invoke was not on the wire at all (the
-    trace package says it "appears as a root"; it did not, and now does), and it
-    is a root row beside the send. The card's sentence is allow-listed
-    (`decision`). *Open question for the owner:* SQS could keep the cause on the
-    message for a send made through the recorder without putting it in the
-    message's system attributes a consumer reads back; that is a storage change
-    in SQS, not a console one.
+    mapping`, and "What it caused 1"). **Closed 2026-10-20.** The cause used to
+    travel only ON a message (`AWSTraceHeader`), which an SDK's `SendMessage`
+    does not set, so the mapping's invoke was a root row beside the send and the
+    card's sentence was allow-listed (`decision`). The header cannot be added
+    without changing what ReceiveMessage returns to an application that set none
+    (and it is stored), so `internal/msgcause` keeps, in memory, which recorded
+    call put which message on which queue: a 512-entry LRU, allocated on the
+    first send, lost on a restart (the calls it names age out of the 500-entry
+    ring about as soon). The queue notes the id inside the send's transaction,
+    before the commit that makes the message receivable; the poller takes the
+    first message of a batch that names a cause by its header or by the
+    recorder. The invoke is now a child of the send, "What it caused" lists it,
+    and the allow-list entry is gone. S3's notification to a queue was already a
+    child of the put (`via s3:ObjectCreated:Put`) and the mapping under it a
+    child of that send. A message the recorder did not see (sent before a
+    restart, or aged out) is still a root: that is honest ("nothing told us").
 15. **"Refused" is one chip on the board and two states in the page**: "refused"
     and "refused here" (D7). The Needs-a-look callout says each in its own words
     ("The same request would fail on AWS." / "AWS would accept it. This is a

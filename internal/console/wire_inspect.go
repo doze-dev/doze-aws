@@ -103,12 +103,27 @@ func (c *Console) caused(seq int64) []causedView {
 		st := callState(k.Status, f, factsOfEntry(k))
 		out = append(out, causedView{
 			Seq: k.Seq, Service: k.Service, Label: actionLabel(k.Action), Resource: k.Resource,
-			Millis: millisCell(k), Via: viaWords(k), Detail: strings.TrimSpace(k.Detail),
+			Millis: millisCell(k), Via: viaWords(k), Detail: printedLines(k.Detail),
 			State: st, Answer: answerOf(k.Status, st, stateCopyFor(st, "").Label),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Seq < out[j].Seq })
 	return out
+}
+
+// printedLines is what a function wrote of its own in a Lambda log tail: the
+// START, END and REPORT lines Lambda puts around an invocation are left out.
+// The card under the call that caused an invoke shows this ("what the function
+// printed is on its row"); the inspector's Logs section shows the whole tail.
+func printedLines(tail string) string {
+	var out []string
+	for _, l := range strings.Split(tail, "\n") {
+		if strings.HasPrefix(l, "START RequestId: ") || strings.HasPrefix(l, "END RequestId: ") || strings.HasPrefix(l, "REPORT RequestId: ") {
+			continue
+		}
+		out = append(out, l)
+	}
+	return strings.TrimSpace(strings.Join(out, "\n"))
 }
 
 // curlShown is the command as the inspector prints it. The body is already on

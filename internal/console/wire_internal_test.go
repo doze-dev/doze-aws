@@ -214,3 +214,23 @@ func TestTheServiceMenuListsWhatIsInTheWindowInTheRailsOrder(t *testing.T) {
 		t.Errorf("sqs has %d calls, want 2", got[1].N)
 	}
 }
+
+// The card under the call that caused an invoke says "what the function printed
+// is on its row" and shows that: the lines the function wrote, and not the START,
+// END and REPORT lines Lambda adds around them (the inspector's own Logs section
+// keeps the whole tail).
+func TestWhatAFunctionPrintedLeavesOutLambdasOwnLines(t *testing.T) {
+	tail := "START RequestId: 7c1 Version: $LATEST\nvalidating HRB-2026-04811\n3 lines, all in stock\nwrote harbour-orders\n" +
+		"END RequestId: 7c1\nREPORT RequestId: 7c1\tDuration: 2 ms\tBilled Duration: 3 ms"
+	want := "validating HRB-2026-04811\n3 lines, all in stock\nwrote harbour-orders"
+	if got := printedLines(tail); got != want {
+		t.Errorf("printedLines = %q, want %q", got, want)
+	}
+	// A line the function printed that merely mentions START is its own.
+	if got := printedLines("START RequestId: 1\nSTART of batch\nEND RequestId: 1"); got != "START of batch" {
+		t.Errorf("printedLines kept or dropped the wrong line: %q", got)
+	}
+	if got := printedLines("START RequestId: 1\nEND RequestId: 1\nREPORT RequestId: 1"); got != "" {
+		t.Errorf("a function that printed nothing leaves %q", got)
+	}
+}

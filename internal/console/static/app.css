@@ -2830,7 +2830,7 @@ a.map-chip { color: var(--foreground); }
    grid whose columns are the board's (96 / 236 / 1fr / 110 / 56 / 110, and the
    Time lane gives way to the inspector). */
 .wire-page { padding: 0; overflow: hidden; }
-.wire { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: stretch; }
+.wire { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: stretch; }
 .wire.open { grid-template-columns: minmax(0, 1fr) 520px; }
 .wire-live { display: contents; }
 .wire-main { min-width: 0; min-height: 0; overflow-y: auto; padding: 16px 20px 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -2900,6 +2900,18 @@ a.map-chip { color: var(--foreground); }
 .tr-child .res-nm, .tr-child .res-link { color: var(--mut); }
 .tr-via, .tr-why-t { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--mut); }
 .tr-why-t { flex: 1 1 0; }
+/* The resource is what the cell is for: what emitted the work gives way before it
+   does (board Main, where "harbour-order-validator" is whole and "via the que…"
+   is cut), and the sentence beside it gets what is left. The resource still
+   shrinks, and gets its ellipsis, once nothing else is left to give. The weight
+   is that large because a modest one still takes a fraction of a pixel from a
+   name that fits, and a fraction is enough for the ellipsis to cut its last
+   letters; a weight of zero on the name would clip a long key with no ellipsis. */
+.tr-via { flex-shrink: 100000; }
+/* With the inspector open the table is narrow and says the call, the resource and
+   the answer; what emitted it and why it failed are in the inspector (boards
+   Wire-Inspect and Wire-Refused draw the rows with the resource alone). */
+.wire.open .tr-via, .wire.open .tr-why-t { display: none; }
 .tr-ans .st { font-family: var(--mono); font-size: 12px; font-weight: 400; }
 .wire-page .st:not(.served) { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border: 1px solid transparent; border-radius: 3px; font-family: var(--sans); font-size: 12px; font-weight: 400; }
 .wire-page .st.refused, .wire-page .st.refusedhere { background: var(--denybg); }
@@ -2926,11 +2938,19 @@ a.wire-callout:hover { text-decoration: underline; }
 .wire-card { padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
 .wire-kv { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 5px; }
 .wire-kv > :nth-child(odd) { color: var(--mut); }
+/* "In this window": a label is one line, and a long value ("14.8 ms · SendMessageBatch")
+   wraps beside it instead of taking the label's room ("Function / errors"). */
+.wire-card > .wire-kv:not(.td-kv) { grid-template-columns: auto minmax(0, 1fr); }
+.wire-card > .wire-kv:not(.td-kv) > :nth-child(odd) { white-space: nowrap; }
+.wire-card > .wire-kv:not(.td-kv) > :nth-child(even) { text-align: right; overflow-wrap: anywhere; }
 .wire-well { padding: 12px 14px; background: var(--well); border: 1px solid var(--line2); border-radius: var(--radius); display: flex; flex-direction: column; gap: 6px; }
 
 /* the inspector */
 .t-drawer { min-height: 0; overflow-y: auto; background: var(--card); border-left: 1px solid var(--line); }
-.td { display: flex; flex-direction: column; min-height: 100%; }
+/* The inspector fills the pane, so the actions and the footnote sit at its foot
+   (boards Wire-Inspect and Wire-Refused) and not under the last section. */
+#t-drawer-inner { display: flex; flex-direction: column; min-height: 100%; }
+.td { display: flex; flex: 1; flex-direction: column; min-height: 100%; }
 .td-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 0; }
 .td-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .td-svc { display: inline-flex; flex: none; }

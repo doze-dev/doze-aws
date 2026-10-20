@@ -89,6 +89,11 @@ test.describe('the wire page', () => {
     await expect(create).toBeHidden();
     // The refusal's own sentence is on the row, and the teaching line is under the table.
     await expect(send.locator('.tr-why-t')).toContainText('MessageDeduplicationId');
+    // The resource, the sentence and the answer are separate words, not one run
+    // of text ("…queue-nameThe request include…400 refused"): this is the text a
+    // screen reader gets from the row.
+    await expect(send.locator('.res')).toHaveText(new RegExp(`^${q} The request include parameter that is not valid for this queue type`));
+    await expect(send).toHaveText(/FIFO queues\. 400 refused /);
     await expect(page.locator('.wire-refnote')).toContainText(
       'A refusal is doze-aws declining a request it would not accept from AWS either, so it is the answer your app will get after it is deployed.',
     );

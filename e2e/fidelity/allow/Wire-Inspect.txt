@@ -15,5 +15,4 @@ paused · 31 new # data: the board's count of calls made while it was open; the 
 48.0 ms # data: a measured latency (the board's Invoke, on its card); the page prints this run's
 <clock> · 2.1 ms · request id <id> # data: the call's own latency; the page prints this run's, and its request id is the one this run answered with
 harbour-depot-dispatch.fifo # decision: AWS does not deliver a bucket's notifications to a FIFO queue (it refuses to configure one), so the fixture notifies a standard queue, harbour-depot-dispatch; plan/03-shell-fidelity.md section 4
-via the queue's event source mapping. what the function printed is on its row. # decision: the board nests the validator's Invoke under the app's SendMessage. An SDK's SendMessage carries no AWSTraceHeader, so doze-aws cannot know the mapping's invoke came of it: the Invoke is a root row beside it (the card's sentence is for work that is nested), and its own inspector shows what it printed
 0.1 # data: a measured latency (the board's CreateQueue); the page prints this run's
