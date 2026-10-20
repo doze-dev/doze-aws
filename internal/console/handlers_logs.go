@@ -73,7 +73,7 @@ func (c *Console) logsGroup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if g == nil {
-		c.notFound(w, r)
+		c.fail(w, resourceNotFound("log group “"+name+"” does not exist"))
 		return
 	}
 	streams, _ := c.be.ListLogStreams(r.Context(), name)

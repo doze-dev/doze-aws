@@ -1,6 +1,7 @@
 package console
 
 import (
+	"maps"
 	"net/http"
 	"sort"
 	"strconv"
@@ -45,8 +46,10 @@ func (c *Console) notFound(w http.ResponseWriter, r *http.Request) {
 
 // failPage draws a failed page load inside the shell, so the rail is still
 // there and the way back is one click: the bare error fragment it replaces was
-// a document with no chrome. The list pane is not drawn: it is built from the
-// service's own listing, which may be the very call that failed.
+// a document with no chrome. The service's list pane is drawn beside it, from
+// the same listing its own pages use, so the way to the thing that does exist is
+// still there. It is left out when the listing is what failed: a pane built from
+// a failed listing would say "none", which is a claim.
 func (c *Console) failPage(w http.ResponseWriter, r *http.Request, err error) {
 	f := failView(err)
 	seg := strings.Trim(strings.TrimPrefix(r.URL.Path, c.prefix), "/")
@@ -64,12 +67,29 @@ func (c *Console) failPage(w http.ResponseWriter, r *http.Request, err error) {
 		strings.Contains(msg, "does not exist") || strings.Contains(msg, "not found") {
 		status, heading = http.StatusNotFound, "Not found"
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	c.render(w, r, "fail_page", map[string]any{
+	data := map[string]any{
 		"Title": heading, "Heading": heading, "Failure": f, "Back": back, "BackName": backName,
 		"Path": strings.TrimPrefix(r.URL.Path, c.prefix),
-	})
+	}
+	svc := paneServiceOf(seg)
+	if pane, ok := c.listPaneData(r, svc); ok {
+		maps.Copy(data, pane)
+		data["Svc"] = svc
+		data["ListPane"] = true
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	c.render(w, r, "fail_page", data)
+}
+
+// paneServiceOf is the console key whose list pane belongs to a path's first
+// segment. API Gateway's key and HTTP API pages sit under segments of their own.
+func paneServiceOf(seg string) string {
+	switch seg {
+	case "apigw-http", "apigw-keys":
+		return "apigw"
+	}
+	return seg
 }
 
 // guessSection turns a missed path segment into a destination. It matches three

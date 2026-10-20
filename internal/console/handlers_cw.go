@@ -68,7 +68,10 @@ func (c *Console) cwAlarm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if found == nil {
-		c.notFound(w, r)
+		// The alarm list loaded, so the page is for an alarm that is not in it:
+		// the failure page, with the list pane beside it, not the page for an
+		// address that matches no route.
+		c.fail(w, resourceNotFound("alarm “"+name+"” does not exist"))
 		return
 	}
 	data := map[string]any{

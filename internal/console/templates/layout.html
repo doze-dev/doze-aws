@@ -467,7 +467,26 @@ return p.join(" ");};</script>
 
 {{/* fail_page is a failed page load, drawn in the shell. The same failure
      block the actions use, with a heading and the way back. */}}
+{{/* The service's list pane beside the failure, from the listing its own pages
+     use (listPaneData). A pane is drawn only when the listing worked. */}}
 {{define "fail_page"}}{{template "shell_top" .}}
+{{if .ListPane}}{{if eq .Svc "s3"}}{{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "sqs"}}{{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "ddb"}}{{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "sns"}}{{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "eb"}}{{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "kinesis"}}{{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "lambda"}}{{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "apigw"}}{{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "sfn"}}{{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "" "ActCount" .ActCount)}}
+{{else if eq .Svc "logs"}}{{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "cw"}}{{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "kms"}}{{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "sm"}}{{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "ssm"}}{{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "cfn"}}{{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+{{else if eq .Svc "iam"}}{{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "")}}
+{{end}}{{end}}
 <section class="detail">
   <div class="det-h"><div><h1 class="det-title">{{.Heading}}</h1>
     <p class="det-sub">Nothing could be shown at <span class="mono">{{.Path}}</span>.</p></div></div>
