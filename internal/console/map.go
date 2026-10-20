@@ -208,6 +208,10 @@ func mapBefore(a, b FlowNode) bool {
 	return a.ID < b.ID
 }
 
+// mapSide is a wire that carries what failed rather than the work: a redrive, a
+// function's dead-letter target and its failure or success destination.
+func mapSide(kind string) bool { return kind == "redrive" || kind == "dlq" || kind == "dest" }
+
 // orderFlow names a flow's root and lists its resources breadth first from it.
 // The root is where the wiring starts: a resource nothing feeds, preferring the
 // one that reaches the most (so a flow is named for its source, not for a
@@ -219,15 +223,26 @@ func mapBefore(a, b FlowNode) bool {
 func orderFlow(ids []string, byID map[string]FlowNode, edges []mapEdge) ([]FlowNode, FlowNode, int) {
 	out := map[string][]string{}
 	fed, worked := map[string]bool{}, map[string]bool{}
+	side := map[[2]string]bool{} // (from, to) carries what failed
 	for _, e := range edges {
 		out[e.From] = append(out[e.From], e.To)
 		fed[e.To] = true
-		if e.Kind != "dlq" && e.Kind != "dest" && e.Kind != "redrive" {
+		if mapSide(e.Kind) {
+			side[[2]string{e.From, e.To}] = true
+		} else {
 			worked[e.To] = true
 		}
 	}
+	// What the work leads to comes before where the failures go: the third line
+	// of a queue's card is its function, not its dead-letter queue.
 	for id := range out {
-		sort.Slice(out[id], func(i, j int) bool { return mapBefore(byID[out[id][i]], byID[out[id][j]]) })
+		to := out[id]
+		sort.Slice(to, func(i, j int) bool {
+			if si, sj := side[[2]string{id, to[i]}], side[[2]string{id, to[j]}]; si != sj {
+				return sj
+			}
+			return mapBefore(byID[to[i]], byID[to[j]])
+		})
 	}
 	reach := func(from string) []string {
 		var order []string
@@ -501,12 +516,11 @@ func flowMatches(f mapFlow, find string) bool {
 // Metrics of the drawing, in px. A box is the board's (a mark, a name), a
 // column is a box and the room for a wire and its label.
 const (
-	boxW, boxH = 260, 44
-	colGap     = 84
+	boxW, boxH = 280, 44
+	colGap     = 96
 	rowGap     = 44
 	padX, padY = 20, 14
 	loopDrop   = 22
-	labelW     = 7 // px per character of a wire's label, in 11 px mono
 )
 
 type mapBox struct {
@@ -524,11 +538,12 @@ type mapWire struct {
 }
 
 type mapDrawing struct {
-	W, H    int
-	Boxes   []mapBox
-	Wires   []mapWire
-	Spoken  []string // each wire as a sentence, for a reader who cannot see the lines
-	Omitted int      // resources the flow has that are not drawn
+	W, H       int
+	BoxW, BoxH int // the size of a box, for the stylesheet (--bw, --bh)
+	Boxes      []mapBox
+	Wires      []mapWire
+	Spoken     []string // each wire as a sentence, for a reader who cannot see the lines
+	Omitted    int      // resources the flow has that are not drawn
 }
 
 // mapDrawn is one flow with its drawing.
@@ -709,6 +724,7 @@ func layoutFlow(f mapFlow) mapDrawing {
 	for i := range d.Boxes {
 		pos[d.Boxes[i].ID] = &d.Boxes[i]
 	}
+	d.BoxW, d.BoxH = boxW, boxH
 	d.W = 2*padX + cols*boxW + (cols-1)*colGap
 	d.H = 2*padY + rows*boxH + (rows-1)*rowGap
 
@@ -751,6 +767,27 @@ func layoutFlow(f mapFlow) mapDrawing {
 		return pos[id].Y + boxH*(slot[end{p, in}]+1)/(n+1)
 	}
 
+	// Trunks: the wires that leave one column each turn at an x of their own, so
+	// two that rise through one gap are two lines and not one. Ordered by where
+	// they arrive; a gap is shared by however many leave the column.
+	trunk := map[*mapPair]int{}
+	byGap := map[int][]*mapPair{}
+	for _, p := range pairs {
+		if !back[[2]string{p.from, p.to}] {
+			byGap[layer[p.from]] = append(byGap[layer[p.from]], p)
+		}
+	}
+	for l, ps := range byGap {
+		sort.SliceStable(ps, func(i, j int) bool { return port(ps[i], true) < port(ps[j], true) })
+		step := 12
+		if n := len(ps); n > 1 {
+			step = max(5, min(12, (colGap-16-54)/(n-1)))
+		}
+		for k, p := range ps {
+			trunk[p] = padX + l*(boxW+colGap) + boxW + 16 + k*step
+		}
+	}
+
 	loops := 0
 	for _, p := range pairs {
 		a, b := pos[p.from], pos[p.to]
@@ -768,18 +805,15 @@ func layoutFlow(f mapFlow) mapDrawing {
 		} else {
 			x1, x2 := a.X+boxW, b.X
 			y1, y2 := port(p, false), port(p, true)
-			xm := x1 + colGap*3/10
+			xm := trunk[p]
 			w.Path = "M" + strconv.Itoa(x1) + " " + strconv.Itoa(y1) + "H" + strconv.Itoa(xm)
 			if y1 != y2 {
 				w.Path += "V" + strconv.Itoa(y2)
 			}
 			w.Path += "H" + strconv.Itoa(x2)
-			// Over the last stretch, where it meets its target. When a label
-			// is wider than that stretch it is let run, over the line's end.
+			// Over the last stretch, where it meets its target. A label wider
+			// than that stretch is let run, over the end of the line.
 			w.LX, w.LY = xm+4, y2-15
-			if x2-xm < len(label)*labelW+8 && layer[p.to]-layer[p.from] == 1 {
-				w.LX = x1 + 4
-			}
 		}
 		d.Wires = append(d.Wires, w)
 		d.Spoken = append(d.Spoken, mapLabel(a.FlowNode)+" to "+mapLabel(b.FlowNode)+", "+label)

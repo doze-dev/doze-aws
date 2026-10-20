@@ -12,13 +12,13 @@
           </div>
           <form class="map-find" role="search" method="get" action="{{.Prefix}}/map">
             {{if .HotOnly}}<input type="hidden" name="hot" value="1">{{end}}
-            <input class="input mono" type="search" name="q" value="{{.Q}}" placeholder="Find a resource" aria-label="Find a resource" spellcheck="false" autocomplete="off">
+            <input class="input" type="search" name="q" value="{{.Q}}" placeholder="Find a resource" aria-label="Find a resource" spellcheck="false" autocomplete="off">
           </form>
         {{else if .One}}
           <a class="btn btn-outline btn-sm" href="{{.Back}}">{{icon "chevron-left"}} All flows</a>
           <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span>
         {{else}}
-          <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span>{{if .UnwiredAll}}<span class="pill mono">{{.Unwired}}</span>{{end}}
+          <span class="pill mono">{{.Resources}}</span><span class="pill mono">{{.Flows}}</span><span class="pill mono">{{.Unwired}}</span>
         {{end}}
         </div>
       </div>
@@ -42,7 +42,7 @@
           <p>A resource appears here once it is wired to another: an S3 notification, an SNS subscription, an EventBridge rule target, an event source mapping or a dead-letter queue.</p>
         </div>
       {{else if .One}}
-        {{template "map_flow" dict "P" .Prefix "F" .One "Solo" true}}
+        <div class="map-wrap" role="region" aria-label="The wires" tabindex="0">{{template "map_flow" dict "P" .Prefix "F" .One "Solo" true}}</div>
       {{else if .Large}}
         {{if .Searching}}<p class="map-note"><span>{{.Matches}}{{if .Q}} “{{.Q}}”{{end}}.</span> <a href="{{.AllURL}}">Clear</a></p>{{end}}
         {{if .Cards}}
@@ -96,7 +96,7 @@
 {{define "map_flow"}}{{$d := .F.Drawing}}
 <section class="map-flow" aria-labelledby="mf-{{.F.Num}}">
   <h2 class="map-flow-h" id="mf-{{.F.Num}}">{{if not .Solo}}<a href="{{.F.URL}}">{{end}}Flow {{.F.Num}} · from {{.F.Title}}{{if not .Solo}}</a>{{end}}{{if .F.Hot}} <span class="map-hot">hot</span>{{end}}</h2>
-  <div class="map-canvas" style="--w:{{$d.W}}px;--h:{{$d.H}}px">
+  <div class="map-canvas" style="--w:{{$d.W}}px;--h:{{$d.H}}px;--bw:{{$d.BoxW}}px;--bh:{{$d.BoxH}}px">
     <svg class="map-wires" width="{{$d.W}}" height="{{$d.H}}" viewBox="0 0 {{$d.W}} {{$d.H}}" aria-hidden="true" focusable="false">
       {{range $d.Wires}}<path class="map-wire{{if .Hot}} hot{{end}}{{if .Off}} off{{end}}" d="{{.Path}}" marker-end="url(#map-arrow{{if .Hot}}-hot{{end}})"/>{{end}}
     </svg>

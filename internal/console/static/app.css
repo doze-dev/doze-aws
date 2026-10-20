@@ -2541,7 +2541,7 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .map-seg a:last-child { border-right: 0; }
 .map-seg a.on { background: var(--foreground); color: var(--card); }
 .map-seg a:focus-visible, .map-box:focus-visible, .map-card:focus-visible, .map-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-.map-find .input { width: 220px; height: 28px; font-size: 12px; }
+.map-find .input { width: 220px; height: 28px; font-size: 13px; font-weight: 400; }
 .map-note { margin: 0; font-size: 12px; color: var(--muted-foreground); }
 .map-note a { text-decoration: underline; text-decoration-color: var(--input); text-underline-offset: 2px; }
 .map-wrap { overflow: auto; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 4px 10px; }
@@ -2560,9 +2560,9 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .map-head.hot { fill: var(--foreground); }
 .map-label { position: absolute; left: var(--x); top: var(--y); font-family: var(--mono); font-size: 11px; line-height: 12px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; }
 .map-label.hot { color: var(--foreground); }
-.map-box { position: absolute; left: var(--x); top: var(--y); width: 260px; height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
+.map-box { position: absolute; left: var(--x); top: var(--y); width: var(--bw); height: var(--bh); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
 .map-box:hover { border-color: var(--ring); }
-.map-box .aws-ic { width: 20px; height: 20px; }
+.map-box .aws-ic { width: 18px; height: 18px; }
 .map-name { font-family: var(--mono); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .map-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
 .map-card, .map-fold { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--foreground); }
