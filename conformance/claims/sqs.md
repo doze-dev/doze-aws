@@ -62,5 +62,12 @@ were first written from: see `plan/services/sqs.md` SQS-11 to SQS-24.
 | "The only supported message system attribute is AWSTraceHeader. Its type must be String" (doze-aws refuses another name or type; whether AWS checks the header's format is memory) | model | test_sqs::test_message_system_attributes |
 | "You must set MaxResults to receive a value for NextToken" | model | test_sqs::test_list_queues_token_needs_max_results |
 | `ReceiptHandleIsInvalid` and `ResourceNotFoundException` are 404 on the JSON protocol too (the shapes' `httpError`) | model | test_sqs::test_error_statuses |
-| A read-only attribute (`QueueArn`, `CreatedTimestamp`) in `SetQueueAttributes`: refused or ignored (doze-aws ignores it; the model is silent) | memory | test_sqs::test_attribute_ranges |
-| `KmsMasterKeyId` together with `SqsManagedSseEnabled=true`: "only one server-side encryption option is supported per queue" (doze-aws stores both; what AWS answers is not established) | model | test_sqs::test_fifo_attribute_rules |
+| A read-only attribute (`QueueArn`, `CreatedTimestamp`) in `SetQueueAttributes`: refused or ignored (doze-aws ignores it; the model is silent) | memory | test_sqs::test_read_only_attributes |
+| `KmsMasterKeyId` together with `SqsManagedSseEnabled=true`: "only one server-side encryption option is supported per queue" (doze-aws stores both; what AWS answers is not established) | model | test_sqs::test_kms_key_with_sqs_managed_encryption |
+| `ChangeMessageVisibility` with a receipt handle from an earlier receive of the same message: accepted and re-hides it (doze-aws), or refused (the model documents the old handle for `DeleteMessage` only; SQS-46) | memory | test_sqs::test_an_old_receipt_handle |
+| An `AWSTraceHeader` that is not "a correctly formatted AWS X-Ray trace header string": refused or kept (doze-aws keeps it; the format is not in the model; SQS-46) | memory | test_sqs::test_message_system_attributes |
+| `maxReceiveCount` below 1 or above 1,000 in a `RedrivePolicy` (doze-aws refuses 0 and 1,001; the model states neither bound; SQS-46) | memory | test_sqs::test_redrive_max_receive_count_range |
+| A standard queue named `*.fifo`, and a FIFO queue whose name does not end in `.fifo` (doze-aws refuses both; the model states neither; SQS-46) | memory | test_sqs::test_fifo_suffix_on_a_standard_queue |
+| A Query-protocol `SendMessageBatch` whose entries are numbered 1 and 3: sent whole (doze-aws), the gap ignored, or refused (SQS-53) | memory | test_sqs::test_query_batch_with_a_gap |
+| A `NextToken` from one `ListQueues` listing given to another listing (doze-aws does not detect it; the model is silent) | memory | test_sqs::test_list_queues_paging |
+| `ContentBasedDeduplication` set on a standard queue: refused or stored (doze-aws refuses it) | memory | test_sqs::test_fifo_attribute_rules |

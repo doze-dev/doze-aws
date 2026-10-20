@@ -503,6 +503,10 @@ def test_list_queues_paging(client, names, cleanup, snapshot):
     snapshot.match("first-page", {"count": len(first["QueueUrls"]), "more": "NextToken" in first})
     second = sqs.list_queues(QueueNamePrefix=prefix, MaxResults=2, NextToken=first["NextToken"])
     snapshot.match("second-page", {"count": len(second["QueueUrls"]), "more": "NextToken" in second})
+    # A token from one listing given to another (a different prefix). doze-aws
+    # does not detect it (awspage's design); the model is silent. Recorded.
+    snapshot.outcome("token-from-another-listing", lambda: {"count": len(sqs.list_queues(
+        QueueNamePrefix=prefix + "-0", MaxResults=2, NextToken=first["NextToken"]).get("QueueUrls", []))})
     snapshot.error("max-1001", lambda: sqs.list_queues(MaxResults=1001))
 
 
@@ -560,6 +564,8 @@ def test_fifo_attribute_rules(client, names, cleanup, snapshot):
     standard = make_queue(sqs, names, cleanup, "standard")
     snapshot.outcome("scope-on-a-standard-queue", lambda: sqs.set_queue_attributes(
         QueueUrl=standard, Attributes={"DeduplicationScope": "messageGroup"}))
+    snapshot.outcome("content-based-deduplication-on-a-standard-queue", lambda: sqs.set_queue_attributes(
+        QueueUrl=standard, Attributes={"ContentBasedDeduplication": "true"}))
     fifo = make_queue(sqs, names, cleanup, "fifo", suffix=".fifo", Attributes={"FifoQueue": "true"})
     snapshot.error("per-group-needs-message-group-scope", lambda: sqs.set_queue_attributes(
         QueueUrl=fifo, Attributes={"FifoThroughputLimit": "perMessageGroupId", "DeduplicationScope": "queue"}))
@@ -615,6 +621,11 @@ def test_an_old_receipt_handle(client, names, cleanup, snapshot, eventually):
     new = receive(sqs, eventually, url)[0]["ReceiptHandle"]
     snapshot.match("handles-differ", {"differ": old != new})
     snapshot.outcome("delete-with-the-old-handle", lambda: sqs.delete_message(QueueUrl=url, ReceiptHandle=old))
+    # SQS-46: the model documents the old handle for DeleteMessage only. Here a
+    # change of visibility with one is accepted and re-hides the message; what
+    # AWS answers is the question. One second keeps the check below the same.
+    snapshot.outcome("change-visibility-with-the-old-handle", lambda: sqs.change_message_visibility(
+        QueueUrl=url, ReceiptHandle=old, VisibilityTimeout=1))
     snapshot.match("after", {"visible": len(sqs.receive_message(QueueUrl=url, WaitTimeSeconds=3).get("Messages", []))})
 
 
@@ -752,6 +763,12 @@ def test_message_system_attributes(client, names, cleanup, snapshot):
         "Other": {"DataType": "String", "StringValue": "x"}}))
     snapshot.outcome("a-number", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageSystemAttributes={
         "AWSTraceHeader": {"DataType": "Number", "StringValue": "1"}}))
+    # SQS-46: "a correctly formatted AWS X-Ray trace header string". The model
+    # does not give the format; doze-aws does not check it.
+    snapshot.outcome("a-malformed-trace-header", lambda: sqs.send_message(
+        QueueUrl=url, MessageBody="x", MessageSystemAttributes={
+            "AWSTraceHeader": {"DataType": "String", "StringValue": "not a trace header"}}),
+        opaque=("MessageId",))
 
 
 def test_list_queues_token_needs_max_results(client, names, cleanup, snapshot):
@@ -776,3 +793,89 @@ def test_error_statuses(client, names, cleanup, snapshot):
     url = make_queue(sqs, names, cleanup)
     snapshot.outcome("a-malformed-receipt-handle", lambda: sqs.delete_message(QueueUrl=url, ReceiptHandle="not-a-handle"))
     snapshot.outcome("a-task-that-is-not-there", lambda: sqs.cancel_message_move_task(TaskHandle="no-such-task"))
+
+
+# ---------------------------------------------------------------------------
+# SQS-46 and SQS-53: the things the model is silent on, each one a scenario so
+# that recording is one command. They hold no assertion of their own; what AWS
+# answers is the finding.
+# ---------------------------------------------------------------------------
+
+def test_read_only_attributes(client, names, cleanup, snapshot):
+    """SetQueueAttributes and CreateQueue given an attribute that is only ever
+    read (QueueArn, the Approximate counters, the timestamps). doze-aws ignores
+    them; the model is silent."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    for attr in ("QueueArn", "ApproximateNumberOfMessages", "CreatedTimestamp", "LastModifiedTimestamp"):
+        snapshot.outcome("set-" + attr, lambda a=attr: sqs.set_queue_attributes(QueueUrl=url, Attributes={a: "1"}))
+    out = snapshot.outcome("create-with-QueueArn", lambda: sqs.create_queue(
+        QueueName=names("other"), Attributes={"QueueArn": "arn:aws:sqs:us-east-1:000000000000:x"}))
+    if isinstance(out, dict):
+        cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+
+
+def test_redrive_max_receive_count_range(client, names, cleanup, snapshot):
+    """doze-aws holds maxReceiveCount to 1 through 1,000 and refuses 0 and
+    1,001; the model states neither bound."""
+    sqs = client("sqs")
+    dlq = make_queue(sqs, names, cleanup, "queue-dlq")
+    arn = queue_arn(sqs, dlq)
+    for n in ("0", "1", "1000", "1001"):
+        out = snapshot.outcome("max-receive-count-" + n, lambda n=n: sqs.create_queue(
+            QueueName=names("queue-" + n), Attributes={"RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": arn, "maxReceiveCount": n})}))
+        if isinstance(out, dict):
+            cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+
+
+def test_fifo_suffix_on_a_standard_queue(client, names, cleanup, snapshot):
+    """doze-aws refuses a name ending in .fifo when FifoQueue is not set (and
+    a FIFO queue whose name does not end in it); the model states neither."""
+    sqs = client("sqs")
+    out = snapshot.outcome("suffix-without-the-flag", lambda: sqs.create_queue(QueueName=names("queue", suffix=".fifo")))
+    if isinstance(out, dict):
+        cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+    out = snapshot.outcome("flag-without-the-suffix", lambda: sqs.create_queue(
+        QueueName=names("queue"), Attributes={"FifoQueue": "true"}))
+    if isinstance(out, dict):
+        cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+
+
+def test_kms_key_with_sqs_managed_encryption(client, names, cleanup, snapshot):
+    """The model: one encryption option per queue. doze-aws stores both
+    KmsMasterKeyId and SqsManagedSseEnabled=true together."""
+    sqs = client("sqs")
+    out = snapshot.outcome("both", lambda: sqs.create_queue(QueueName=names("queue"), Attributes={
+        "KmsMasterKeyId": "alias/aws/sqs", "SqsManagedSseEnabled": "true"}))
+    if isinstance(out, dict):
+        cleanup(sqs.delete_queue, QueueUrl=out["QueueUrl"])
+
+
+def test_query_batch_with_a_gap(client, names, cleanup, snapshot, eventually):
+    """SQS-53. A Query-protocol SendMessageBatch whose entries are numbered 1
+    and 3 (no 2). boto3 speaks JSON, so this is built by hand and signed with
+    botocore's signer. doze-aws reads every index present and sends both; what
+    AWS does is recorded as the status, the error type, and how many messages
+    arrived."""
+    from urllib.parse import urlencode
+
+    from harness.wire import send
+
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    body = urlencode({
+        "Action": "SendMessageBatch", "Version": "2012-11-05", "QueueUrl": url,
+        "SendMessageBatchRequestEntry.1.Id": "a", "SendMessageBatchRequestEntry.1.MessageBody": "one",
+        "SendMessageBatchRequestEntry.3.Id": "c", "SendMessageBatchRequestEntry.3.MessageBody": "three",
+    }).encode()
+    answered = send(sqs, "POST", "/", body, {"Content-Type": "application/x-www-form-urlencoded"})
+    got = []
+
+    def drained():
+        r = sqs.receive_message(QueueUrl=url, MaxNumberOfMessages=10, WaitTimeSeconds=1, VisibilityTimeout=0)
+        got.extend(m["Body"] for m in r.get("Messages", []))
+        assert answered["Status"] >= 400 or len(set(got)) >= 1, "nothing yet"
+
+    eventually(drained)
+    snapshot.match("a-gap-in-the-indices", {**answered, "bodies": sorted(set(got))})
