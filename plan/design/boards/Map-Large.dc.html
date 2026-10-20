@@ -145,25 +145,14 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row g8 ce wrap">
 <span class="pill m">41 resources</span><span class="pill m">11 flows</span><span class="pill m">4 unwired</span><span class="pill ok m"><span class="dot"></span>3 flows carried traffic recently</span>
 <div class="grow"></div>
-<span class="note">Past a handful of resources the page stops drawing wires. A flow is one card; open it to see its wires.</span>
+<span class="note">Past 12 resources the page stops drawing wires. A flow is one card; open it to see its wires.</span>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; align-content: start">
 
-<!-- hot flows first -->
+<!-- hot flows first, the largest of them first; then the rest, largest first, then by name -->
 <div class="card pad col g6" style="box-shadow: inset 3px 0 0 var(--ok)">
-<div class="row sb ce"><span class="b">from harbour-loyalty-statements-prod</span></div>
-<span class="note">5 resources · hot</span>
-<div class="col g4 m" style="font-size: 12px">
-<span class="el">S3 harbour-loyalty-statements-prod</span>
-<span class="el mut">→ SQS harbour-loyalty-points-prod</span>
-<span class="el mut">→ λ harbour-stock-forecast</span>
-<span class="note">+ 2 more</span>
-</div>
-</div>
-
-<div class="card pad col g6" style="box-shadow: inset 3px 0 0 var(--ok)">
-<div class="b el">from harbour-orders</div>
+<div class="b el">from orders-placed</div>
 <span class="note">9 resources · hot</span>
 <div class="col g4 m" style="font-size: 12px">
 <span class="el">EB rule orders-placed</span>
@@ -174,41 +163,23 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 
 <div class="card pad col g6" style="box-shadow: inset 3px 0 0 var(--ok)">
+<div class="b el">from harbour-loyalty-statements-prod</div>
+<span class="note">5 resources · hot</span>
+<div class="col g4 m" style="font-size: 12px">
+<span class="el">S3 harbour-loyalty-statements-prod</span>
+<span class="el mut">→ SQS harbour-loyalty-points-prod</span>
+<span class="el mut">→ λ harbour-stock-forecast</span>
+<span class="note">+ 2 more</span>
+</div>
+</div>
+
+<div class="card pad col g6" style="box-shadow: inset 3px 0 0 var(--ok)">
 <div class="b el">from harbour-uploads</div>
 <span class="note">3 resources · hot</span>
 <div class="col g4 m" style="font-size: 12px">
 <span class="el">S3 harbour-uploads</span>
 <span class="el mut">→ SQS harbour-thumbnails</span>
 <span class="el mut">→ λ harbour-thumbnail</span>
-</div>
-</div>
-
-<div class="card pad col g6">
-<div class="b el">from harbour-alerts</div>
-<span class="note">2 resources</span>
-<div class="col g4 m" style="font-size: 12px">
-<span class="el">SNS harbour-alerts</span>
-<span class="el mut">→ SQS harbour-alerts-email</span>
-</div>
-</div>
-
-<div class="card pad col g6">
-<div class="b el">from nightly-forecast</div>
-<span class="note">2 resources</span>
-<div class="col g4 m" style="font-size: 12px">
-<span class="el">EB rule nightly-forecast</span>
-<span class="el mut">→ λ harbour-stock-forecast</span>
-</div>
-</div>
-
-<div class="card pad col g6">
-<div class="b el">from harbour-reports</div>
-<span class="note">4 resources</span>
-<div class="col g4 m" style="font-size: 12px">
-<span class="el">S3 harbour-reports</span>
-<span class="el mut">→ SNS harbour-report-ready</span>
-<span class="el mut">→ SQS harbour-report-mail</span>
-<span class="note">+ 1 more</span>
 </div>
 </div>
 
@@ -224,8 +195,38 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 </div>
 
 <div class="card pad col g6">
+<div class="b el">from harbour-reports</div>
+<span class="note">5 resources</span>
+<div class="col g4 m" style="font-size: 12px">
+<span class="el">S3 harbour-reports</span>
+<span class="el mut">→ SNS harbour-report-ready</span>
+<span class="el mut">→ SQS harbour-report-mail</span>
+<span class="note">+ 2 more</span>
+</div>
+</div>
+
+<div class="card pad col g6">
+<div class="b el">from harbour-clickstream</div>
+<span class="note">3 resources</span>
+<div class="col g4 m" style="font-size: 12px">
+<span class="el">Kinesis stream harbour-clickstream</span>
+<span class="el mut">→ λ harbour-sessionise</span>
+<span class="el">DynamoDB table harbour-sessions</span>
+</div>
+</div>
+
+<div class="card pad col g6">
+<div class="b el">from harbour-alerts</div>
+<span class="note">2 resources</span>
+<div class="col g4 m" style="font-size: 12px">
+<span class="el">SNS harbour-alerts</span>
+<span class="el mut">→ SQS harbour-alerts-email</span>
+</div>
+</div>
+
+<div class="card pad col g6">
 <div class="b el">4 more flows</div>
-<span class="note">of 2 to 3 resources each</span>
+<span class="note">of 2 resources each</span>
 <div class="row"><button class="btn sm">Show them</button></div>
 </div>
 
@@ -235,7 +236,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <div class="row sb ce"><span class="cap">Wired to nothing · 4</span></div>
 <div class="row g6 wrap">
 <span class="pill m"><span class="sv sm c-s3">S3</span>&nbsp;harbour-assets</span>
-<span class="pill m"><span class="sv sm c-sqs">SQ</span>&nbsp;scratch-queue</span>
+<span class="pill m"><span class="sv sm c-ddb">DB</span>&nbsp;harbour-archive</span>
 <span class="pill m"><span class="sv sm c-lam">λ</span>&nbsp;harbour-hello</span>
 <span class="pill m"><span class="sv sm c-sns">SN</span>&nbsp;test-topic</span>
 </div>

@@ -136,14 +136,14 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <main class="main" style="padding: 14px 24px 0; gap: 10px">
 <div class="row sb ce">
 <div class="row ce g8"><h1 class="h1">The map</h1><span class="tag new">new page</span></div>
-<div class="row g8 ce"><span class="pill m">7 resources</span><span class="pill m">2 flows</span><span class="pill m">1 unwired</span></div>
+<div class="row g8 ce"><span class="pill m">10 resources</span><span class="pill m">3 flows</span><span class="pill m">1 unwired</span></div>
 </div>
 <span class="note">Every resource that is wired to another, and the wire between them. A dark wire carried traffic recently.</span>
 
 <div style="position: relative; flex: 1; border: 1px solid var(--line); border-radius: 6px; background: var(--card); overflow: hidden">
 
 <!-- flow 1: statements → points queue → function, with a DLQ and a schedule -->
-<div class="note" style="position: absolute; left: 20px; top: 14px">Flow 1 · loyalty points</div>
+<div class="note" style="position: absolute; left: 20px; top: 14px">Flow 1 · from harbour-loyalty-statements-prod</div>
 
 <a class="box" href="S3-Home.dc.html" style="left: 40px; top: 70px; width: 270px; height: 44px; text-decoration: none">
 <span class="row ce g6"><span class="sv sm c-s3">S3</span><span class="m b el">harbour-loyalty-statements-prod</span></span>
@@ -154,7 +154,7 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <a class="box" href="Queue.dc.html" style="left: 380px; top: 70px; width: 270px; height: 44px; text-decoration: none">
 <span class="row ce g6"><span class="sv sm c-sqs">SQ</span><span class="m b el">harbour-loyalty-points-prod</span></span>
 </a>
-<div class="wire" style="left: 650px; top: 92px; width: 70px; height: 2px; background: var(--ink)"></div>
+<div class="wire" style="left: 650px; top: 92px; width: 70px; height: 2px"></div>
 <span class="tag" style="position: absolute; left: 668px; top: 73px">esm</span>
 
 <a class="box" href="Lambda-Home.dc.html" style="left: 720px; top: 70px; width: 270px; height: 44px; text-decoration: none">
@@ -173,14 +173,30 @@ font:400 13px/20px 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;font-fea
 <span class="row ce g6"><span class="sv sm c-eb">EB</span><span class="m b el">nightly-forecast</span></span>
 </a>
 
-<!-- flow 2 -->
-<div class="note" style="position: absolute; left: 20px; top: 300px">Flow 2 · alerts</div>
-<a class="box" href="Sns-Home.dc.html" style="left: 40px; top: 340px; width: 270px; height: 44px; text-decoration: none">
+<!-- flow 2: a stream and a table (both are nodes of the graph) feed one function -->
+<div class="note" style="position: absolute; left: 20px; top: 280px">Flow 2 · from harbour-clickstream</div>
+<a class="box" href="Kinesis-Home.dc.html" style="left: 40px; top: 320px; width: 270px; height: 44px; text-decoration: none">
+<span class="row ce g6"><span class="sv sm c-kin">KN</span><span class="m b el">harbour-clickstream</span></span>
+</a>
+<div class="wire" style="left: 310px; top: 341px; width: 70px; height: 2px"></div>
+<span class="tag" style="position: absolute; left: 328px; top: 322px">esm</span>
+<a class="box" href="Lambda-Home.dc.html" style="left: 380px; top: 320px; width: 270px; height: 44px; text-decoration: none">
+<span class="row ce g6"><span class="sv sm c-lam">λ</span><span class="m b el">harbour-sessionise</span></span>
+</a>
+<div class="wire" style="left: 514px; top: 364px; width: 2px; height: 26px"></div>
+<span class="tag" style="position: absolute; left: 526px; top: 370px">esm</span>
+<a class="box" href="Ddb-Home.dc.html" style="left: 380px; top: 390px; width: 270px; height: 44px; text-decoration: none">
+<span class="row ce g6"><span class="sv sm c-ddb">DB</span><span class="m b el">harbour-sessions</span></span>
+</a>
+
+<!-- flow 3 -->
+<div class="note" style="position: absolute; left: 20px; top: 470px">Flow 3 · from harbour-alerts</div>
+<a class="box" href="Sns-Home.dc.html" style="left: 40px; top: 510px; width: 270px; height: 44px; text-decoration: none">
 <span class="row ce g6"><span class="sv sm c-sns">SN</span><span class="m b el">harbour-alerts</span></span>
 </a>
-<div class="wire" style="left: 310px; top: 361px; width: 70px; height: 2px"></div>
-<span class="tag" style="position: absolute; left: 330px; top: 342px">sub</span>
-<a class="box" href="Queue.dc.html" style="left: 380px; top: 340px; width: 270px; height: 44px; text-decoration: none">
+<div class="wire" style="left: 310px; top: 531px; width: 70px; height: 2px"></div>
+<span class="tag" style="position: absolute; left: 330px; top: 512px">sub</span>
+<a class="box" href="Queue.dc.html" style="left: 380px; top: 510px; width: 270px; height: 44px; text-decoration: none">
 <span class="row ce g6"><span class="sv sm c-sqs">SQ</span><span class="m b el">harbour-alerts-email</span></span>
 </a>
 
