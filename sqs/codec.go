@@ -6,6 +6,7 @@ package sqs
 // layers: internal/awsjson for JSON, internal/awsquery for Query/XML.
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -34,6 +35,7 @@ var (
 // view. params reads scalars and the nested shapes (message attributes, queue
 // attributes, batch entries) from whichever wire format was used.
 type request struct {
+	ctx    context.Context // the HTTP request's: it carries the recorded call that sent a message (internal/msgcause)
 	action string
 	json   bool
 	host   string // client-facing Host header, for building queue URLs
@@ -469,7 +471,7 @@ func parseRequest(r *http.Request) (*request, *apiError) {
 		if aerr := awsjson.DecodeBody(r, &obj); aerr != nil {
 			return nil, aerr
 		}
-		return &request{action: action, json: true, host: host, p: params{obj: obj}}, nil
+		return &request{ctx: r.Context(), action: action, json: true, host: host, p: params{obj: obj}}, nil
 	}
 	vals, err := awsquery.Params(r)
 	if err != nil {
@@ -479,7 +481,7 @@ func parseRequest(r *http.Request) (*request, *apiError) {
 	if action == "" {
 		return nil, &apiError{Code: "MissingAction", Status: 400, Message: "no Action specified", SenderFault: true}
 	}
-	return &request{action: action, json: false, host: host, p: params{form: vals}}, nil
+	return &request{ctx: r.Context(), action: action, json: false, host: host, p: params{form: vals}}, nil
 }
 
 // tags reads the queue-tag map: CreateQueue/TagQueue "tags"/"Tags" in the JSON

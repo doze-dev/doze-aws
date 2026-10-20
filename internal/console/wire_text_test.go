@@ -146,3 +146,51 @@ func TestAnAnswerAndItsReasonAreSeparateWords(t *testing.T) {
 		}
 	})
 }
+
+// A function that raised under an event source mapping is a served invoke whose
+// function threw, as it is for a direct invoke: the row says "it threw" with
+// the function's own error, the window counts a function error, and the
+// inspector leads with what was raised. It used to read "500 failed" and call it
+// a bug in doze-aws, because the cascade event had nowhere to say the function
+// had answered.
+func TestAnEventSourcesFunctionErrorReadsAsItThrewLikeADirectInvokesDoes(t *testing.T) {
+	c, rec := wireWords(t)
+	doc := `{"errorMessage":"'unit_price'","errorType":"KeyError"}`
+	rec.EmitCascade(trace.Event{Self: rec.ReserveCascade(), Service: "lambda", Action: "Invoke (event source)",
+		Resource: "harbour-order-validator", Via: "sqs:orders", FnError: "Unhandled", FnBody: doc,
+		Detail: "START RequestId: r1", DetailURL: "/lambda/harbour-order-validator?tab=logs"})
+
+	feed := req(t, c, "GET", "/_console/traffic/feed", nil).Body.String()
+	rowRE := regexp.MustCompile(`(?s)<div id="r-(\d+)" class="tr-row[^"]*"(?:[^>]|"[^"]*")*>(?:.*?)<span class="lane">.*?</span>\s*</div>`)
+	var row, seq string
+	for _, m := range rowRE.FindAllStringSubmatch(feed, -1) {
+		if strings.Contains(m[0], "harbour-order-validator") {
+			row, seq = m[0], m[1]
+		}
+	}
+	if row == "" {
+		t.Fatalf("no row for the invoke:\n%s", feed)
+	}
+	if !strings.Contains(row, `class="tr-row threw"`) {
+		t.Errorf("the row is not a function-error row:\n%s", row)
+	}
+	if got := textContent(row); !strings.Contains(got, "harbour-order-validator via the queue's event source mapping KeyError: 'unit_price' it threw") {
+		t.Errorf("the row reads %q", got)
+	}
+	// wireWords already holds one direct invoke that threw; this is the second.
+	if !strings.Contains(feed, `<span class="m b bad">2</span>`) {
+		t.Errorf("the window does not count the function error:\n%s", excerpt(feed, "Function errors"))
+	}
+
+	drawer := req(t, c, "GET", "/_console/traffic/entry?seq="+seq, nil).Body.String()
+	if head := textContent(regexp.MustCompile(`(?s)<div class="td-h".*?</div>`).FindString(drawer)); !strings.HasPrefix(head, "lambda Invoke it threw") {
+		t.Errorf("the inspector's head reads %q", head)
+	}
+	if callout := textContent(regexp.MustCompile(`(?s)<div class="td-callout.*?</div>`).FindString(drawer)); !strings.HasPrefix(callout, "KeyError 'unit_price'") {
+		t.Errorf("the inspector's callout reads %q", callout)
+	}
+	// The function's lines are still on the row.
+	if !strings.Contains(drawer, "START RequestId: r1") {
+		t.Errorf("the log tail was lost:\n%s", drawer)
+	}
+}

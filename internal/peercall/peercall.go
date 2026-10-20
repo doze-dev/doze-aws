@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/fnerror"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/trace"
 )
@@ -361,7 +363,7 @@ func lambdaInvoke(ctx context.Context, dir peers.Directory, function string, pay
 		return body, tail, rid, &statusError{resp.StatusCode, resp.Header.Get(awshttp.DeniedHeader), fmt.Sprintf("lambda invoke: %s: %s", resp.Status, body)}
 	}
 	if fnErr := resp.Header.Get("X-Amz-Function-Error"); fnErr != "" {
-		return body, tail, rid, fmt.Errorf("function error (%s): %s", fnErr, body)
+		return body, tail, rid, &fnerror.Error{Kind: fnErr, Payload: body}
 	}
 	return body, tail, rid, nil
 }
@@ -605,8 +607,19 @@ func LambdaInvokeDetailed(ctx context.Context, dir peers.Directory, function str
 					out.ErrorCode = e.Type
 				}
 			}
+			// The function raised: the invoke was served, and the step records it
+			// as the answer (the wire says "it threw"), not as a failed hop.
+			if out.FunctionError != "" {
+				return &fnerror.Error{Kind: out.FunctionError, Payload: body}
+			}
 			return nil
 		})
+	// The caller's contract is that the error is transport only: a function error
+	// is in the result, and was handed to the step only so it could be recorded.
+	var fe *fnerror.Error
+	if errors.As(err, &fe) {
+		err = nil
+	}
 	return out, err
 }
 

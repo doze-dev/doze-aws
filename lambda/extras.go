@@ -3,7 +3,6 @@ package lambda
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -11,7 +10,9 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
+	"github.com/doze-dev/doze-aws/internal/fnerror"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
+	"github.com/doze-dev/doze-aws/internal/msgcause"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/peers"
@@ -374,16 +375,32 @@ func stateFor(enabled bool) string {
 }
 
 // deliveryContext is the context an SQS mapping's invoke is recorded under: the
-// chain the message came from when its header names one, and otherwise a root.
+// chain the batch came from, and otherwise a root.
 //
-// A message nothing of ours sent (an SDK's SendMessage carries no header) has no
-// parent to continue, and the delivery is still work doze-aws did, so it is a
-// root on the wire, as a stream's delivery is (invokeFromSource). trace.Continue
-// alone hands back the bare context in that case, which has no sink, and the
-// invoke was then not on the wire at all.
-func (s *Server) deliveryContext(header string) context.Context {
+// What caused a message is told by its trace header when doze-aws sent it (an
+// S3 notification, an SNS fan-out). A message an SDK sent carries none, and the
+// recorder knows which call sent it instead (internal/msgcause), so the invoke
+// is a child of that send and "What it caused" on the send says so. One invoke
+// has one parent, so a batch takes the first message that names a cause by
+// either witness; the header is asked first because it is the exact one.
+//
+// A message nothing names (one sent before a restart, or a link that aged out)
+// is a root on the wire, as a stream's delivery is (invokeFromSource). The
+// delivery is still work doze-aws did, and trace.Continue alone hands back the
+// bare context in that case, which has no sink, and the invoke was then not on
+// the wire at all.
+func (s *Server) deliveryContext(queue string, msgs []peercall.SQSMessage) context.Context {
 	sink := s.traceSink()
-	return trace.Continue(trace.With(context.Background(), sink, 0), sink, header)
+	root := trace.With(context.Background(), sink, 0)
+	for _, m := range msgs {
+		if ctx := trace.Continue(root, sink, m.TraceHeader()); trace.CauseOf(ctx) != 0 {
+			return ctx
+		}
+		if c := msgcause.Of(sink, queue, m.MessageID); c != 0 {
+			return trace.With(root, sink, c)
+		}
+	}
+	return root
 }
 
 // invokeFromSource runs an event-source invocation that has no cause of its
@@ -397,7 +414,7 @@ func (s *Server) invokeFromSource(f *function, payload []byte, via string) {
 	}, func(ctx context.Context) (string, string, error) {
 		res, e := s.runInvoke(ctx, f, payload)
 		if e == nil && res.FunctionErr != "" {
-			e = fmt.Errorf("%s: %s", res.FunctionErr, res.Payload)
+			e = &fnerror.Error{Kind: res.FunctionErr, Payload: res.Payload}
 		}
 		return invocationTail(res), logsURL(f.Name, res.RequestID), e
 	})
@@ -548,11 +565,12 @@ func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 		if len(msgs) == 0 {
 			continue
 		}
-		// Continue the chain the messages came from. A batch can in principle
-		// mix causes; the first message's header is used, because one invoke
-		// has one parent and inventing a second edge would be a guess. In
-		// practice a batch is one producer's work.
-		ctx := s.deliveryContext(msgs[0].TraceHeader())
+		// Continue the chain the messages came from (deliveryContext): the
+		// first message that names a cause, by its trace header or by the call
+		// the recorder saw send it. A batch can in principle mix causes; one
+		// invoke has one parent and inventing a second edge would be a guess.
+		// In practice a batch is one producer's work.
+		ctx := s.deliveryContext(queue, msgs)
 
 		records := make([]map[string]any, 0, len(msgs))
 		for _, msg := range msgs {
@@ -582,7 +600,7 @@ func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 			var e error
 			res, e = s.runInvoke(ctx, f, payload)
 			if e == nil && res.FunctionErr != "" {
-				e = fmt.Errorf("%s", res.FunctionErr)
+				e = &fnerror.Error{Kind: res.FunctionErr, Payload: res.Payload}
 			}
 			return invocationTail(res), logsURL(fnName, res.RequestID), e
 		})

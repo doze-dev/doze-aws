@@ -23,7 +23,7 @@ func TestAnSQSDeliveryWithNoHeaderIsARootOnTheWire(t *testing.T) {
 	s := &Server{}
 	s.SetTraceSink(sink)
 
-	ctx := s.deliveryContext("")
+	ctx := s.deliveryContext("orders", msgs(""))
 	err := trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke (event source)", Resource: "validator", Via: "sqs:orders"},
 		func(context.Context) error { return nil })
 	_ = err
@@ -42,7 +42,7 @@ func TestAnSQSDeliveryContinuesTheChainItsHeaderNames(t *testing.T) {
 	s := &Server{}
 	s.SetTraceSink(sink)
 
-	ctx := s.deliveryContext("Root=run;Parent=7")
+	ctx := s.deliveryContext("orders", msgs("Root=run;Parent=7"))
 	_ = trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke (event source)", Via: "sqs:orders"}, func(context.Context) error { return nil })
 	if len(sink.events) != 1 || sink.events[0].Cause != 7 {
 		t.Fatalf("events = %+v, want one child of call 7", sink.events)

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/msgcause"
 )
 
 // handler implements one SQS action against the store. Returns the result value
@@ -167,7 +168,9 @@ func hSendMessage(s *store, req *request) (any, *apiError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	m, err := s.Send(targetQueue(req), req.p.str("MessageBody"), req.p.messageAttrs(),
+	// A message an SDK sends carries no trace header; the recorder remembers which
+	// call sent it so the mapping that reads it can say so (internal/msgcause).
+	m, err := s.sendNoted(msgcause.Noter(req.ctx, targetQueue(req)), targetQueue(req), req.p.str("MessageBody"), req.p.messageAttrs(),
 		delay, req.p.str("MessageGroupId"), req.p.str("MessageDeduplicationId"), sys)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -196,10 +199,11 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	if total > maxBatchBytes {
 		return nil, errBatch("BatchRequestTooLong", "Batch requests cannot be longer than "+strconv.Itoa(maxBatchBytes)+" bytes. You have sent "+strconv.Itoa(total)+" bytes.")
 	}
+	note := msgcause.Noter(req.ctx, queue)
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
-		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID, SysAttrs: e.SysAttrs, Invalid: e.Invalid}
+		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID, SysAttrs: e.SysAttrs, Invalid: e.Invalid, Note: note}
 		if e.Invalid != nil {
 			continue
 		}

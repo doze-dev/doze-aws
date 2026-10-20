@@ -10,6 +10,7 @@ import (
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/fnerror"
 	"github.com/doze-dev/doze-aws/internal/httpevent"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
@@ -205,7 +206,7 @@ func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 			var e error
 			res, e = s.runInvokeInput(ctx, f, lambdaruntime.Input{Payload: payload, TraceID: r.Header.Get("X-Amzn-Trace-Id")})
 			if e == nil && res.FunctionErr != "" {
-				e = errFunction(res)
+				e = &fnerror.Error{Kind: res.FunctionErr, Payload: res.Payload}
 			}
 			return invocationTail(res), logsURL(f.Name, res.RequestID), e
 		})
@@ -218,11 +219,6 @@ func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 	}
 	httpevent.WriteResponse(w, res.Payload)
 }
-
-type functionError struct{ res lambdaruntime.Result }
-
-func (e functionError) Error() string            { return e.res.FunctionErr + ": " + string(e.res.Payload) }
-func errFunction(res lambdaruntime.Result) error { return functionError{res} }
 
 // urlEvent is the payload format 2.0 event a function URL delivers — the
 // same document an HTTP API route delivers, built by internal/httpevent.

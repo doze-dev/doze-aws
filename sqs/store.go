@@ -305,6 +305,14 @@ func (s *store) ListQueues(prefix string) ([]string, error) {
 
 // Send enqueues a message. delay<0 means "use the queue default".
 func (s *store) Send(queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*message, error) {
+	return s.sendNoted(nil, queue, body, attrs, delay, groupID, dedupID, sysAttrs)
+}
+
+// sendNoted is Send for a caller that wants to be told the id of the message
+// before it can be received: note runs inside the transaction, ahead of the
+// commit that makes the message visible, so a reader that wakes on it can
+// already find whatever note recorded (internal/msgcause).
+func (s *store) sendNoted(note func(id string), queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*message, error) {
 	var out *message
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -312,7 +320,7 @@ func (s *store) Send(queue, body string, attrs map[string]attr, delay int, group
 		if err != nil {
 			return err
 		}
-		m, sent, err := s.sendIn(tx, q, body, attrs, delay, groupID, dedupID, sysAttrs)
+		m, sent, err := s.sendIn(tx, q, body, attrs, delay, groupID, dedupID, sysAttrs, note)
 		out, enqueued = m, sent
 		return err
 	})
@@ -333,6 +341,8 @@ type sendItem struct {
 	// Invalid is a refusal decided before the item reached the store (a number
 	// out of its range). The entry fails with it, alone.
 	Invalid *apiError
+	// Note, when set, is told the message's id before it is committed (sendNoted).
+	Note func(id string)
 }
 
 // SendResult is one item's outcome. Err is that ITEM's failure, not the
@@ -369,7 +379,7 @@ func (s *store) SendBatch(queue string, items []sendItem) ([]sendOutcome, error)
 				results[i] = sendOutcome{Err: it.Invalid}
 				continue
 			}
-			m, sent, err := s.sendIn(tx, q, it.Body, it.Attrs, it.Delay, it.GroupID, it.DedupID, it.SysAttrs)
+			m, sent, err := s.sendIn(tx, q, it.Body, it.Attrs, it.Delay, it.GroupID, it.DedupID, it.SysAttrs, it.Note)
 			// Deliberately not returning err: a per-entry failure is reported
 			// per entry, and aborting would roll back the entries that worked.
 			results[i] = sendOutcome{Msg: m, Err: err}
@@ -389,7 +399,7 @@ func (s *store) SendBatch(queue string, items []sendItem) ([]sendOutcome, error)
 // sendIn is one message's work inside a caller's transaction. sent reports
 // whether anything was actually enqueued — a FIFO duplicate returns a message
 // and false, since it reports success without writing.
-func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *message, sent bool, err error) {
+func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string, note func(id string)) (out *message, sent bool, err error) {
 	queue := q.Name
 	if aerr := validateBody(body); aerr != nil {
 		return nil, false, aerr
@@ -469,6 +479,9 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 		DedupID:   dedupID,
 		SysAttrs:  sysAttrs,
 		Seq:       seq,
+	}
+	if note != nil {
+		note(m.ID)
 	}
 	if err := putMessage(mb, m); err != nil {
 		return nil, false, err

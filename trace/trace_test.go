@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/doze-dev/doze-aws/internal/emitter"
+	"github.com/doze-dev/doze-aws/internal/fnerror"
 )
 
 type fakeSink struct {
@@ -201,5 +202,42 @@ func TestAStepCarriesTheEmitterItsCallerSetAndPassesItNoFurther(t *testing.T) {
 	}
 	if got := byRes["q2"].Via; got != "sns:t" {
 		t.Errorf("a step's own via was replaced: %q", got)
+	}
+}
+
+// A function that raised is the target's answer, not a failed delivery: Lambda
+// served the invoke (a 200) and flagged the error in X-Amz-Function-Error. The
+// step records the flag and the function's own error document, and leaves Err
+// and Status for deliveries that failed, so the wire can say "it threw" for an
+// event source's invoke as it does for a direct one. The caller still gets an
+// error, because a poller must not delete a message the function did not take.
+func TestAFunctionErrorIsRecordedAsTheAnswerAndNotAsAFailedDelivery(t *testing.T) {
+	sink := &fakeSink{run: "r"}
+	ctx := With(context.Background(), sink, Cause(1))
+	doc := []byte(`{"errorMessage":"'unit_price'","errorType":"KeyError"}`)
+
+	for name, run := range map[string]func() error{
+		"Step": func() error {
+			return Step(ctx, Event{Service: "lambda", Action: "Invoke (event source)"}, func(context.Context) error {
+				return &fnerror.Error{Kind: "Unhandled", Payload: doc}
+			})
+		},
+		"StepDetail": func() error {
+			return StepDetail(ctx, Event{Service: "lambda", Action: "Invoke (event source)"}, func(context.Context) (string, string, error) {
+				return "tail", "/lambda/f?tab=logs", fmt.Errorf("invoking: %w", &fnerror.Error{Kind: "Unhandled", Payload: doc})
+			})
+		},
+	} {
+		sink.events = nil
+		if err := run(); err == nil {
+			t.Errorf("%s: the function error was swallowed; the caller must still see it", name)
+		}
+		e := sink.events[0]
+		if e.FnError != "Unhandled" || e.FnBody != string(doc) {
+			t.Errorf("%s: recorded FnError=%q FnBody=%q, want Unhandled and the error document", name, e.FnError, e.FnBody)
+		}
+		if e.Err != "" || e.Status != 0 {
+			t.Errorf("%s: a served invoke was recorded as a failed delivery (Err=%q Status=%d)", name, e.Err, e.Status)
+		}
 	}
 }

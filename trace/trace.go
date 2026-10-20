@@ -35,9 +35,12 @@
 //
 // DynamoDB streams and Kinesis have no equivalent per-record place to put a
 // header, so an invoke driven by one of those appears as a root. A message sent
-// by something other than doze-aws carries no header and does the same. Both
-// are honest outcomes: a root means "nothing told us what caused this", not
-// "nothing did".
+// by something other than doze-aws carries no header either, but when the
+// recorder saw the SDK's SendMessage it remembers, in memory, which call put
+// which message on the queue (internal/msgcause), and the mapping that reads it
+// asks; a message the recorder did not see, or one sent before a restart, is a
+// root. Both are honest outcomes: a root means "nothing told us what caused
+// this", not "nothing did".
 package trace
 
 import (
@@ -70,6 +73,14 @@ type Event struct {
 	At       time.Time
 	Millis   float64
 	Err      string // non-empty when the delivery failed
+	// FnError is Lambda's X-Amz-Function-Error ("Unhandled", "Handled") when the
+	// invoke was served and the function it ran raised, and FnBody the error
+	// document the function returned ({"errorType": ..., "errorMessage": ...}).
+	// A function error is the target's answer, not a failed delivery, so Err and
+	// Status stay empty for it: the wire reads it as the served call it is that
+	// says "it threw", the same as a direct invoke.
+	FnError string
+	FnBody  string
 	// Status is the HTTP status the target answered when it failed and the
 	// error knows one (see httpStatuser), else 0. It is what the wire shows for
 	// a failed hop: a policy denial on an alarm's Publish is a 403, not a 500.
@@ -107,6 +118,31 @@ func statusOf(err error) int {
 		return s.HTTPStatus()
 	}
 	return 0
+}
+
+// functionErrorer is implemented by the error a step returns when Lambda served
+// the invoke and the function raised (internal/fnerror): the X-Amz-Function-Error
+// header's value and the error document the function returned. Step records it
+// on the event as the target's answer and not as a failed delivery, and still
+// returns it, because a poller must not delete a message the function did not
+// take. The interface is unexported so the public API grows by the event's two
+// fields and nothing else.
+type functionErrorer interface {
+	FunctionError() (kind string, payload []byte)
+}
+
+// settle records what a step's work answered on its event.
+func settle(e *Event, err error) {
+	if err == nil {
+		return
+	}
+	var fe functionErrorer
+	if errors.As(err, &fe) {
+		kind, payload := fe.FunctionError()
+		e.FnError, e.FnBody = kind, string(payload)
+		return
+	}
+	e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
 }
 
 // Sink receives cascade events. Implementations must be safe for concurrent
@@ -163,7 +199,7 @@ func Step(ctx context.Context, e Event, fn func(context.Context) error) error {
 	err := fn(emitter.With(With(ctx, c.sink, self), ""))
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	if err != nil {
-		e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
+		settle(&e, err)
 	}
 	if e.At.IsZero() {
 		e.At = start
@@ -190,7 +226,7 @@ func StepDetail(ctx context.Context, e Event, fn func(context.Context) (detail, 
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
 	e.Detail, e.DetailURL = detail, url
 	if err != nil {
-		e.Err, e.Status, e.Denied = err.Error(), statusOf(err), deniedOf(err)
+		settle(&e, err)
 	}
 	if e.At.IsZero() {
 		e.At = start

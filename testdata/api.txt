@@ -361,6 +361,8 @@ trace: field Event.Denied string
 trace: field Event.Detail string
 trace: field Event.DetailURL string
 trace: field Event.Err string
+trace: field Event.FnBody string
+trace: field Event.FnError string
 trace: field Event.Millis float64
 trace: field Event.Resource string
 trace: field Event.Self Cause

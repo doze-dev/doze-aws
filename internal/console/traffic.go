@@ -16,6 +16,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/msgcause"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 	"github.com/doze-dev/doze-aws/trace"
 )
@@ -35,6 +36,10 @@ type Recorder struct {
 	seq     int64
 	changed int64 // bumped when an entry lands or the ring clears; seq moves when a call STARTS
 	full    bool
+	// links is which call put each queued message on its queue (internal/msgcause).
+	// Memory only, bounded, and empty until something is sent through the
+	// recorder: see that package for why it is not stored with the message.
+	links msgcause.Table
 }
 
 // OpResolver names the AWS operation a request addresses, keyed by the
@@ -180,7 +185,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// it sets off has to name it as a parent while that work is still running.
 	// Recording afterwards would mean the children knew no id to point at.
 	seq := rec.reserve()
-	r = r.WithContext(trace.With(r.Context(), rec, trace.Cause(seq)))
+	r = r.WithContext(msgcause.With(trace.With(r.Context(), rec, trace.Cause(seq)), rec))
 
 	rec.next.ServeHTTP(sw, r)
 	rec.addAt(seq, TrafficEntry{
@@ -234,6 +239,19 @@ func (rec *Recorder) addAt(seq int64, e TrafficEntry) {
 	}
 }
 
+// LinkMessage and MessageCause satisfy msgcause.Linker: the queue says which of
+// the recorded calls put a message on it, and an event source mapping asks, so
+// the invoke that reads an SDK's message (which carries no trace header) is a
+// child of the send. The link is dropped with a restart and ages out of a
+// bounded table; the calls it names age out of the 500-entry ring about as
+// soon, so nothing here outlives what it points at for long.
+func (rec *Recorder) LinkMessage(queue, id string, cause trace.Cause) {
+	rec.links.Put(queue, id, cause)
+}
+
+// MessageCause is the recorded call that put the message on the queue, or 0.
+func (rec *Recorder) MessageCause(queue, id string) trace.Cause { return rec.links.Get(queue, id) }
+
 // ReserveCascade allocates an id for work about to run, satisfying trace.Sink.
 func (rec *Recorder) ReserveCascade() trace.Cause { return trace.Cause(rec.reserve()) }
 
@@ -245,12 +263,19 @@ func (rec *Recorder) ReserveCascade() trace.Cause { return trace.Cause(rec.reser
 // has to correlate by timestamp.
 func (rec *Recorder) EmitCascade(e trace.Event) {
 	// The id was reserved before the work ran, so children could name it.
-	rec.addAt(int64(e.Self), TrafficEntry{
+	te := TrafficEntry{
 		At: e.At, Service: shortLabel(e.Service), Action: e.Action, Resource: e.Resource,
 		Millis: e.Millis, Parent: int64(e.Cause), Via: e.Via,
 		Status: cascadeStatus(e.Status, e.Err), RespBody: e.Err, Denied: e.Denied,
 		Detail: e.Detail, DetailURL: e.DetailURL,
-	})
+	}
+	if e.FnError != "" {
+		// The invoke was served and the function raised: what a direct invoke
+		// records (a 200, the header, the function's own document), so the row
+		// reads the same whichever way the function was called.
+		te.FnError, te.RespBody, te.RespCT = e.FnError, redact(e.FnBody), "application/json"
+	}
+	rec.addAt(int64(e.Self), te)
 }
 
 // cascadeStatus maps a delivery outcome onto the status column the wire
