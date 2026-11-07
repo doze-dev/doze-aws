@@ -70,10 +70,19 @@ func (d BaseDriver) Plan(_ context.Context, inst engine.Instance, _ engine.Toolc
 			env = append(env, extra...)
 		}
 	}
+	args := []string{"__serve", d.Name, "--socket", socket, "--datadir", inst.DataDir}
+	// The name doze gave the instance (engine.Networked): the service answers
+	// under it and mints its URLs with it.
+	if inst.Grant.Named() {
+		args = append(args, "--suffix", inst.Grant.Host)
+		if l, ok := inst.Grant.Listeners[engine.MainListener]; ok && l.URL != "" {
+			args = append(args, "--endpoint", l.URL)
+		}
+	}
 	return engine.SpawnPlan{Specs: []engine.SpawnSpec{{
 		Name:  inst.Name,
 		Bin:   self,
-		Args:  []string{"__serve", d.Name, "--socket", socket, "--datadir", inst.DataDir},
+		Args:  args,
 		Env:   env,
 		Ready: &engine.Ready{Kind: "socket", Target: socket},
 	}}}, nil
@@ -86,10 +95,25 @@ func (d BaseDriver) socket(socketDir string) string {
 	return filepath.Join(socketDir, d.Name+".sock")
 }
 
-// ConnString implements engine.Driver: the SDK endpoint URL for this service,
-// pointed at the doze-owned TCP endpoint.
-func (d BaseDriver) ConnString(_ engine.Instance, ep engine.Endpoint) (string, string) {
+// ConnString implements engine.Driver: the SDK endpoint URL for this service:
+// the instance's name without a port when doze gave it one, otherwise the
+// doze-owned TCP endpoint.
+func (d BaseDriver) ConnString(inst engine.Instance, ep engine.Endpoint) (string, string) {
+	if l, ok := inst.Grant.Listeners[engine.MainListener]; ok && l.URL != "" {
+		return d.EndpointEnv, l.URL
+	}
 	return d.EndpointEnv, "http://" + clientHost(ep)
+}
+
+// Network implements engine.Networked: one HTTP listener on the declared port,
+// answering at the instance's name and every name under it (the AWS-shaped
+// hosts: sqs.<region>.<name>, <bucket>.s3.<region>.<name>) and at
+// sync-<name>, where every SDK sends Step Functions' StartSyncExecution and
+// TestState.
+func (d BaseDriver) Network(engine.Instance) engine.Network {
+	return engine.Network{Listeners: []engine.Listener{
+		{Name: engine.MainListener, Protocol: engine.ProtocolHTTP, Routes: []string{engine.RouteSelf, "sync-@"}},
+	}}
 }
 
 // clientHost returns the host:port an SDK uses to reach this instance. The AWS

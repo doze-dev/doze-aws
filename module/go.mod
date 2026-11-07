@@ -8,7 +8,7 @@ go 1.27.0
 // go.mod free of the plugin SDK and gRPC.
 require (
 	github.com/doze-dev/doze-aws v0.3.0
-	github.com/doze-dev/doze-sdk v0.7.1-0.20261010144935-0d68bd5db525
+	github.com/doze-dev/doze-sdk v0.12.0
 	github.com/hashicorp/hcl/v2 v2.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )

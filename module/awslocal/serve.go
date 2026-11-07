@@ -19,10 +19,22 @@ import (
 	dozeplugin "github.com/doze-dev/doze-sdk/plugin"
 )
 
-// ServerFactory builds a service's HTTP handler over its data directory. The
-// returned io.Closer (may be nil) is closed on shutdown so the service can flush
-// and persist state before the process exits.
-type ServerFactory func(datadir string) (http.Handler, io.Closer, error)
+// ServeOptions is what a service is started with.
+type ServeOptions struct {
+	// DataDir is the service's data directory.
+	DataDir string
+	// Endpoint is the URL clients reach it at (http://aws.shop.doze), when doze
+	// gave the instance a name; empty otherwise.
+	Endpoint string
+	// Suffix is the instance's name (aws.shop.doze), under which it recognises
+	// and mints AWS-shaped hostnames; empty without a name.
+	Suffix string
+}
+
+// ServerFactory builds a service's HTTP handler from its options. The returned
+// io.Closer (may be nil) is closed on shutdown so the service can flush and
+// persist state before the process exits.
+type ServerFactory func(o ServeOptions) (http.Handler, io.Closer, error)
 
 var factories = map[string]ServerFactory{}
 
@@ -43,7 +55,8 @@ func Services() []string {
 // Serve runs the named service on a unix socket until it receives SIGINT or
 // SIGTERM, then gracefully drains and closes it. It is the body of the hidden
 // `doze __serve <service>` subcommand that BaseDriver.Spawn invokes.
-func Serve(name, socket, datadir string) error {
+func Serve(name, socket string, o ServeOptions) error {
+	datadir := o.DataDir
 	f, ok := factories[name]
 	if !ok {
 		return fmt.Errorf("unknown aws service %q (have %v)", name, Services())
@@ -59,7 +72,7 @@ func Serve(name, socket, datadir string) error {
 	}
 	_ = os.Remove(socket) // clear any stale socket from a crash
 
-	handler, closer, err := f(datadir)
+	handler, closer, err := f(o)
 	if err != nil {
 		return err
 	}
@@ -118,16 +131,18 @@ func PluginMain(drv engine.Driver, config any) {
 // service it self-execs to run (BaseDriver.Plan spawns os.Executable()).
 func ServeFromArgs(args []string) error {
 	if len(args) < 3 {
-		return fmt.Errorf("usage: __serve <service> --socket <path> --datadir <dir>")
+		return fmt.Errorf("usage: __serve <service> --socket <path> --datadir <dir> [--endpoint <url> --suffix <host>]")
 	}
 	name := args[2]
 	fs := flag.NewFlagSet("__serve", flag.ContinueOnError)
 	socket := fs.String("socket", "", "unix socket to listen on")
 	datadir := fs.String("datadir", "", "service data directory")
+	endpoint := fs.String("endpoint", "", "the URL clients reach the service at, when it has a name")
+	suffix := fs.String("suffix", "", "the instance's name, under which it answers")
 	if err := fs.Parse(args[3:]); err != nil {
 		return err
 	}
-	return Serve(name, *socket, *datadir)
+	return Serve(name, *socket, ServeOptions{DataDir: *datadir, Endpoint: *endpoint, Suffix: *suffix})
 }
 
 // withHealth answers HealthPath itself (200 "ok") and delegates everything else
