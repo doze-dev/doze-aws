@@ -43,6 +43,10 @@ https://receipts.s3.eu-west-1.amazonaws.com/jan.pdf               AWS
 http://receipts.s3.eu-west-1.aws.shop.doze/jan.pdf                doze-aws, named aws.shop.doze
 ```
 
+An SDK given the name itself as its endpoint, `http://aws.shop.doze`, puts the
+bucket in front of it: `receipts.aws.shop.doze/jan.pdf`. That is the bucket
+`receipts` too.
+
 There are two ways to give it one:
 
 - **Run it under [doze](https://github.com/doze-dev/doze)**, as the `aws`

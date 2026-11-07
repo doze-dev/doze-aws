@@ -173,3 +173,26 @@ func looksLikeRegion(s string) bool {
 	}
 	return true
 }
+
+// Under is what host has in front of suffix: "photos" for
+// photos.aws.shop.doze under aws.shop.doze. It is "" when there is no suffix,
+// when host is not under it, and for the suffix itself.
+//
+// Parse does not read this shape as a bucket, because it does not know the
+// request is S3's: sqs.<suffix> is SQS's host. S3 does know — the gateway only
+// sends it S3 calls — and an SDK given the instance's own URL with its default
+// virtual-hosted addressing sends exactly this shape.
+func Under(host, suffix string) string {
+	if suffix == "" {
+		return ""
+	}
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if h, ok := stripPort(host); ok {
+		host = h
+	}
+	head, ok := strings.CutSuffix(host, "."+strings.ToLower(strings.TrimSuffix(suffix, ".")))
+	if !ok {
+		return ""
+	}
+	return head
+}

@@ -200,6 +200,12 @@ hosts under it, are doze's: run doze-aws as doze's `aws` module.)
 
 ### Changed
 
+- **A bucket in front of the instance's name is that bucket.** An SDK given
+  `http://aws.shop.doze` with its default virtual-hosted addressing sends
+  `photos.aws.shop.doze`; S3 read that as a path-style call to the bare host
+  and refused it (or, with a key, wrote to the bucket the key's first segment
+  named). It now reads the bucket `photos`. AWS's own shape,
+  `photos.s3.<region>.<suffix>`, is unchanged.
 - **A refusal links what it is about.** Under a "Refused here" (a limit of
   doze-aws's own) and a "Not built" explanation, on the wire and under a failed
   console action, a link opens the fidelity dialog at the operation's row (the

@@ -180,7 +180,7 @@ func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
 // nobody reads.
 func (s *Server) addressOf(r *http.Request) (bucket, key string, vhost bool) {
 	path := strings.TrimPrefix(r.URL.EscapedPath(), "/")
-	if bucket = awshost.Parse(r.Host, s.suffix).Bucket; bucket != "" {
+	if bucket = s.vhostBucket(r.Host); bucket != "" {
 		key, _ = url.PathUnescape(path)
 		return bucket, key, true
 	}
@@ -189,6 +189,25 @@ func (s *Server) addressOf(r *http.Request) (bucket, key string, vhost bool) {
 	bucket, _ = url.PathUnescape(b)
 	key, _ = url.PathUnescape(rest)
 	return bucket, key, false
+}
+
+// vhostBucket is the bucket a request's Host names: AWS's shape,
+// <bucket>.s3[.<region>].<suffix>, or a bucket right in front of the suffix,
+// <bucket>.<suffix>, which is what an SDK sends when it is given the instance's
+// own URL (inside doze, its name). s3[.<region>].<suffix> and
+// <service>.<region>.<suffix> are service hosts, not buckets.
+func (s *Server) vhostBucket(host string) string {
+	info := awshost.Parse(host, s.suffix)
+	if info.Bucket != "" {
+		return info.Bucket
+	}
+	if info.Service == "s3" || info.Region != "" {
+		return ""
+	}
+	if head := awshost.Under(host, s.suffix); s3store.ValidBucketName(head) {
+		return head
+	}
+	return ""
 }
 
 // warnLostVHost says so when a request LOOKS like virtual-hosted addressing
@@ -275,7 +294,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// validation, the IAM guard and the sub-resource refusal with its operation
 	// known — see router.go. A virtual-hosted request's bucket joins the path
 	// first, so there is one shape to match.
-	s.router().ServeHTTP(w, routed(r, awshost.Parse(r.Host, s.suffix).Bucket))
+	s.router().ServeHTTP(w, routed(r, s.vhostBucket(r.Host)))
 }
 
 // SweepLifecycleNow runs one lifecycle sweep immediately (tests drive this
