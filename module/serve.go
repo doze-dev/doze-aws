@@ -19,8 +19,11 @@ func init() { awslocal.RegisterServer("aws", serveFactory) }
 // to each raw service handler (peers.InProcess over the stack), so they never
 // appear in the Traffic tail; the "/_console" prefix can never collide with a
 // valid S3 bucket name (those forbid underscores).
-func serveFactory(datadir string) (http.Handler, io.Closer, error) {
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: datadir})
+//
+// With a name (o.Suffix), the stack answers under it, as the standalone binary
+// does under aws.<instance>.doze, and Lambda functions reach it at o.Endpoint.
+func serveFactory(o awslocal.ServeOptions) (http.Handler, io.Closer, error) {
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: o.DataDir, Endpoint: o.Endpoint, Suffix: o.Suffix})
 	if err != nil {
 		return nil, nil, err
 	}
