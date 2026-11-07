@@ -136,3 +136,25 @@ func TestAmbiguousShapes(t *testing.T) {
 		}
 	}
 }
+
+// Under is the part of a host in front of the suffix, and nothing for a host
+// that is not under it.
+func TestUnder(t *testing.T) {
+	const suffix = "aws.shop.doze"
+	for host, want := range map[string]string{
+		"photos." + suffix:           "photos",
+		"my.dotted.bucket." + suffix: "my.dotted.bucket",
+		"Photos." + suffix + ":80":   "photos",
+		"photos." + suffix + ".":     "photos",
+		suffix:                       "",
+		"sync-" + suffix:             "",
+		"photos.example.com":         "",
+	} {
+		if got := Under(host, suffix); got != want {
+			t.Errorf("Under(%q) = %q, want %q", host, got, want)
+		}
+	}
+	if got := Under("photos.aws.shop.doze", ""); got != "" {
+		t.Errorf("with no suffix, Under = %q, want nothing", got)
+	}
+}
