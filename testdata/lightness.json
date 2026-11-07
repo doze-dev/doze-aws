@@ -9,7 +9,6 @@
     "modules": [
       "github.com/BurntSushi/toml",
       "github.com/blues/jsonata-go",
-      "github.com/doze-dev/doze-names",
       "github.com/go-chi/chi/v5",
       "go.etcd.io/bbolt",
       "golang.org/x/sys",

@@ -4,12 +4,11 @@ package dozeaws_test
 //
 // # The hole this closes
 //
-// The matrix said linux, darwin and windows. The Windows build had not
-// compiled since doze-names joined as a dependency a month after v0.3.0: the
-// .doze registry locks with syscall.Flock and manages the hosts file through
-// Unix-only paths. Nothing noticed, because nothing had been released since,
-// and GoReleaser builds every matrix entry — so the next tag would have failed
-// the whole release rather than just one asset.
+// The matrix once said linux, darwin and windows while the Windows build did
+// not compile (a dependency, since removed, was Unix-only). Nothing noticed,
+// because nothing had been released since, and GoReleaser builds every matrix
+// entry — so the next tag would have failed the whole release rather than
+// just one asset.
 //
 // Reading the matrix out of the config rather than listing targets here is the
 // point: a target added to .goreleaser.yaml is a target this test starts

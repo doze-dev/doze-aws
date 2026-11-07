@@ -65,7 +65,7 @@ func TestAConsequentialOverrideAsksFirst(t *testing.T) {
 	}
 }
 
-// Enter alone must be the SAFE answer. dns-setup defaults to yes because
+// Enter alone must be the SAFE answer. A setup prompt defaults to yes because
 // saying yes is what the user came for; this one can look like data loss, so
 // the default is no.
 func TestTheDefaultAnswerIsNo(t *testing.T) {

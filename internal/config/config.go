@@ -99,11 +99,8 @@ func (c Config) InstanceName() string {
 // already calls the project, and because two checkouts then get two instances
 // with nobody configuring anything — which is the whole point of naming.
 //
-// The result is not sanitized here. doze-names reduces a name to a DNS label
-// on claim, and duplicating that rule is exactly the kind of mirror this tree
-// keeps getting bitten by; what this checks is only whether anything would
-// SURVIVE that reduction, since a directory called "~" would otherwise claim
-// the empty label.
+// It labels the instance (the console, the log); it is not an address. A
+// directory with nothing usable in its name, "~" say, gets DefaultName.
 func DeriveName(dir string) string {
 	base := filepath.Base(dir)
 	if !hasLabelChar(base) {
@@ -128,14 +125,18 @@ func (c Config) Identity() awsident.Identity {
 	return awsident.Identity{Region: c.Region, AccountID: c.AccountID}
 }
 
+// DefaultListenAddr is where doze-aws answers unless told otherwise.
+const DefaultListenAddr = "127.0.0.1:4566"
+
 // Default returns a Config suitable for zero-config local development. The
 // listen port matches LocalStack's, so existing AWS_ENDPOINT_URL setups work
 // unchanged.
 func Default() Config {
 	return Config{
-		// No default address: doze-aws answers on its .doze NAME, and --listen
-		// is the opt-in for the cases a name cannot serve. See cmd/doze-aws/listen.go.
-		ListenAddr:        "",
+		// An address, LocalStack's port: the standalone binary needs no machine
+		// setup. Names (aws.<stack>.doze) are doze's, when it runs this as a
+		// module. See cmd/doze-aws/listen.go.
+		ListenAddr:        DefaultListenAddr,
 		DataDir:           "./data",
 		Console:           true,
 		LambdaIdleTimeout: 10 * time.Minute,
@@ -147,8 +148,9 @@ func Default() Config {
 // starting. Service-name existence is checked against the full roadmap set
 // here; whether a service is implemented yet is the stack's concern.
 func (c Config) Validate() error {
-	// An empty ListenAddr is no longer an error: it is the default. doze-aws
-	// answers on its .doze name, and --listen adds an address alongside it.
+	if c.ListenAddr == "" {
+		return fmt.Errorf("config: listen address is empty (the default is %s)", DefaultListenAddr)
+	}
 	if c.DataDir == "" {
 		return fmt.Errorf("config: data dir is empty")
 	}
