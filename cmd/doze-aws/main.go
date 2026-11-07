@@ -2,19 +2,16 @@
 // development stack leans on — real wire protocols, both AWS SDK generations,
 // no Docker, no JVM.
 //
-// An instance answers on its own name. `doze-aws` in a directory called
-// harbour is aws.harbour.doze, and the AWS-shaped hostnames sit beneath it, so
-// a URL it hands back differs from the real one by the suffix alone:
+// It answers on an address, 127.0.0.1:4566 unless --listen says otherwise,
+// with nothing to set up on the machine. With --suffix (a name a proxy in front
+// of it owns) the URLs it hands back are AWS's own shape with the suffix
+// swapped:
 //
-//	https://sqs.ap-south-1.amazonaws.com/811690671382/orders     AWS
-//	http://sqs.ap-south-1.aws.harbour.doze/811690671382/orders   doze-aws
+//	https://sqs.ap-south-1.amazonaws.com/811690671382/orders  AWS
+//	sqs.ap-south-1.aws.example.test/811690671382/orders       with --suffix aws.example.test
 //
-// That needs `.doze` to resolve, which the first run offers to arrange: one
-// prompt, one sudo, once per machine. `doze-aws dns-setup` is the same thing
-// run deliberately, for CI or a scripted install. Where a name cannot serve
-// — a sibling container over a compose network, CI, anywhere without DNS —
-// `--listen host:port` is the opt-in, and it REPLACES the name rather than
-// adding to it: one instance, one way to reach it.
+// Run as a doze module, doze gives it a name (aws.<stack>.doze) and the same
+// shapes come back under it.
 //
 // Data lives under ./data, or wherever doze-aws.toml says.
 package main
@@ -42,7 +39,6 @@ import (
 	"github.com/doze-dev/doze-aws/internal/migrate"
 	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
-	names "github.com/doze-dev/doze-names"
 )
 
 // withConsole serves the console beside the gateway on one endpoint. chi,
@@ -83,7 +79,6 @@ func commands() []command {
 		{"export", "write what is running as a CloudFormation template", runExport},
 		{"env", envUsage, runEnv},
 		{"config print", "print the effective configuration as TOML, ready to edit", runConfigPrint},
-		{"dns-setup", "prepare this machine for .doze names (idempotent)", runDNSSetup},
 		{"doctor", doctorUsage, runDoctor},
 		{"version", "print the version and the services this build serves", runVersion},
 		{"help", "print this message", runHelp},
@@ -139,11 +134,10 @@ commands:
 	fs.SetOutput(w)
 	fs.PrintDefaults()
 	fmt.Fprint(w, "\nExamples:\n"+
-		"  doze-aws                                  everything, on aws.<dir>.doze\n"+
-		"  doze-aws dns-setup                        set .doze up deliberately (CI, scripted installs)\n"+
-		"  doze-aws --name harbour                   name the instance explicitly\n"+
+		"  doze-aws                                  everything, on 127.0.0.1:4566\n"+
+		"  doze-aws --name harbour                   label the instance (the console, the log)\n"+
 		"  doze-aws --services s3,sqs,lambda         just those three\n"+
-		"  doze-aws --listen 127.0.0.1:4566          an address instead of a name\n"+
+		"  doze-aws --listen 127.0.0.1:4577          another address\n"+
 		"  doze-aws apply template.yaml              deploy a template into a running stack\n"+
 		"  eval \"$(doze-aws env)\"                    point your shell's AWS SDK at it\n"+
 		"\nDocs: https://github.com/doze-dev/doze-aws/tree/main/docs\n")
@@ -192,10 +186,6 @@ func dispatch(args []string) (code int, ok bool) {
 }
 
 func main() {
-	// On a Mac, dns-setup installs a copy of this program as the .doze zone's
-	// network daemon; this is where that copy becomes it.
-	names.Helper()
-
 	if code, handled := dispatch(os.Args[1:]); handled {
 		os.Exit(code)
 	}
@@ -356,47 +346,14 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Addresses are decided BEFORE anything is built, because what doze-aws
-	// tells a Lambda process to dial (AWS_ENDPOINT_URL) and what it reports in
-	// a queue URL both depend on where it ended up listening.
-	//
-	// The two modes are EXCLUSIVE, not additive. Without --listen this instance
-	// is its .doze name and nothing else. With --listen it is that address and
-	// nothing else: no name is claimed, no DNS check runs, and the registry
-	// records nothing. One instance, one way to reach it.
-	//
-	// Additive was the old shape, and it produced an instance that answered on
-	// two addresses with two different URL shapes depending on which one you
-	// asked through — and a binds.endpoint that preferred the name, so a child
-	// Lambda under --listen was handed a .doze URL it could not resolve on a
-	// machine where dns-setup had never run.
-	var z *zone
-	if cfg.ListenAddr == "" {
-		if _, nerr := ensureNames(liveNameEnv()); nerr != nil {
-			return nerr
-		}
-		z = joinZone(ctx, logger, cfg.InstanceName())
-		defer z.close()
-	}
-
-	binds, err := openListeners(cfg, z, logger)
+	// The address is decided BEFORE anything is built, because what doze-aws
+	// tells a Lambda process to dial (AWS_ENDPOINT_URL) depends on where it
+	// ended up listening.
+	binds, err := openListeners(cfg)
 	if err != nil {
 		return err
 	}
 	defer binds.close()
-
-	// The suffix that stands in for amazonaws.com is this instance's own name,
-	// unless --suffix says otherwise. Deriving it rather than requiring it is
-	// what makes sqs.ap-south-1.aws.harbour.doze come out of a plain
-	// `doze-aws` with nothing configured.
-	//
-	// Under --listen there is no name, so there is no derived suffix and the
-	// URL shapes fall back to paths — correct, because there would be no
-	// resolver to serve an AWS-shaped hostname. --suffix still works there, and
-	// that is the containerised-behind-a-proxy case: the proxy owns the name.
-	if cfg.Suffix == "" && z != nil && z.own != nil {
-		cfg.Suffix = z.own.Name.Host
-	}
 
 	// A data directory written before regions keeps its services directly under
 	// the root; they belong under <region>/ now. This is a directory rename per
@@ -476,18 +433,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		"regions", strings.Join(regions.Serving(), ","), "account", cfg.Identity().Account(),
 		"instance", cfg.InstanceName())
 	for _, b := range binds.all {
-		logger.Info("reachable at", "url", b.url, "as", b.what)
+		logger.Info("reachable at", "url", b.url)
 	}
 
 	// Mount the web console alongside the AWS gateway on the same endpoint. The
 	// "/_console" prefix can never collide with a valid S3 bucket name (those
 	// forbid underscores), so path-style S3 routing is unaffected.
-	// What to put in front of a person, which is not always binds.primary().url:
-	// a name that does not resolve on this machine is worse than an address,
-	// and the console link has to agree with the endpoint or one of them is
-	// wrong. Resolved once, here, after the name is registered and the listener
-	// is up. See binding.advertise.
-	advertised := binds.primary().advertise(logger)
+	advertised := binds.primary().url
 
 	handler := http.Handler(regions)
 	consoleURL := ""

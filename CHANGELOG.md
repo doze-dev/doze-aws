@@ -15,7 +15,9 @@ promise: what `testdata/api.txt` records cannot be removed or changed without a
 
 0.x shipped ten services and no compatibility statement. This one covers
 seventeen and freezes the Go API, the CLI, the data directory layout and the
-`.doze` hostname contract.
+address: `127.0.0.1:4566` unless `--listen` says otherwise, as at 0.3.0, with
+nothing to set up on the machine. (Names, `aws.<stack>.doze` and the AWS-shaped
+hosts under it, are doze's: run doze-aws as doze's `aws` module.)
 
 ### Breaking
 
@@ -38,10 +40,8 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 - **`internal/trace` is now `trace`.** The one thing that became MORE public:
   five services expose `SetTraceSink(trace.Sink)` and no caller outside the
   module could name the argument, so the method was decoration.
-- **No Windows binaries.** The matrix listed `windows` and the build did not
-  compile — the `.doze` zone locks its registry with `syscall.Flock`. v0.3.0
-  shipped Windows because that dependency did not exist yet. Supporting it
-  means porting the resolver setup, which is a project, not a build flag.
+- **No Windows binaries.** v0.3.0 shipped them; this release does not build
+  them until doze-aws has been run and tested on Windows. It compiles there.
 
 - **About sixty-five requests that used to succeed are now refused, because AWS
   refuses them.** If something that worked at 0.x fails after upgrading, it

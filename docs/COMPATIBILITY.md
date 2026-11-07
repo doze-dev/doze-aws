@@ -33,7 +33,7 @@ service is `New(Options) → *Server`, which is an `http.Handler` and an
 
 ## The CLI
 
-**Covered:** the subcommands in [cli.md](cli.md) — `dns-setup`, `doctor`,
+**Covered:** the subcommands in [cli.md](cli.md) — `doctor`,
 `env`, `apply`, `export`, `version`, `config print` — their flag names, and the
 shape of what they write to stdout.
 
@@ -106,17 +106,19 @@ which is what makes a checked-in config work from any directory.
 Keys that exist keep their names and meanings. New ones may be added, and every
 key stays optional.
 
-## The `.doze` hostname contract
+## The address contract
 
 Stated in full in [endpoints.md](endpoints.md), and promised:
 
-- **`aws.<instance>.doze`** and the AWS-shaped hostnames beneath it.
-- **`--listen host:port`** serves exactly what you ask for, with no DNS.
+- **`127.0.0.1:4566`** is where doze-aws answers unless `--listen` says
+  otherwise, with no machine setup.
+- **`--listen host:port`** serves exactly what you ask for.
 - **Every URL is minted from the request's `Host`**, so a queue URL you read
-  back is reachable the way you reached the server.
+  back is reachable the way you reached the server: AWS-shaped under a name
+  (doze's, or a proxy's with `--suffix`), path-shaped at an address.
 
-Not promised, and not a default: `127.0.0.1:4566` as the address doze-aws binds
-on its own, or `aws.doze` as a machine-wide name.
+Not promised: any `.doze` name from the standalone binary. Names are doze's,
+when it runs doze-aws as a module.
 
 ## What each operation does
 
@@ -136,6 +138,7 @@ compared against what those suites measure.
   gated so it cannot rot, but a budget is not a guarantee.
 - **The binary's size**, beyond it staying small enough to be the argument it
   is.
-- **Windows.** The `.doze` setup is Unix-only, so there are no Windows builds.
+- **Windows.** It compiles there, but it is not built for release until it has
+  been run and tested there.
 - **Being LocalStack.** Where doze-aws differs from AWS on purpose, the service
   section in SUPPORT.md says so under "Differences from AWS".

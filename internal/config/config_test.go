@@ -15,17 +15,17 @@ func TestDefaultValidates(t *testing.T) {
 	}
 }
 
-// An empty listen address is the DEFAULT now, not an error: doze-aws answers
-// on its .doze name and --listen adds an address alongside it. This used to
-// assert the opposite, which was right when 127.0.0.1:4566 was the contract.
-func TestAnEmptyListenAddressIsTheDefault(t *testing.T) {
-	if got := Default().ListenAddr; got != "" {
-		t.Errorf("Default().ListenAddr = %q, want empty — the name is the address", got)
+// 127.0.0.1:4566 is the contract again: the standalone binary is an address
+// and needs no machine setup; names are doze's (docs/endpoints.md). An empty
+// one is an error that says what the default is.
+func TestTheListenAddressIsLocalStacksPort(t *testing.T) {
+	if got := Default().ListenAddr; got != "127.0.0.1:4566" {
+		t.Errorf("Default().ListenAddr = %q, want 127.0.0.1:4566", got)
 	}
 	c := Default()
 	c.ListenAddr = ""
-	if err := c.Validate(); err != nil {
-		t.Errorf("an empty listen address must validate: %v", err)
+	if err := c.Validate(); err == nil || !strings.Contains(err.Error(), "127.0.0.1:4566") {
+		t.Errorf("an empty listen address: %v", err)
 	}
 }
 

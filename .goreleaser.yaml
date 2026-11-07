@@ -18,18 +18,11 @@ builds:
     binary: doze-aws
     env:
       - CGO_ENABLED=0 # pure Go: fully static, no libc dependency.
-    # Linux and macOS only. Windows was in this list and could not build: the
-    # .doze zone comes from doze-names, which locks its registry with
-    # syscall.Flock and manages the hosts file through Unix-only paths, so
-    # `GOOS=windows go build ./cmd/doze-aws` fails to compile. v0.3.0 shipped
-    # Windows binaries because doze-names was not a dependency yet; it joined
-    # a month later and nothing has been released since, so the breakage was
-    # never seen. GoReleaser builds every matrix entry, so the next tag would
-    # have failed the whole release rather than just the Windows asset.
-    #
-    # Supporting Windows means porting doze-names' registry locking and
-    # resolver setup, which is a project rather than a build flag. Until then
-    # saying so beats shipping a target that does not exist.
+    # Linux and macOS only. Windows was dropped while doze-names (Unix-only
+    # registry locking and resolver setup) was a dependency. It no longer is
+    # (names are doze's), and `GOOS=windows go build ./cmd/doze-aws` compiles
+    # again; putting windows back in this list waits for doze-aws to be run
+    # and tested there, since GoReleaser would then ship it.
     goos:
       - linux
       - darwin

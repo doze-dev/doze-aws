@@ -5,81 +5,32 @@ import (
 	"testing"
 
 	"github.com/doze-dev/doze-aws/internal/config"
-	names "github.com/doze-dev/doze-names"
 )
 
-type fakeRegistry map[string]names.Entry
-
-func (f fakeRegistry) Snapshot() map[string]names.Entry { return f }
-
-// The case doctor exists for: something is missing, and the operator needs to
-// know WHICH thing and what to run. A report that says only "not working" is
-// the error they already had.
-func TestDoctorNamesWhatIsMissingAndHowToFixIt(t *testing.T) {
+// doctor says where this instance answers and whether something answers there:
+// the two things to know when an SDK says it cannot connect.
+func TestDoctorSaysWhereItAnswersAndWhetherAnythingDoes(t *testing.T) {
 	var b strings.Builder
-	status := names.Status{Platform: "darwin", Steps: []names.Step{
-		{Name: "loopback pool", Done: true, Detail: "127.0.0.2-65 aliased on lo0"},
-		{Name: "resolver route", Done: false, Detail: "/etc/resolver/doze missing"},
-	}}
-	code := doctorTo(&b, config.Default(), status, fakeRegistry{})
+	code := doctorTo(&b, config.Default(), func(string) bool { return false })
 	out := b.String()
-
 	if code != 0 {
 		t.Errorf("exit = %d; being told what is missing is the command WORKING", code)
 	}
-	if !strings.Contains(out, "✗ resolver route") {
-		t.Errorf("the missing step is not marked:\n%s", out)
-	}
-	if !strings.Contains(out, "✓ loopback pool") {
-		t.Errorf("the present step is not marked:\n%s", out)
-	}
-	for _, want := range []string{"dns-setup", "--print", "--listen"} {
+	for _, want := range []string{"answers on  127.0.0.1:4566", "nothing answers at 127.0.0.1:4566", "suffix      (none"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("no remedy mentions %q:\n%s", want, out)
+			t.Errorf("missing %q:\n%s", want, out)
 		}
 	}
-}
-
-// "My name stopped working" is almost always another process holding it, and
-// that is invisible from the SDK's error. The registry knows, so doctor says.
-func TestDoctorNamesTheHolder(t *testing.T) {
-	var b strings.Builder
-	reg := fakeRegistry{
-		"aws.doze": {IP: "127.0.0.2", PID: 4242, Owner: "doze-kafka", Target: "127.0.0.2:4566"},
-	}
-	doctorTo(&b, config.Default(), names.Status{Platform: "darwin"}, reg)
-	out := b.String()
-	for _, want := range []string{"aws.doze", "doze-kafka", "4242", "127.0.0.2:4566"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("holder report is missing %q:\n%s", want, out)
-		}
-	}
-}
-
-// Without --suffix there is still a suffix: the instance's own name. This
-// test used to assert the opposite — that AWS-shaped hostnames were off and
-// doctor said so — which was right while a suffix had to be configured by
-// hand. Deriving it from the name is what makes
-// sqs.ap-south-1.aws.harbour.doze come out of a plain `doze-aws`, so the
-// thing worth asserting is that doctor says WHERE the suffix came from:
-// a derived one follows a rename, a --suffix one does not.
-func TestDoctorDerivesTheSuffixFromTheName(t *testing.T) {
-	cfg := config.Default()
-	cfg.Name = "harbour"
-
-	var b strings.Builder
-	doctorTo(&b, cfg, names.Status{Platform: "darwin"}, fakeRegistry{})
-	out := b.String()
-	for _, want := range []string{"harbour", "aws.harbour.doze", "from the name"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("the derived suffix report is missing %q:\n%s", want, out)
-		}
+	if strings.Contains(out, ".doze") || strings.Contains(out, "dns-setup") {
+		t.Errorf("the standalone binary has no names to report:\n%s", out)
 	}
 
-	cfg.Suffix = "aws.example.test"
 	b.Reset()
-	doctorTo(&b, cfg, names.Status{Platform: "darwin"}, fakeRegistry{})
-	if out := b.String(); !strings.Contains(out, "aws.example.test (--suffix)") {
-		t.Errorf("an explicit suffix must be marked as explicit:\n%s", out)
+	cfg := config.Default()
+	cfg.Suffix = "aws.example.test"
+	doctorTo(&b, cfg, func(string) bool { return true })
+	out = b.String()
+	if !strings.Contains(out, "✓ something answers at 127.0.0.1:4566") || !strings.Contains(out, "aws.example.test (--suffix)") {
+		t.Errorf("a running instance with a suffix:\n%s", out)
 	}
 }

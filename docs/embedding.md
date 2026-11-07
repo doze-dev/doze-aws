@@ -7,7 +7,7 @@ The binary is a thin wrapper around exactly that API.
 From 1.0.0 that API is under semver: what `testdata/api.txt` records cannot
 change without a major release. [COMPATIBILITY.md](COMPATIBILITY.md) says what
 else is covered — the CLI, the data directory, the `msg=listening` line and the
-`.doze` names — and what is not.
+address — and what is not.
 
 ## The whole stack behind one handler
 
@@ -33,8 +33,8 @@ One case does need configuration: if your **Lambda handler code** calls a siblin
 service through an AWS SDK, set `StackConfig.Endpoint` to the stack's
 externally-reachable base URL (e.g. `"http://127.0.0.1:4566"`). It is injected
 into function processes as `AWS_ENDPOINT_URL`. The `doze-aws` binary derives it
-from wherever it actually bound — its `.doze` name, or the `--listen` address —
-so embedders serving the handler over HTTP should pass it explicitly.
+from the address it bound, and the doze module from the name doze gives it, so
+embedders serving the handler over HTTP should pass it explicitly.
 
 `StackConfig.Suffix` is the related one: set it to what stands in for
 `amazonaws.com` in the hostnames you serve under, and minted URLs come back

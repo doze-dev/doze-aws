@@ -104,7 +104,7 @@ func confirmOverrides(e overrideEnv, path string, fileKeys, given map[string]boo
 		return nil
 	}
 
-	// Default NO. dns-setup defaults to yes because saying yes is what the user
+	// Default NO. A setup prompt would default to yes because saying yes is what the user
 	// came for; this one can look like data loss, so the safe answer is the one
 	// you get by pressing enter.
 	fmt.Fprint(e.out, "Continue? [y/N] ")
@@ -125,4 +125,13 @@ func confirmOverrides(e overrideEnv, path string, fileKeys, given map[string]boo
 	}
 	fmt.Fprintln(e.out, "Nothing was started. Drop the flag, or edit "+path+".")
 	return errOverrideDeclined
+}
+
+// stdinIsTTY says whether a person is at the terminal to answer a prompt.
+func stdinIsTTY() bool {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
 }

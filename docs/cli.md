@@ -5,23 +5,19 @@ implemented service; it runs in the foreground until you interrupt it (Ctrl-C).
 
 ```sh
 cd ~/code/harbour && doze-aws
-# msg=listening addr=127.0.0.17:4566 services=s3,dynamodb,sqs,… instance=harbour
-# msg="reachable at" url=http://aws.harbour.doze as=name
+# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,… instance=harbour
+# msg="reachable at" url=http://127.0.0.1:4566
 ```
 
-The instance name comes from the directory. The first run on a machine offers
-to make `.doze` resolve (one prompt, one sudo); `dns-setup` below is the same
-thing run deliberately, for CI or a scripted install. See
-[endpoints.md](endpoints.md) for the addressing model.
+The instance's label comes from the directory. Nothing is set up on the
+machine. See [endpoints.md](endpoints.md) for the addressing model.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `doze-aws` | Serve the enabled services (the default). If `./template.yaml` exists (or `--template` names a file), it is applied at boot. |
-| `doze-aws dns-setup [--print]` | Set up `.doze` **deliberately**, rather than accepting the offer the first run makes. For CI, a scripted install, or a machine where you want it done before anything needs it. Idempotent. `--print` writes the script instead of running it, for anyone who will not hand a tool sudo. |
-| `doze-aws dns-setup --check` | Report whether `.doze` resolves; exits non-zero if not. |
-| `doze-aws doctor` | What this instance is, whether `.doze` resolves, and who holds which name. The first thing to run when a name stops working. |
+| `doze-aws doctor` | What this instance is, where it answers, and whether something answers there. The first thing to run when an SDK cannot connect. |
 | `doze-aws env` | Print the shell block that points an AWS SDK at this instance — endpoint, region, credentials, and the per-service `AWS_ENDPOINT_URL_*` hostnames. Use it as `eval "$(doze-aws env)"`. |
 | `doze-aws apply [--var k=v ...] [file]` | Deploy a CloudFormation or SAM template (default `./template.yaml`): create what's missing, cheaply update what exists, never delete. `--var` supplies template parameters. Targets the running server if one is listening, the data dir otherwise. See [cloudformation.md](cloudformation.md). |
 | `doze-aws export` | Write the running stack (queues, tables, buckets, functions, wiring, …) to stdout as a CloudFormation template. Secret values are left blank on purpose. |
@@ -38,8 +34,8 @@ Flags apply to serving and to `config print`.
 | Flag | Default | Meaning |
 |---|---|---|
 | `--config <path>` | `./doze-aws.toml` if present | Path to a TOML config file. Relative paths **inside** it resolve against the file, not against your working directory. |
-| `--name <name>` | the directory's name | This instance's name in `.doze`. It answers on `aws.<name>.doze`. |
-| `--listen <host:port>` | (none — the name is the address) | Serve on an address **instead of** a `.doze` name; no name is claimed. For containers, CI, anywhere without DNS. See [endpoints.md](endpoints.md). |
+| `--name <name>` | the directory's name | This instance's label, in the console and the log. |
+| `--listen <host:port>` | `127.0.0.1:4566` | The address to answer on: another port for a second instance, `0.0.0.0:4566` for a sibling container. See [endpoints.md](endpoints.md). |
 | `--data-dir <dir>` | `./data`, or beside `doze-aws.toml` | Root directory: each region gets a subdirectory, with IAM and STS under `_global`. The **flag** resolves against your working directory; the config-file key resolves against the file. |
 | `--region <region>` | `us-east-1` | Default region for unqualified requests. Others are created on first use. |
 | `--account-id <12 digits>` | `000000000000` | The account every ARN carries. Set at creation and effectively frozen — the data records it and a mismatch is refused. |
@@ -95,7 +91,7 @@ Instead of flags, put settings in `doze-aws.toml` (auto-loaded from the working
 directory, or point `--config` at one elsewhere):
 
 ```toml
-name     = "harbour"           # answers on aws.harbour.doze
+name     = "harbour"           # the instance's label
 region   = "ap-south-1"
 data-dir = "data"              # relative to THIS FILE, not to your shell
 services = ["s3", "dynamodb", "sqs"]
@@ -127,7 +123,7 @@ configuration in front of you, including the per-service hostnames:
 eval "$(doze-aws env)"
 
 # or by hand:
-export AWS_ENDPOINT_URL=http://aws.harbour.doze
+export AWS_ENDPOINT_URL=http://127.0.0.1:4566
 export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
 
 aws sts get-caller-identity

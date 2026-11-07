@@ -34,35 +34,11 @@ That block goes to stdout; the structured log lines go to stderr, so
 `doze-aws 2>/dev/null` leaves just the summary and anything parsing the logs
 is unaffected.
 
-That is the whole setup. doze-aws addresses itself by name, so the first run
-on a machine offers to make `.doze` resolve — one prompt, one sudo, never
-again; the [README](../README.md#doze-aws) has the exact wording.
+That is the whole setup: it answers on `127.0.0.1:4566`, and there is nothing
+to set up on the machine and no sudo. A second instance, or a container, takes
+`--listen` (below).
 
-Say yes and it is done for good. With no terminal at all — CI, or `doze-aws &`
-— it changes nothing and prints what to run, because a server that hangs
-waiting for a password nobody can type is worse than one that stops.
-
-Running as root it installs without asking, since there is nobody to ask — a
-container, usually. That path is checked by hand before a release on `alpine`
-and `debian:stable-slim`, both with no `sudo` present and no DNS: the hosts
-block is written and the server starts.
-
-It is checked on both because they differ in a way that mattered. `alpine`
-ships `/etc/sysctl.d`; `debian:stable-slim` does not, and writing into a
-directory that is not there took the whole install down with it — doze-aws
-exited fatally and the container could not start. The setup script creates the
-directory now and is allowed to fail on that step, which was always the
-intent: the sysctl only lets an *unprivileged* process bind :80, and a
-container runs as root.
-
-**In a container, still prefer `--listen`.** What a plain container cannot do
-is resolve the per-instance name in the banner: apex names (`aws.doze`) go in
-`/etc/hosts` and work, but `aws.<project>.doze` needs systemd-resolved or
-dnsmasq to route the domain, and a slim image has neither. doze-aws says so on
-startup rather than leaving you to find out. `--listen` skips the name path
-entirely and is what the compose setup below does.
-
-The instance is named after the directory, so each project gets its own, and
+The instance is labelled after the directory, and
 its state lands in `./data` — which doze-aws marks ignored as it creates it,
 so git never offers to commit two megabytes of local databases.
 
@@ -82,7 +58,7 @@ the by-hand `export` block, and the per-service endpoint variables.
 
 ## Open the console
 
-`http://aws.harbour.doze/_console/` — on by default, `--console=false` to turn
+`http://127.0.0.1:4566/_console/` — on by default, `--console=false` to turn
 it off.
 
 It opens on **the wire**: every call your app has made, newest first, with the
@@ -113,13 +89,11 @@ Two things worth knowing about:
   to answer "is this call real here"; an emulator does, and this is where it
   does.
 
-Queue URLs, invoke URLs and function URLs come back AWS-shaped under the
-instance name — `http://sqs.us-east-1.aws.harbour.doze/000000000000/jobs` — so
-what you copy out of a response is the shape you would get from AWS with the
-suffix swapped.
-
-No DNS available (CI, a container)? `doze-aws --listen 127.0.0.1:4566` serves an
-address instead. See [endpoints.md](endpoints.md).
+Queue URLs, invoke URLs and function URLs come back in path shapes at an
+address (`http://127.0.0.1:4566/000000000000/jobs`), so an SDK uses path-style
+S3. Run under doze as the `aws` module, doze-aws has a name and they come back
+AWS-shaped under it (`http://sqs.us-east-1.aws.shop.doze/000000000000/jobs`).
+See [endpoints.md](endpoints.md).
 
 ### In Docker, if that is where your team already is
 
@@ -148,9 +122,9 @@ volumes:
 ```
 
 Then point the SDKs at `http://aws:4566` from sibling services, or
-`http://localhost:4566` from the host. Two things to know: `--listen` is
-required, because the `.doze` name resolution the default depends on is not
-there inside a container; and the data directory is worth a volume only if you
+`http://localhost:4566` from the host. Two things to know: `--listen
+0.0.0.0:4566` is required, because the default 127.0.0.1 is unreachable from
+outside the container; and the data directory is worth a volume only if you
 want state to survive `down` — a test run usually does not, and starting clean
 is one line shorter.
 

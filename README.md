@@ -8,21 +8,12 @@ curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh |
 exec $SHELL          # or: export PATH="$HOME/.doze-aws/bin:$PATH"
 
 cd ~/code/harbour && doze-aws
-# reachable at http://aws.harbour.doze
+# reachable at http://127.0.0.1:4566
 ```
 
-The first run on a machine offers to set up `.doze` for you — one prompt, one
-sudo, never again:
-
-```
-doze-aws addresses itself by name, and .doze does not resolve on this machine yet.
-Setting it up needs sudo once — per machine, not per project.
-Set it up now? [Y/n]
-```
-
-With no terminal to ask on (CI) it changes nothing and tells you the two ways
-forward. In a container, skip the name entirely and use `--listen` — see
-[getting-started.md](docs/getting-started.md#in-docker-if-that-is-where-your-team-already-is).
+Nothing to set up on the machine and no sudo. Another address is `--listen`
+(a second instance, a container: see
+[getting-started.md](docs/getting-started.md#in-docker-if-that-is-where-your-team-already-is)).
 
 Point any AWS SDK at it and go:
 
@@ -36,8 +27,8 @@ It tells you where it is and what to do next:
 ```
   doze-aws is up.
 
-    endpoint  http://aws.harbour.doze
-    console   http://aws.harbour.doze/_console/   what your app is doing, live
+    endpoint  http://127.0.0.1:4566
+    console   http://127.0.0.1:4566/_console/   what your app is doing, live
     serving   17 services in us-east-1, account 000000000000
 
     eval "$(doze-aws env)"   point this shell at it
@@ -60,22 +51,21 @@ which are honest stubs — the one table real AWS never has to show you.
 The console is built for desktop-width windows, 768px and up. Below that it
 still works and says so, but it is not designed to fit a phone.
 
-`doze-aws doctor` is the first thing to run when something is off: it reports
-what `.doze` needs on this machine, what is registered, and what to do about
-it. It always exits 0 — being told what is missing is the command working.
+`doze-aws doctor` is the first thing to run when something is off: it says
+where this configuration answers and whether something does. It always exits
+0 — being told what is missing is the command working.
 
-An instance answers on **its own name**, taken from the project directory, and
-the AWS-shaped hostnames sit beneath it — so a URL it hands back differs from
-the real one by the suffix alone:
+At an address, the URLs it hands back use path shapes, so an SDK uses
+path-style S3 and, for Step Functions' sync calls, its host prefix off. Run it
+under [doze](https://github.com/doze-dev/doze) as the `aws` module and it gets
+a name, `aws.<stack>.doze`, under which the URLs are AWS's own shape with the
+suffix swapped and neither setting is needed:
 
 ```
-https://sqs.ap-south-1.amazonaws.com/811690671382/orders     AWS
-http://sqs.ap-south-1.aws.harbour.doze/811690671382/orders   doze-aws
+https://sqs.ap-south-1.amazonaws.com/811690671382/orders    AWS
+http://sqs.ap-south-1.aws.shop.doze/811690671382/orders     doze-aws, under doze
 ```
 
-Two projects each get their own name and never contend. No DNS available — CI,
-a container, a sibling service over a compose network? `doze-aws --listen
-127.0.0.1:4566` serves an address instead, and that is the only other way in.
 → **[Endpoints — where doze-aws answers](docs/endpoints.md)**
 
 ## What it is
@@ -202,17 +192,16 @@ not do at all: no outbound connections of its own, no account, no telemetry,
 nothing outside the data directory you name. Those are tests, not promises.
 
 What a 1.x release will and will not change — the Go API, the CLI, the data
-directory, the one log line worth parsing, and the `.doze` names — is
+directory, the one log line worth parsing, and the address — is
 **[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)**.
 
 ## Design ground rules
 
-- **Lightweight above all.** Six dependencies we chose: bbolt, a TOML parser,
-  a YAML parser, a JSONata evaluator (Step Functions), chi (the router the REST
-  services and the console share — it has no dependencies of its own) and
-  doze-names (the `.doze` zone). Seven modules reach the binary —
-  `golang.org/x/sys` arrives through bbolt — and a test fails if an eighth ever
-  does. Data persists across
+- **Lightweight above all.** Five dependencies we chose: bbolt, a TOML parser,
+  a YAML parser, a JSONata evaluator (Step Functions) and chi (the router the
+  REST services and the console share — it has no dependencies of its own).
+  Six modules reach the binary — `golang.org/x/sys` arrives through bbolt — and
+  a test fails if a seventh ever does. Data persists across
   restarts under one directory you can delete.
 - **Real protocols, honest boundaries.** Every documented operation of an
   implemented service gets a handler: functional where locally meaningful,

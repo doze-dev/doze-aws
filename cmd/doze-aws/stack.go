@@ -16,7 +16,6 @@ import (
 	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/internal/provision"
-	names "github.com/doze-dev/doze-names"
 )
 
 // splitApplyArgs separates `apply` arguments into the stack file, the --var
@@ -244,9 +243,8 @@ func printReport(rep *provision.Report) {
 // one is listening (bbolt is single-writer, so the data dir can't be opened
 // alongside it), otherwise a stack booted from the data dir.
 func gatewayFor(cfg config.Config) (h http.Handler, closer func(), liveAt string, err error) {
-	// Where to look for a running server. --listen names one directly; without
-	// it the instance is on its .doze name, so the registry is asked where
-	// that name is routed rather than an address being guessed at.
+	// Where to look for a running server: the address this configuration
+	// names, which is where a server started with it listens.
 	for _, addr := range liveCandidates(cfg) {
 		if conn, derr := net.DialTimeout("tcp", addr, 400*time.Millisecond); derr == nil {
 			conn.Close()
@@ -262,37 +260,10 @@ func gatewayFor(cfg config.Config) (h http.Handler, closer func(), liveAt string
 	return stack.Handler(), func() { stack.Close() }, "", nil
 }
 
-// liveCandidates are the addresses a running doze-aws might be answering on,
-// most specific first.
-//
-// The name is asked of the REGISTRY rather than resolved through DNS: the
-// registry records where a name is actually routed, and it is right even on a
-// machine where dns-setup has never run. `apply` and `export` have to find the
-// server whether or not the person running them set up names.
-//
-// THIS instance's name is tried before any other. With several instances
-// running, every one of them has an "aws." entry, and applying a stack to
-// whichever came back first from a map iteration would be a coin toss over
-// somebody else's data. The name comes from the same loadConfig the server
-// used, so running `apply` in the project directory finds that project's
-// instance.
+// liveCandidates are the addresses a running server for this configuration
+// would be on.
 func liveCandidates(cfg config.Config) []string {
-	var out []string
-	if cfg.ListenAddr != "" {
-		out = append(out, reachableHost(cfg.ListenAddr))
-	}
-	reg := names.Open(names.Home(), "doze-aws")
-	snap := reg.Snapshot()
-	mine := names.Qualified("aws", cfg.InstanceName()).Host
-	if e, ok := snap[mine]; ok && e.Target != "" {
-		out = append(out, e.Target)
-	}
-	for host, e := range snap {
-		if host != mine && e.Owner == "doze-aws" && e.Target != "" && strings.HasPrefix(host, "aws.") {
-			out = append(out, e.Target)
-		}
-	}
-	return out
+	return []string{reachableHost(cfg.ListenAddr)}
 }
 
 // proxyHandler adapts a base URL to http.Handler so stackfile's in-process
