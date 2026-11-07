@@ -1,4 +1,7 @@
-# Storage: why bbolt, and what it costs
+---
+title: "Storage: why bbolt"
+description: "Why doze-aws keeps its state in bbolt, what that costs, and what the alternatives measured."
+---
 
 doze-aws keeps its state in [bbolt](https://github.com/etcd-io/bbolt), an
 embedded B+tree. This page is the decision record: what the alternatives were

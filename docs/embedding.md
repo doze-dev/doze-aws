@@ -1,4 +1,7 @@
-# Embedding doze-aws
+---
+title: "Embedding doze-aws"
+description: "Use doze-aws as a Go library and start any set of services inside your tests."
+---
 
 doze-aws is a library first. Every service is a plain Go package exporting an
 `http.Handler`, and `dozeaws.NewStack` assembles any subset behind one gateway.

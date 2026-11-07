@@ -48,7 +48,7 @@ tail its logs, simulate an IAM policy. And a **fidelity ledger** per service
 saying which operations are functional, which are cosmetic round-trips, and
 which are honest stubs — the one table real AWS never has to show you.
 
-The console is built for desktop-width windows, 768px and up. Below that it
+The console is built for windows wider than 1024 pixels. At 1024 and below it
 still works and says so, but it is not designed to fit a phone.
 
 `doze-aws doctor` is the first thing to run when something is off: it says

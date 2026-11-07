@@ -1,4 +1,7 @@
-# Lambda, locally
+---
+title: "Lambda, locally"
+description: "How a function runs on doze-aws: host processes, runtimes, in-place code, logs, versions, layers and function URLs."
+---
 
 How a function runs on doze-aws, how to get one in, and how to see what it
 did. The operation-by-operation ledger is

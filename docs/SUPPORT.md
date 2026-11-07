@@ -1,4 +1,7 @@
-# doze-aws — API support
+---
+title: "API support"
+description: "Every operation each doze-aws service implements, and at what tier: Functional, Cosmetic or Stub."
+---
 
 What every service implements, at what tier, and what it does not implement
 with the reason. One document because it is one question: a reader deciding

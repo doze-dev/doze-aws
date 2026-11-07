@@ -1,4 +1,7 @@
-# CloudFormation, SAM, CDK and Serverless
+---
+title: "CloudFormation, SAM, CDK and Serverless"
+description: "Deploy to doze-aws with the AWS CLI, SAM, CDK, Serverless or Terraform, unmodified."
+---
 
 doze-aws speaks CloudFormation, so the deployment tool you already use works
 against it unmodified. All of these are exercised against a

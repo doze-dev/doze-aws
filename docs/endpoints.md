@@ -1,4 +1,7 @@
-# Endpoints — where doze-aws answers
+---
+title: "Endpoints"
+description: "The address doze-aws answers on, the shape of the URLs it hands back, and which of them are promised."
+---
 
 `http://127.0.0.1:4566`, unless `--listen` says otherwise. Nothing to set up on
 the machine, no sudo, nothing written outside the data directory.

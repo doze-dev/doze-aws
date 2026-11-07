@@ -9,7 +9,10 @@ var updateRegister = flag.Bool("register.update", false,
 // docs/not-built.md. The tables between them are generated from the verdicts
 // and the ledgers, so the list cannot drift from the code while the argument
 // stays something a person wrote.
-const registerPreamble = `# What doze-aws does not build, and why
+const registerPreamble = `---
+title: "What doze-aws does not build"
+description: "What doze-aws declines to build and why, what is only deferred and what it would take, and what the binary does not do at all."
+---
 
 Every absence on this page is deliberate, and every one is also an S-tier row in
 [docs/SUPPORT.md](SUPPORT.md). A test reconciles the two in both directions,

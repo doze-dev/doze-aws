@@ -1,7 +1,11 @@
-# doze-aws documentation
+---
+title: "doze-aws documentation"
+description: "Every doze-aws page: getting started, the console, deploying, Lambda, embedding, the reference and the decisions behind it."
+---
 
 - [getting-started.md](getting-started.md) — run it, point an SDK at it, configure it
 - [endpoints.md](endpoints.md) — the addresses doze-aws answers on, and which are promised
+- [console.mdx](console.mdx) — the console at `/_console/`: the wire, the map, Connect, the fidelity ledger and a page for each service
 - [cli.md](cli.md) — CLI reference: commands, flags, the `doze-aws.toml` config file, and how clients connect
 - [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless
 - [lambda.md](lambda.md) — how a function runs (host processes, no Docker), the runtimes, in-place code, logs three ways, versions, layers and function URLs

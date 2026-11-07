@@ -1,4 +1,7 @@
-# What 1.0.0 promises
+---
+title: "What 1.0.0 promises"
+description: "What doze-aws 1.0.0 promises under semantic versioning, surface by surface, and what it does not."
+---
 
 doze-aws follows [semantic versioning](https://semver.org). This page says what
 that covers, surface by surface, because "1.0" on its own does not tell you

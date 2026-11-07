@@ -1,4 +1,7 @@
-# Getting started
+---
+title: "Getting started"
+description: "Install doze-aws, run it, point an AWS SDK at it and configure it."
+---
 
 doze-aws is one small static binary that emulates the AWS services a
 development stack leans on — built from the wire protocol up, verified against
@@ -58,36 +61,12 @@ the by-hand `export` block, and the per-service endpoint variables.
 
 ## Open the console
 
-`http://127.0.0.1:4566/_console/` — on by default, `--console=false` to turn
-it off.
+Open `http://127.0.0.1:4566/_console/` in a browser. It opens on **the wire**:
+every call your app has made, newest first, with the work each one caused nested
+under it. [The console](console.mdx) shows what else is there: Connect, the
+fidelity ledger and a page for each service. `--console=false` turns it off.
 
-It opens on **the wire**: every call your app has made, newest first, with the
-work each one caused nested under it. An S3 upload that fired a notification
-that invoked a Lambda is drawn as one thing, not three unrelated rows. Each
-row carries the status, the duration, the request id the SDK printed, and a
-*copy as curl* button whose body is the redacted copy, so a repro you paste
-into a ticket keeps secrets masked.
-
-The calls the console makes on its own behalf never appear there — it talks to
-the services directly rather than through the recorder — so the tail is your
-app's traffic and nothing else.
-
-From there, every service has pages that do real work: browse and upload S3
-objects, actually receive (not peek at) SQS messages and redrive from a DLQ,
-run PartiQL against DynamoDB, watch a Step Functions execution graph, invoke a
-Lambda and tail its logs, simulate an IAM policy before you trust it.
-
-Two things worth knowing about:
-
-- **Connect** — the same endpoint written four ways: an AWS CLI profile, the
-  environment block, a Terraform provider, and the deploy commands. Built from
-  the address you reached the console on, with a button that runs a real
-  `GetCallerIdentity` to prove it works.
-- **The fidelity ledger**, on each service page — which operations are
-  functional, which are cosmetic round-trips that accept and return your
-  config without acting on it, and which are honest stubs. Real AWS never has
-  to answer "is this call real here"; an emulator does, and this is where it
-  does.
+## URLs at an address
 
 Queue URLs, invoke URLs and function URLs come back in path shapes at an
 address (`http://127.0.0.1:4566/000000000000/jobs`), so an SDK uses path-style
@@ -95,7 +74,7 @@ S3. Run under doze as the `aws` module, doze-aws has a name and they come back
 AWS-shaped under it (`http://sqs.us-east-1.aws.shop.doze/000000000000/jobs`).
 See [endpoints.md](endpoints.md).
 
-### In Docker, if that is where your team already is
+## In Docker, if that is where your team already is
 
 doze-aws ships no image and no Dockerfile, deliberately — the whole argument
 against a 1.88 GB emulator container is weakened by shipping one, and a static

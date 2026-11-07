@@ -1,0 +1,193 @@
+---
+title: "The console"
+description: "What the doze-aws console shows: the wire, the map, Connect, the fidelity ledger and a page for each service."
+---
+
+import Shot from "@docs/Shot.astro";
+import Steps from "@docs/Steps.astro";
+import Keys from "@docs/Keys.astro";
+import wire from "./assets/aws-wire.webp";
+import call from "./assets/aws-call.webp";
+import map from "./assets/aws-map.webp";
+import s3 from "./assets/aws-s3.webp";
+import sqs from "./assets/aws-sqs.webp";
+import dynamodb from "./assets/aws-dynamodb.webp";
+import lambda from "./assets/aws-lambda.webp";
+import stepfunctions from "./assets/aws-stepfunctions.webp";
+import eventbridge from "./assets/aws-eventbridge.webp";
+import iam from "./assets/aws-iam.webp";
+
+After this page you can watch every AWS call your app makes, open one to see
+what it sent and what it caused, and work with the resources behind it in a
+browser.
+
+The console is part of the doze-aws binary. It is on by default at
+`http://127.0.0.1:4566/_console/`, needs nothing installed, and talks to the
+services directly, so its own requests never show up as your app's traffic.
+
+## Open it
+
+<Steps>
+
+1. **Start doze-aws** in your project's directory:
+
+   ```sh
+   doze-aws
+   ```
+
+   The summary it prints has a `console` line with the address.
+
+2. **Open `http://127.0.0.1:4566/_console/`** in a browser. If you gave
+   `--listen` another address, use that one, with `/_console/` after it.
+
+3. **Make a call.** In another terminal:
+
+   ```sh
+   eval "$(doze-aws env)"
+   aws s3 mb s3://uploads
+   ```
+
+   `CreateBucket` appears at the top of the wire as it happens.
+
+4. **Click the row** to open the call beside the list.
+
+</Steps>
+
+`--console=false` turns the console off. It is built for windows wider than 1024 pixels; at 1024 and below it still
+works and says so in the key bar, and phones are not supported.
+
+## The wire
+
+The console opens on the wire: every AWS call made against this endpoint,
+newest first. Each row has the time, the operation, the resource it was about,
+the answer and how long it took. Work that doze-aws did itself because of a
+call (an S3 upload that sent a notification that invoked a Lambda) is nested
+under the call that caused it, so a chain reads as one thing.
+
+<Shot
+  src={wire}
+  alt="The doze-aws console on the wire: seventeen calls newest first, one PutItem refused"
+  caption="The wire after a short test run. The label beside doze-aws is the instance's name (--name, by default the directory's)."
+  callouts={[
+    { n: 1, x: 17.5, y: 14.3, title: "Filters.", text: "All, Errors or Refused, and one service or every service." },
+    { n: 2, x: 71, y: 8.2, title: "Pause and Clear.", text: "Pause holds the list still and counts what arrives; Clear empties it." },
+    { n: 3, x: 58.6, y: 29.2, title: "A refused call.", text: "The same request would fail on AWS." },
+    { n: 4, x: 89, y: 13.7, title: "Needs a look.", text: "Refusals, errors and failed functions in the calls kept, with a summary of the window under it." },
+  ]}
+/>
+
+The wire keeps the last 500 calls in memory. The calls the console makes for
+itself, including Connect's check, are left out, so what you see is your app.
+
+### One call, opened
+
+Click a row, or move to it with <kbd>j</kbd> <kbd>k</kbd> and press
+<kbd>⏎</kbd>. The call opens on the right with its request id (the one the SDK
+printed), the error AWS would name, and:
+
+- **What it was sent**: the request body, with secrets masked.
+- **What it caused**: the work doze-aws did because of it, when there was any.
+  What your function calls from inside, with an SDK, arrives as its own call.
+- **The resource it was sent to**, as a link to its page.
+- **The same operation, in the ledger**: the operation's row from the
+  [fidelity ledger](#the-fidelity-ledger), so you can see how much of it is
+  real here.
+- **Copy as curl**, built from the masked copy, so a repro you paste into a
+  ticket keeps secrets out. A failed call also offers **Copy the error**.
+
+<Shot
+  src={call}
+  alt="A refused PutItem opened on the wire, showing the ConditionalCheckFailedException, the request body and the ledger row"
+  caption="A PutItem refused by its condition, opened. The ledger row says PutItem is functional here."
+/>
+
+Each resource page ends with the same tail for that one resource: **The wire,
+calls that touched this queue** (or bucket, table, function).
+
+## The map
+
+The map draws every resource that is wired to another and the wire between
+them: S3 event notifications, SNS subscriptions, EventBridge rule targets,
+event source mappings, dead-letter queues and function destinations. A dark
+wire carried traffic recently, and a flow a call touched in the last minute is
+marked hot. Resources wired to nothing are listed underneath.
+
+<Shot
+  src={map}
+  alt="The map with two flows: an SNS topic feeding a queue and its dead-letter queue, and an EventBridge rule targeting a Lambda"
+  caption="Two flows, one of them hot, and three resources wired to nothing."
+/>
+
+Past a certain size the map stops drawing wires and shows one card per flow,
+with a search box and a switch between all flows and hot ones.
+
+## Connect
+
+Connect shows the endpoint written four ways, each with a Copy button: an AWS
+CLI profile, the environment variables every SDK reads, a Terraform provider
+block, and the deploy commands for the tools you already have. Every value is
+the one this instance has: the address you reached the console on, its region
+and the credentials it accepts. **Run get-caller-identity** sends a real STS
+`GetCallerIdentity` to prove the settings work; it does not appear on the wire.
+
+## The fidelity ledger
+
+An emulator has to answer a question AWS never does: is this call real here?
+Every service page has an ⓘ beside its list heading. It opens the service's
+ledger, **what is real here**:
+
+- **F, functional**: real local behaviour.
+- **C, cosmetic**: accepts and returns your configuration without acting on it.
+- **S, stub**: an honest refusal, for something with nothing to act on locally.
+
+Under the table, **Differences from AWS** lists where behaviour that works
+still differs. The dialog reads [API support](SUPPORT.md) when you open it, so
+it always matches the page. A refused call on the wire links straight to its
+operation's row.
+
+## The services
+
+The rail on the left lists every service doze-aws serves, grouped as Storage and
+data, Messaging, Compute and APIs, Config and secrets, and Stack-wide. Each has a
+list of its resources, a page for one resource, and a create form where the
+service has one (CloudFormation and API Gateway are filled by deploying). The
+pages act on real resources: what you do here, your app sees.
+
+<Shot src={s3} alt="An S3 bucket's objects in the console, inside the receipts folder" caption="S3: browse folders, upload, make folders, and set notifications under Properties." />
+
+<Shot src={sqs} alt="An SQS queue with five waiting messages, shown by a live peek" caption="SQS: the live peek reads messages without receiving them. Consume really receives; a dead-letter queue offers a redrive." />
+
+<Shot src={dynamodb} alt="A DynamoDB table's items, scanned, with Query, Get and PartiQL beside Scan" caption="DynamoDB: Scan, Query, Get and PartiQL against the table, and Add item." />
+
+<Shot src={lambda} alt="A Lambda function's Test tab: its trigger, a test event, the response and the tail of its logs" caption="Lambda: invoke with a test event, sync or async, and read the logs of that invocation. The idle window says when the warm process goes to sleep." />
+
+<Shot src={stepfunctions} alt="A Step Functions state machine's executions, one succeeded and one failed" caption="Step Functions: executions, starting one, the graph of a run, the definition, versions and aliases." />
+
+<Shot src={eventbridge} alt="An EventBridge rule with its event pattern and a Lambda target" caption="EventBridge: a rule's pattern and targets, and adding a target." />
+
+<Shot src={iam} alt="The IAM access log in soft mode, with Generate a policy and Simulate below it" caption="IAM: in soft mode every call is recorded and none refused. Generate the policy your tests needed, or simulate one before you trust it." />
+
+The header shows the address, the region and the IAM mode (`--iam-mode`: soft,
+the default, records every call and refuses none; enforce refuses what the
+policies do not allow; off evaluates nothing).
+
+## Keys
+
+The bar along the foot of every page shows the keys that work there.
+
+<Keys
+  keys={[
+    ["⌘K", "jump to a resource, or do something"],
+    ["j k", "move through the list"],
+    ["⏎", "open"],
+    ["/", "filter"],
+    ["c", "create one (on a list), or copy as curl (on an open call)"],
+    ["esc", "close"],
+  ]}
+/>
+
+## Where to next
+
+- Point your tools at the endpoint: [Getting started](getting-started.md).
+- Check what an operation does here: [API support](SUPPORT.md).
+- Deploy a template and watch it on the wire: [CloudFormation, SAM, CDK and Serverless](cloudformation.md).

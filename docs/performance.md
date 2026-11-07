@@ -1,4 +1,7 @@
-# Performance
+---
+title: "Performance"
+description: "Measured costs of doze-aws: hot paths, whole requests, idle memory and boot, and how to reproduce them."
+---
 
 Measured, not estimated. Everything here comes from `task bench`, and you can
 reproduce it:

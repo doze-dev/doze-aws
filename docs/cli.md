@@ -1,4 +1,7 @@
-# CLI reference
+---
+title: "CLI reference"
+description: "Every doze-aws command and flag, the doze-aws.toml file, and how clients connect."
+---
 
 `doze-aws` is a single static binary. Run it with no arguments to serve every
 implemented service; it runs in the foreground until you interrupt it (Ctrl-C).
