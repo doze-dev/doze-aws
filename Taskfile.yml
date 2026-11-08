@@ -233,6 +233,17 @@ tasks:
       - cd e2e && bun install --frozen-lockfile
       - cd e2e && bun test fidelity
 
+  site-media:
+    desc: 'The doze-dev.com console pictures, shot from a real instance running Larder: go tool task site-media [-- <out-dir> [name...]] (default ../doze-website/public/media; needs the aws CLI and node)'
+    cmds:
+      - go build -o e2e/.tmp/site-media/doze-aws ./cmd/doze-aws
+      - cd e2e && bun install --frozen-lockfile
+      - cd e2e && bunx --bun playwright install chromium
+      # Boots the binary in a fresh directory named larder, builds Larder's AWS
+      # and its traffic with the aws CLI, then writes aws-*.webp (stills) and
+      # aws-live.webm (the wire filling up). See the top of e2e/site-media.ts.
+      - cd e2e && bun site-media.ts {{.CLI_ARGS}}
+
   test:conformance:
     desc: "boto3 scenarios against a real binary, compared with what real AWS answered (see conformance/README.md; not part of check)"
     cmds:
