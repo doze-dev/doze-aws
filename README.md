@@ -1,5 +1,8 @@
 # doze-aws
 
+> [!WARNING]
+> **Still in active development.** This project is not cleared for use yet. Expect breaking changes, and do not rely on it for real work.
+
 Local AWS services, built from scratch in Go. One small static binary that
 speaks the real AWS wire protocols — no Docker, no JVM, no cloud.
 
